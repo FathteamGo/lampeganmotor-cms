@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class VehicleModel extends Model
 {
-    protected $fillable = ['name', 'manufacturer', 'year']; // Agar bisa diisi massal
+    protected $fillable = ['name', 'manufacturer', 'year', 'brand_id']; // Agar bisa diisi massal
     /** @use HasFactory<\Database\Factories\VehicleModelFactory> */
     use HasFactory;
 }

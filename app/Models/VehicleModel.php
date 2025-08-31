@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class VehicleModel extends Model
 {
-    protected $fillable = ['name', 'manufacturer', 'year', 'brand_id']; // Agar bisa diisi massal
+    protected $fillable = ['name', 'brand_id']; // Agar bisa diisi massal
     /** @use HasFactory<\Database\Factories\VehicleModelFactory> */
     use HasFactory;
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
 }

@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute; // <-- PASTIKAN USE STATEMENT INI ADA
+
 
 class Vehicle extends Model
 {
-    protected $fillable = ['vehicle_model_id', 'type_id', 'color_id', 'year', 'vin', 'license_plate', 'purchase_price', 'status']; // Agar bisa diisi massal
+    protected $fillable = ['vehicle_model_id', 'type_id', 'color_id', 'year_id', 'vin', 'license_plate', 'engine_number', 'bpkb_number', 'purchase_price', 'sale_price', 'status', 'description', 'dp_percentage', 'engine_specification', 'notes', 'location']; // Agar bisa diisi massal
     /** @use HasFactory<\Database\Factories\VehicleFactory> */
     use HasFactory;
 
@@ -34,5 +36,22 @@ class Vehicle extends Model
     public function sale()
     {
         return $this->hasOne(Sale::class);
+    }
+
+    public function year()
+    {
+        return $this->belongsTo(Year::class);
+    }
+
+    public function displayName(): Attribute
+    {
+        return Attribute::make(
+            get: fn() =>
+            // Menggunakan optional() agar tidak error jika relasi kosong
+            optional($this->vehicleModel->brand)->name . ' ' .
+                optional($this->vehicleModel)->name
+            // optional($this->vehicleModel)->name . ' - ' .
+            // optional($this->year)->year
+        );
     }
 }

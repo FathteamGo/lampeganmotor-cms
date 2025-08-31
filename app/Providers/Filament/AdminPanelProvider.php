@@ -19,6 +19,9 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationGroup;
+use App\Filament\Widgets\DashboardStats;
+use App\Filament\Widgets\SalesChart;
+use App\Filament\Widgets\RevenueChart;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -39,8 +42,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+                // Daftarkan widget Anda di sini
+                DashboardStats::class,
+                SalesChart::class,
+                RevenueChart::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make()

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Frontend;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -11,20 +11,59 @@ use App\Models\Color;
 use App\Models\VehicleModel;
 use App\Models\Purchase;
 use App\Models\Supplier;
+use App\Models\Year;
 
 class LandingController extends Controller
 {
     /**
      * Display the homepage with a list of available vehicles.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $vehicles = Vehicle::where('status', 'available')
-            ->with(['vehicleModel.brand', 'photos']) // Eager load relationships for efficiency
-            ->latest()
-            ->paginate(9); // Show 9 vehicles per page
+        // Query dasar untuk mengambil motor yang tersedia
+        $vehicleQuery = Vehicle::where('status', 'hold')->with(['vehicleModel.brand', 'photos', 'type', 'year']);
+        // $vehicleQuery = Vehicle::where('status', 'available')->with(['vehicleModel.brand', 'photos', 'type', 'year']);
 
-        return view('frontend.index', compact('vehicles'));
+        // --- Menerapkan Filter ---
+        if ($request->filled('brand')) {
+            $vehicleQuery->whereHas('vehicleModel.brand', function ($query) use ($request) {
+                $query->where('id', $request->brand);
+            });
+        }
+        if ($request->filled('type')) {
+            $vehicleQuery->where('type_id', $request->type);
+        }
+        if ($request->filled('year')) {
+            $vehicleQuery->where('year_id', $request->year);
+        }
+        if ($request->filled('price') && $request->price != 'semua') {
+            $priceRange = explode('-', $request->price);
+            $vehicleQuery->whereBetween('sale_price', [$priceRange[0], $priceRange[1]]);
+        }
+        // --- Akhir Filter ---
+
+        $vehicles = $vehicleQuery->latest()->paginate(9)->withQueryString();
+
+        // Data untuk mengisi dropdown filter
+        $brands = Brand::orderBy('name')->get();
+        $types = Type::orderBy('name')->get();
+        $years = Year::orderBy('year', 'desc')->get();
+
+        // Data untuk Hero Slider (bisa juga diambil dari database)
+        $heroSlides = [
+            [
+                'imageUrl' => "https://gofath.com/motor.jpg", // Ganti dengan gambar Anda
+                'title' => 'Performa & Adrenalin',
+                'subtitle' => 'Temukan Koleksi Motor Sport Terbaik Kami'
+            ],
+            [
+                'imageUrl' => "https://gofath.com/motor.jpg", // Ganti dengan gambar Anda
+                'title' => 'Kenyamanan & Gaya',
+                'subtitle' => 'Jelajahi Pilihan Skuter Matik Modern'
+            ],
+        ];
+
+        return view('frontend.index', compact('vehicles', 'brands', 'types', 'years', 'heroSlides'));
     }
 
     /**
@@ -34,7 +73,7 @@ class LandingController extends Controller
     public function show(Vehicle $vehicle)
     {
         // The vehicle is automatically fetched by Laravel, or it will throw a 404 error if not found.
-        $vehicle->load(['vehicleModel.brand', 'type', 'color', 'photos']);
+        $vehicle->load(['vehicleModel.brand', 'type', 'color', 'photos', 'year']);
 
         return view('frontend.show', compact('vehicle'));
     }
@@ -47,9 +86,10 @@ class LandingController extends Controller
         // Send master data to populate the form's dropdowns
         $brands = Brand::orderBy('name')->get();
         $types = Type::orderBy('name')->get();
-        $vehicleModels = VehicleModel::orderBy('name')->get();
-
-        return view('frontend.sell', compact('brands', 'types', 'vehicleModels'));
+        // $vehicleModels = VehicleModel::orderBy('name')->get(); // This is not ideal.
+        // Vehicle models should be loaded dynamically via AJAX based on the selected brand
+        // to prevent invalid combinations and improve user experience.
+        return view('frontend.sell', compact('brands', 'types'));
     }
 
     /**

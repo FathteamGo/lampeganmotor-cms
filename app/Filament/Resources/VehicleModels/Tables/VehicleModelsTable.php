@@ -14,9 +14,10 @@ class VehicleModelsTable
     {
         return $table
             ->columns([
-                TextColumn::make('brand_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('brand.name') // Menggunakan relasi untuk menampilkan nama brand
+                    ->label('Brand') // Label kolom
+                    ->sortable() // Membuat kolom dapat diurutkan
+                    ->searchable(), // Membuat kolom dapat dicari
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('created_at')

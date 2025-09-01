@@ -730,6 +730,7 @@ CREATE TABLE `vehicles` (
   `bpkb_number` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `purchase_price` decimal(15,2) NOT NULL,
   `sale_price` decimal(15,2) DEFAULT NULL,
+  `odometer` int unsigned DEFAULT NULL,     
   `status` enum('available','sold','in_repair','hold') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'hold',
   `description` text COLLATE utf8mb4_unicode_ci,
   `dp_percentage` decimal(5,2) DEFAULT NULL,
@@ -759,10 +760,13 @@ CREATE TABLE `vehicles` (
 --
 
 LOCK TABLES `vehicles` WRITE;
-/*!40000 ALTER TABLE `vehicles` DISABLE KEYS */;
-INSERT INTO `vehicles` VALUES (1,1,1,1,1,'1','1','1','1',1.00,14500000.00,'hold','<p>Ok</p>',15.00,'110','Majalaya','<p>Bagus</p>','2025-08-31 06:47:13','2025-08-31 09:18:57'),(2,2,1,1,1,'123','123','123','123',111.00,24900000.00,'available','<p><strong>Honda Vario 160 ABS - Tenaga dan Keamanan dalam Satu Paket.</strong></p><p>Tingkatkan pengalaman berkendara Anda dengan Honda Vario 160 ABS. Nikmati akselerasi bertenaga dari mesin 160cc eSP+ dan rasa percaya diri penuh berkat pengereman canggih ABS. Desainnya yang sporty dan fitur modern seperti Smart Key System menjadikan setiap perjalanan lebih istimewa. Unit dalam kondisi prima dan terawat, siap untuk Anda bawa pulang. Segera hubungi kami untuk penawaran terbaik!</p>',15.00,'160','Majalaya','<p>OK</p>','2025-08-31 07:42:13','2025-08-31 19:12:56');
-/*!40000 ALTER TABLE `vehicles` ENABLE KEYS */;
+INSERT INTO `vehicles`
+(`id`,`vehicle_model_id`,`type_id`,`color_id`,`year_id`,`vin`,`engine_number`,`license_plate`,`bpkb_number`,`purchase_price`,`sale_price`,`odometer`,`status`,`description`,`dp_percentage`,`engine_specification`,`location`,`notes`,`created_at`,`updated_at`)
+VALUES
+(1,1,1,1,1,'1','1','1','1',1.00,14500000.00, NULL,'hold','<p>Ok</p>',15.00,'110','Majalaya','<p>Bagus</p>','2025-08-31 06:47:13','2025-08-31 09:18:57'),
+(2,2,1,1,1,'123','123','123','123',111.00,24900000.00, NULL,'available','<p><strong>Honda Vario 160 ABS - Tenaga dan Keamanan dalam Satu Paket.</strong></p><p>Tingkatkan pengalaman berkendara Anda dengan Honda Vario 160 ABS. Nikmati akselerasi bertenaga dari mesin 160cc eSP+ dan rasa percaya diri penuh berkat pengereman canggih ABS. Desainnya yang sporty dan fitur modern seperti Smart Key System menjadikan setiap perjalanan lebih istimewa. Unit dalam kondisi prima dan terawat, siap untuk Anda bawa pulang. Segera hubungi kami untuk penawaran terbaik!</p>',15.00,'160','Majalaya','<p>OK</p>','2025-08-31 07:42:13','2025-08-31 19:12:56');
 UNLOCK TABLES;
+
 
 --
 -- Table structure for table `years`

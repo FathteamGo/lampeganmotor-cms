@@ -26,6 +26,7 @@ return new class extends Migration
 
             $table->decimal('purchase_price', 15, 2); // Harga Beli
             $table->decimal('sale_price', 15, 2)->nullable(); // Harga Jual
+            $table->unsignedInteger('odometer')->nullable();
 
             $table->enum('status', ['available', 'sold', 'in_repair', 'hold'])->default('hold');
             $table->text('notes')->nullable();

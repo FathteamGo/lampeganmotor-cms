@@ -7,7 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class Purchase extends Model
 {
-    protected $fillable = ['item', 'quantity', 'price', 'purchase_date']; // Agar bisa diisi massal
-    /** @use HasFactory<\Database\Factories\PurchaseFactory> */
     use HasFactory;
+
+    protected $fillable = [
+        'vehicle_id',
+        'supplier_id',
+        'purchase_date',
+        'total_price',
+        'notes',
+    ];
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class);
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
 }

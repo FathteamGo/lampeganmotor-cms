@@ -1,5 +1,6 @@
 <div class="bg-gray-100 py-8">
     <div class="container mx-auto max-w-md px-4" id="filter-section">
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-dark mb-8 text-center">Cari Motor Mu</h2>
         {{-- Form method GET untuk filter --}}
         {{-- [DIPERBAIKI] Hapus semua prefix responsif (md:, lg:) --}}
         <form action="{{ route('landing.index') }}" method="GET" class="grid grid-cols-2 gap-4 items-end bg-white p-6 rounded-lg shadow-xl">

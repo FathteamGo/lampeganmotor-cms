@@ -3,28 +3,26 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
 
+// Halaman welcome (default Laravel)
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Route for the Homepage (Landing Page)
+// Halaman utama (Landing Page)
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
 
-// Route for the Vehicle Detail Page
-// We use {vehicle} for Route Model Binding, which is a Laravel best practice.
+// Halaman detail motor
 Route::get('/vehicles/{vehicle}', [LandingController::class, 'show'])->name('landing.show');
 
-// Routes for the "Sell Your Motorcycle" Form
-Route::get('/sell', [LandingController::class, 'sellForm'])->name('landing.sell.form');
-Route::post('/sell', [LandingController::class, 'sellSubmit'])->name('landing.sell.submit');
+// Form jual motor
+Route::get('/jual-motor-anda', [LandingController::class, 'sellForm'])->name('landing.sell.form');
+Route::post('/jual-motor-anda', [LandingController::class, 'sellSubmit'])->name('landing.sell.submit');
 
-Route::get('/tentang', function () {
-    return view('frontend.about'); // Buat file about.blade.php
-})->name('landing.about');
+// API untuk ambil model by brand (AJAX)
+Route::get('/api/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
+    ->name('sell.models-by-brand');
 
-Route::get('/jual-motor-anda', function () {
-    return view('frontend.sell-form'); // Buat file sell-form.blade.php
-})->name('landing.sell.form');
-Route::get('/kontak', function () {
-    return view('frontend.contact'); // Buat file contact.blade.php
-})->name('landing.contact');
+// Halaman tambahan
+Route::get('/tentang', fn () => view('frontend.about'))->name('landing.about');
+Route::get('/kontak', fn () => view('frontend.contact'))->name('landing.contact');
+

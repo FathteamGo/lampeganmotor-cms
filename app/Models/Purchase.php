@@ -17,6 +17,7 @@ class Purchase extends Model
         'notes',
     ];
 
+
     // Relasi ke Vehicle
     public function vehicleModel()
     {

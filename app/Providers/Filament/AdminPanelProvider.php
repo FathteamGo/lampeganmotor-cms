@@ -10,8 +10,6 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -42,7 +40,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                // Daftarkan widget Anda di sini
                 DashboardStats::class,
                 SalesChart::class,
                 RevenueChart::class,
@@ -51,22 +48,27 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()
                     ->label('Master Data')
                     ->icon('heroicon-o-circle-stack'),
+
                 NavigationGroup::make()
                     ->label('User Management')
                     ->icon('heroicon-o-user-group')
                     ->collapsed(),
+
+                // ⬇⬇⬇ HAPUS icon di group ini
                 NavigationGroup::make()
                     ->label('Transactions')
-                    ->icon('heroicon-o-arrows-right-left')
                     ->collapsed(),
+
                 NavigationGroup::make()
                     ->label('Financial')
                     ->icon('heroicon-o-banknotes')
                     ->collapsed(),
+
                 NavigationGroup::make()
                     ->label('Assets Management')
                     ->icon('heroicon-o-archive-box')
                     ->collapsed(),
+
                 NavigationGroup::make()
                     ->label('Report & Audit')
                     ->icon('heroicon-o-document-chart-bar')

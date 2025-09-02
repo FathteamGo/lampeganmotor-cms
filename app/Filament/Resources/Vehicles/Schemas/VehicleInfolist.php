@@ -31,6 +31,9 @@ class VehicleInfolist
                 TextEntry::make('dp_percentage')
                     ->label('DP Percentage')
                     ->formatStateUsing(fn($state) => $state ? "{$state}%" : '-'),
+                TextEntry::make('odometer')
+                    ->label('Odometer (KM)')
+                    ->formatStateUsing(fn ($state) => $state ? number_format($state) . ' km' : '-'),
                 TextEntry::make('status')
                     ->color(fn(string $state): string => match ($state) {
                         'available' => 'success',

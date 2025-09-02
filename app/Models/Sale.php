@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Sale extends Model
 {
-    protected $fillable = ['customer_id', 'vehicle_id', 'sale_date', 'price', 'marketing_user_id']; // Agar bisa diisi massal
+    protected $fillable = ['customer_id', 'vehicle_id', 'sale_date', 'sale_price', 'marketing_user_id']; // Agar bisa diisi massal
     /** @use HasFactory<\Database\Factories\SaleFactory> */
     use HasFactory;
     public function customer()

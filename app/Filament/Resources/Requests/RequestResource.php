@@ -21,7 +21,7 @@ class RequestResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = 'Transactions';
     protected static ?string $navigationLabel = 'Requests';
     protected static ?int $navigationSort = 3;
-
+ //   protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxStack;
     public static function table(Table $table): Table
     {
         return RequestsTable::configure($table);

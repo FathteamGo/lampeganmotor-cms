@@ -15,10 +15,8 @@ class InventoryReport extends Page
     protected static ?string $navigationLabel = 'Inventory Report';
     protected static ?string $title = 'Laporan & Audit Stok';
 
+    // protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
     protected string $view = 'filament.pages.inventory-report';
-
-    
-
 
      public function getVehiclesProperty()
     {

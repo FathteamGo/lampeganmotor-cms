@@ -15,19 +15,19 @@ class VehiclesTable
     {
         return $table
             ->columns([
-                TextColumn::make('vehicleModel.name') // Menggunakan relasi vehicleModel dan menampilkan kolom name
+                TextColumn::make('vehicleModel.name')
                     ->label('Model')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('type.name') // Menggunakan relasi type dan menampilkan kolom name
+                TextColumn::make('type.name')
                     ->label('Type')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('color.name') // Menggunakan relasi color dan menampilkan kolom name
+                TextColumn::make('color.name')
                     ->label('Color')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('year.year') // Menggunakan relasi year dan menampilkan kolom year
+                TextColumn::make('year.year')
                     ->label('Year')
                     ->sortable()
                     ->searchable(),
@@ -44,13 +44,20 @@ class VehiclesTable
                 TextColumn::make('purchase_price')
                     ->numeric()
                     ->sortable()
-                    ->money('IDR'), // Menampilkan sebagai mata uang
+                    ->money('IDR'),
                 TextColumn::make('sale_price')
                     ->numeric()
                     ->sortable()
-                    ->money('IDR'), // Menampilkan sebagai mata uang
+                    ->money('IDR'),
+
+                TextColumn::make('odometer')
+                    ->label('Odometer')
+                    ->numeric()
+                    ->sortable()
+                    ->searchable(),
+
                 TextColumn::make('status')
-                    ->badge() // Menggunakan badge untuk visualisasi yang lebih baik
+                    ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'available' => 'success',
                         'sold' => 'danger',

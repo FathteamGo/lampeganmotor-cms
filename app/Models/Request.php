@@ -7,7 +7,8 @@ class Request extends Model
 {
     protected $fillable = [
         'supplier_id','brand_id','vehicle_model_id','year_id',
-        'odometer','type','status','notes','vehicle_id'
+        'odometer','type','status','notes','vehicle_id',
+        'license_plate',
     ];
 
     public function supplier(){ return $this->belongsTo(\App\Models\Supplier::class); }

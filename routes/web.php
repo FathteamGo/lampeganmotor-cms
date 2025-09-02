@@ -26,3 +26,6 @@ Route::get('/api/models-by-brand/{brand}', [LandingController::class, 'modelsByB
 Route::get('/tentang', fn () => view('frontend.about'))->name('landing.about');
 Route::get('/kontak', fn () => view('frontend.contact'))->name('landing.contact');
 
+Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
+    ->whereNumber('brand')
+    ->name('sell.models-by-brand');

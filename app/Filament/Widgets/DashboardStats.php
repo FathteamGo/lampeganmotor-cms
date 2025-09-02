@@ -7,104 +7,115 @@ use App\Models\OtherAsset;
 use App\Models\Sale;
 use App\Models\Vehicle;
 use Carbon\Carbon;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class DashboardStats extends BaseWidget
 {
-    protected ?string $pollingInterval = null;
+    use InteractsWithPageFilters;
 
-    public ?string $startDate = null;
-    public ?string $endDate = null;
-
-    protected $listeners = ['filterChanged' => 'applyFilter'];
-
-    public function applyFilter($startDate, $endDate): void
+    /**
+     * Set 3 card per baris
+     */
+    protected function getColumns(): int
     {
-        $this->startDate = $startDate;
-        $this->endDate = $endDate;
+        return 3;
     }
 
     protected function getStats(): array
     {
-        // Default filter 
-        $start = $this->startDate ?? Carbon::now()->startOfMonth()->toDateString();
-        $end   = $this->endDate ?? Carbon::now()->endOfMonth()->toDateString();
+        // Ambil filter dari pageFilters
+        $startDate = ! is_null($this->pageFilters['startDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['startDate'])
+            : Carbon::today();
 
-        // Data stok unit tersedia
+        $endDate = ! is_null($this->pageFilters['endDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['endDate'])
+            : Carbon::today();
+
+        // =============================
+        // Data
+        // =============================
+
+        // Stok unit tersedia
         $stokUnit = Vehicle::where('status', 'available')->count();
 
-        // Jumlah unit terjual
-        $terjualHariIni = Sale::whereDate('sale_date', Carbon::today())->count();
+        // Terjual
+        $terjualPeriode = Sale::whereBetween('sale_date', [$startDate, $endDate])->count();
         $terjualBulanIni = Sale::whereYear('sale_date', Carbon::now()->year)
             ->whereMonth('sale_date', Carbon::now()->month)
             ->count();
+        $terjualTahunIni = Sale::whereYear('sale_date', Carbon::now()->year)->count();
 
-        // Jumlah unit terjual filter
-        $terjualFilter = Sale::whereBetween('sale_date', [$start, $end])->count();
-
-        // Total penjualan (uang)
-        $totalPenjualanHariIni = Sale::whereDate('sale_date', Carbon::today())->sum('sale_price');
+        // Penjualan
+        $totalPenjualanPeriode = Sale::whereBetween('sale_date', [$startDate, $endDate])->sum('sale_price');
         $totalPenjualanBulanIni = Sale::whereYear('sale_date', Carbon::now()->year)
             ->whereMonth('sale_date', Carbon::now()->month)
             ->sum('sale_price');
         $totalPenjualanTahunIni = Sale::whereYear('sale_date', Carbon::now()->year)->sum('sale_price');
 
-        // Total penjualan filter
-        $totalPenjualanFilter = Sale::whereBetween('sale_date', [$start, $end])->sum('sale_price');
-
-        // Total pengeluaran (uang)
-        $totalPengeluaranHariIni = Expense::whereDate('expense_date', Carbon::today())->sum('amount');
+        // Pengeluaran
+        $totalPengeluaranPeriode = Expense::whereBetween('expense_date', [$startDate, $endDate])->sum('amount');
         $totalPengeluaranBulanIni = Expense::whereYear('expense_date', Carbon::now()->year)
             ->whereMonth('expense_date', Carbon::now()->month)
             ->sum('amount');
         $totalPengeluaranTahunIni = Expense::whereYear('expense_date', Carbon::now()->year)->sum('amount');
 
-        // Total pengeluaran filter
-        $totalPengeluaranFilter = Expense::whereBetween('expense_date', [$start, $end])->sum('amount');
-
-        // Total nilai aset
+        // Aset
         $totalAsetMotor = Vehicle::sum('purchase_price');
         $totalAsetLainnya = OtherAsset::sum('value');
         $totalNilaiAset = $totalAsetMotor + $totalAsetLainnya;
 
-        $stats = [
-            Stat::make('Stok', $stokUnit)
+        // =============================
+        // Stats
+        // =============================
+        return [
+            // ================= STOK =================
+            Stat::make('Stok Unit', $stokUnit)
                 ->description('Total unit tersedia')
                 ->color('primary'),
 
-            Stat::make('Terjual Hari Ini', $terjualHariIni . ' Unit')
-                ->description('Jumlah unit terjual hari ini')
+            // ================= TERJUAL =================
+            Stat::make('Terjual (Periode)', $terjualPeriode . ' Unit')
+                ->description("{$startDate->format('d M Y')} s/d {$endDate->format('d M Y')}")
                 ->color('success'),
 
-            Stat::make('Terjual Bulan Ini', $terjualBulanIni . ' Unit')
+            Stat::make('Terjual (Bulan Ini)', $terjualBulanIni . ' Unit')
                 ->description('Jumlah unit terjual bulan ini')
                 ->color('success'),
 
-            Stat::make('Total Penjualan Hari Ini', 'Rp ' . number_format($totalPenjualanHariIni, 0, ',', '.'))
-                ->description('Akumulasi penjualan hari ini')
+            // Stat::make('Terjual (Tahun Ini)', $terjualTahunIni . ' Unit')
+            //     ->description('Jumlah unit terjual tahun ini')
+            //     ->color('success'),
+
+            // ================= PENJUALAN =================
+            Stat::make('Penjualan (Periode)', 'Rp ' . number_format($totalPenjualanPeriode, 0, ',', '.'))
+                ->description("{$startDate->format('d M Y')} s/d {$endDate->format('d M Y')}")
                 ->color('warning'),
 
-            Stat::make('Total Penjualan Bulan Ini', 'Rp ' . number_format($totalPenjualanBulanIni, 0, ',', '.'))
+            Stat::make('Penjualan (Bulan Ini)', 'Rp ' . number_format($totalPenjualanBulanIni, 0, ',', '.'))
                 ->description('Akumulasi penjualan bulan ini')
                 ->color('warning'),
 
-            Stat::make('Total Penjualan Tahun Ini', 'Rp ' . number_format($totalPenjualanTahunIni, 0, ',', '.'))
+            Stat::make('Penjualan (Tahun Ini)', 'Rp ' . number_format($totalPenjualanTahunIni, 0, ',', '.'))
                 ->description('Akumulasi penjualan tahun ini')
                 ->color('warning'),
 
-            Stat::make('Pengeluaran Hari Ini', 'Rp ' . number_format($totalPengeluaranHariIni, 0, ',', '.'))
-                ->description('Total pengeluaran hari ini')
+            // ================= PENGELUARAN =================
+            Stat::make('Pengeluaran (Periode)', 'Rp ' . number_format($totalPengeluaranPeriode, 0, ',', '.'))
+                ->description("{$startDate->format('d M Y')} s/d {$endDate->format('d M Y')}")
                 ->color('danger'),
 
-            Stat::make('Pengeluaran Bulan Ini', 'Rp ' . number_format($totalPengeluaranBulanIni, 0, ',', '.'))
+            Stat::make('Pengeluaran (Bulan Ini)', 'Rp ' . number_format($totalPengeluaranBulanIni, 0, ',', '.'))
                 ->description('Total pengeluaran bulan ini')
                 ->color('danger'),
 
-            Stat::make('Pengeluaran Tahun Ini', 'Rp ' . number_format($totalPengeluaranTahunIni, 0, ',', '.'))
+            Stat::make('Pengeluaran (Tahun Ini)', 'Rp ' . number_format($totalPengeluaranTahunIni, 0, ',', '.'))
                 ->description('Total pengeluaran tahun ini')
                 ->color('danger'),
 
+            // ================= ASET =================
             Stat::make('Total Aset Motor', 'Rp ' . number_format($totalAsetMotor, 0, ',', '.'))
                 ->description('Nilai seluruh aset kendaraan')
                 ->color('info'),
@@ -117,22 +128,5 @@ class DashboardStats extends BaseWidget
                 ->description('Akumulasi semua aset')
                 ->color('primary'),
         ];
-
-      
-        if ($this->startDate && $this->endDate) {
-            $stats[] = Stat::make('Terjual (Filter)', $terjualFilter . ' Unit')
-                ->description("Dari {$start} s/d {$end}")
-                ->color('success');
-
-            $stats[] = Stat::make('Total Penjualan (Filter)', 'Rp ' . number_format($totalPenjualanFilter, 0, ',', '.'))
-                ->description("Dari {$start} s/d {$end}")
-                ->color('warning');
-
-            $stats[] = Stat::make('Total Pengeluaran (Filter)', 'Rp ' . number_format($totalPengeluaranFilter, 0, ',', '.'))
-                ->description("Dari {$start} s/d {$end}")
-                ->color('danger');
-        }
-
-        return $stats;
     }
 }

@@ -4,7 +4,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-
 class Purchase extends Model
 {
     use HasFactory;
@@ -17,8 +16,12 @@ class Purchase extends Model
         'notes',
     ];
 
+    // Cast purchase_date ke datetime
+    protected $casts = [
+        'purchase_date' => 'datetime',
+    ];
 
-    // Relasi ke Vehicle
+    // Relasi ke VehicleModel
     public function vehicleModel()
     {
         return $this->belongsTo(VehicleModel::class);
@@ -29,7 +32,6 @@ class Purchase extends Model
     {
         return $this->vehicleModel->name ?? 'Unknown';
     }
-
 
     public function vehicle()
     {
@@ -42,3 +44,4 @@ class Purchase extends Model
         return $this->belongsTo(Supplier::class);
     }
 }
+    

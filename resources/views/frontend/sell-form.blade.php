@@ -48,28 +48,43 @@ use Illuminate\Support\Facades\Storage;
                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
                 </div>
 
-                {{-- Merk (input teks, kita buat brand baru kalau belum ada) --}}
+                {{-- Merk (dropdown) --}}
                 <div>
-                    <label for="brand_name" class="block text-sm font-medium">Merk</label>
-                    <input type="text" name="brand_name" id="brand_name" value="{{ old('brand_name') }}" required
-                           placeholder="contoh: Honda"
-                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                    <label for="brand_id" class="block text-sm font-medium">Merk</label>
+                    <select name="brand_id" id="brand_id" required
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                        <option value="">-- Pilih Merk --</option>
+                        @foreach($brands as $b)
+                            <option value="{{ $b->id }}" {{ old('brand_id') == $b->id ? 'selected' : '' }}>
+                                {{ $b->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
-                {{-- Model (input teks, kita buat model baru kalau belum ada) --}}
+                {{-- Model (dependent) --}}
                 <div>
-                    <label for="model_name" class="block text-sm font-medium">Model</label>
-                    <input type="text" name="model_name" id="model_name" value="{{ old('model_name') }}" required
-                           placeholder="contoh: Vario 160"
-                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                    <label for="vehicle_model_id" class="block text-sm font-medium">Model</label>
+                    <select name="vehicle_model_id" id="vehicle_model_id" required
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm"
+                        {{ old('brand_id') ? '' : 'disabled' }}>
+                        <option value="">-- Pilih Model --</option>
+                        {{-- opsi diisi via JS --}}
+                    </select>
                 </div>
 
                 {{-- Tahun --}}
                 <div>
-                    <label for="year" class="block text-sm font-medium">Tahun</label>
-                    <input type="number" name="year" id="year" value="{{ old('year') }}" required min="1900" max="2099"
-                           placeholder="contoh: 2020"
-                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                    <label for="year_id" class="block text-sm font-medium">Tahun</label>
+                    <select name="year_id" id="year_id" required
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                        <option value="">-- Pilih Tahun --</option>
+                        @foreach($years as $y)
+                            <option value="{{ $y->id }}" {{ old('year_id') == $y->id ? 'selected' : '' }}>
+                                {{ $y->year }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 {{-- Plat Nomor --}}
@@ -128,6 +143,47 @@ use Illuminate\Support\Facades\Storage;
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // ========= Dependent dropdown: BRAND -> MODELS =========
+    const brandSelect  = document.getElementById('brand_id');
+    const modelSelect  = document.getElementById('vehicle_model_id');
+    const oldBrandId   = "{{ old('brand_id') }}";
+    const oldModelId   = "{{ old('vehicle_model_id') }}";
+
+    const populateModels = async (brandId, selectedId = null) => {
+        modelSelect.innerHTML = '<option value="">-- Pilih Model --</option>';
+        modelSelect.disabled = true;
+        if (!brandId) return;
+
+        try {
+            const url = `{{ route('ajax.models.byBrand', ':id') }}`.replace(':id', brandId);
+            const res = await fetch(url);
+            const data = await res.json();
+
+            data.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                if (String(selectedId) === String(m.id)) opt.selected = true;
+                modelSelect.appendChild(opt);
+            });
+
+            modelSelect.disabled = false;
+        } catch (e) {
+            console.error(e);
+            alert('Gagal memuat model. Coba lagi.');
+        }
+    };
+
+    brandSelect?.addEventListener('change', (e) => {
+        populateModels(e.target.value);
+    });
+
+    // Auto-populate saat reload (validasi gagal)
+    if (oldBrandId) {
+        populateModels(oldBrandId, oldModelId);
+    }
+
+    // ========= Preview foto (yang sudah kamu punya) =========
     const MAX_FILES = 5;
     const MAX_SIZE = 4 * 1024 * 1024; // 4MB
     const wrapper = document.getElementById('photos-wrapper');

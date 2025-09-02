@@ -18,6 +18,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 
 class RequestsTable
 {
@@ -26,8 +27,7 @@ class RequestsTable
         return $table
             ->query(
                 VehicleRequest::query()
-                    // hanya tampilkan request yang BELUM punya vehicle
-                    ->whereNull('vehicle_id')
+                    // ->whereNull('vehicle_id') // DIHAPUS: supaya request tetap tampil setelah approve
                     ->with(['supplier', 'brand', 'vehicleModel', 'year', 'photos'])
                     ->latest()
             )
@@ -38,20 +38,33 @@ class RequestsTable
                 TextColumn::make('brand.name')->label('Merk')->sortable()->searchable(),
                 TextColumn::make('vehicleModel.name')->label('Model')->sortable()->searchable(),
                 TextColumn::make('odometer')->label('Odometer')->sortable(),
-                ImageColumn::make('photos.0.path')->label('Photo')->disk('public')->square(),
+
+                // Foto: konversi path relatif -> URL publik
+                ImageColumn::make('photo_thumb')
+                    ->label('Photo')
+                    ->getStateUsing(function (VehicleRequest $r) {
+                        $path = $r->photos->first()?->path; // "requests/{id}/file.png"
+                        return $path ? Storage::disk('public')->url($path) : null;
+                    })
+                    ->square()
+                    ->height(48)
+                    ->width(64),
+
                 TextColumn::make('license_plate')->label('Plate')->toggleable()->searchable(),
                 TextColumn::make('notes')->label('Note')->limit(40)->tooltip(fn ($s) => $s),
 
-                SelectColumn::make('status')
+                // status request (hold / available / in_repair / sold / converted / rejected)
+                TextColumn::make('status')
                     ->label('Status')
-                    ->options([
-                        'hold'      => 'Hold',
-                        'available' => 'Available',
-                        'in_repair' => 'In_Repair',
-                        'sold'      => 'Sold',
-                    ])
-                    ->selectablePlaceholder(false)
-                    ->rules(['required']),
+                    ->badge()
+                    ->colors([
+                        'warning' => 'hold',
+                        'success' => 'converted',
+                        'danger'  => 'rejected',
+                        'info'    => 'available',
+                        'gray'    => 'in_repair',
+                        'secondary' => 'sold',
+                    ]),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -61,13 +74,12 @@ class RequestsTable
                         'available' => 'Available',
                         'in_repair' => 'In_Repair',
                         'sold'      => 'Sold',
-                    ])
-                    ->default('hold'),
-
+                        'converted' => 'Converted',
+                        'rejected'  => 'Rejected',
+                    ]),
                 SelectFilter::make('brand_id')
                     ->label('Merk')
                     ->relationship('brand', 'name'),
-
                 SelectFilter::make('year_id')
                     ->label('Tahun')
                     ->relationship('year', 'year'),
@@ -83,8 +95,8 @@ class RequestsTable
                     ->color('success')
                     ->icon('heroicon-o-check')
                     ->requiresConfirmation()
+                    ->visible(fn (VehicleRequest $r) => ! in_array($r->status, ['converted', 'rejected']))
                     ->form([
-                        // REQUIRED relations
                         Forms\Components\Select::make('type_id')
                             ->label('Type')
                             ->options(fn () => Type::orderBy('name')->pluck('name','id'))
@@ -95,7 +107,6 @@ class RequestsTable
                             ->options(fn () => Color::orderBy('name')->pluck('name','id'))
                             ->required(),
 
-                        // UNIQUE & REQUIRED in vehicles
                         Forms\Components\TextInput::make('vin')
                             ->label('VIN')
                             ->required()
@@ -108,7 +119,6 @@ class RequestsTable
                             ->maxLength(255)
                             ->rule(Rule::unique('vehicles','engine_number')),
 
-                        // OPTIONAL uniques
                         Forms\Components\TextInput::make('license_plate')
                             ->label('License Plate')
                             ->maxLength(255)
@@ -128,7 +138,6 @@ class RequestsTable
                                     ->where(fn ($q) => $q->whereNotNull('bpkb_number'))
                             ),
 
-                        // PRICES
                         Forms\Components\TextInput::make('purchase_price')
                             ->label('Purchase Price')
                             ->numeric()
@@ -141,14 +150,12 @@ class RequestsTable
                             ->minValue(0)
                             ->nullable(),
 
-                        // ODOMETER
                         Forms\Components\TextInput::make('odometer')
                             ->label('Odometer (KM)')
                             ->numeric()
                             ->minValue(0)
                             ->default(fn (VehicleRequest $r) => (int) $r->odometer),
 
-                        // STATUS VEHICLE
                         Forms\Components\Select::make('vehicle_status')
                             ->label('Vehicle Status')
                             ->options([
@@ -160,7 +167,6 @@ class RequestsTable
                             ->default('hold')
                             ->required(),
 
-                        // FREE TEXTS
                         Forms\Components\Textarea::make('description')
                             ->label('Description')
                             ->rows(3)
@@ -189,7 +195,6 @@ class RequestsTable
                             ->default(fn (VehicleRequest $r) => $r->notes)
                             ->nullable(),
 
-                        // NOTIF
                         Forms\Components\Toggle::make('send_whatsapp')
                             ->label('Kirim WhatsApp ke supplier')
                             ->default(true),
@@ -217,7 +222,7 @@ class RequestsTable
                                 'notes'                => $data['notes_vehicle'] ?? ($record->notes ?? null),
                             ]);
 
-                            // 2) tautkan foto
+                            // 2) tautkan foto ke vehicle
                             foreach ($record->photos as $i => $photo) {
                                 $photo->update([
                                     'vehicle_id'  => $vehicle->id,
@@ -225,13 +230,13 @@ class RequestsTable
                                 ]);
                             }
 
-                            // 3) update request (hanya agar ada jejak sebelum dihapus)
+                            // 3) update request (TIDAK dihapus)
                             $record->update([
-                                'status'     => 'available',
+                                'status'     => 'converted', // tandai sudah diproses
                                 'vehicle_id' => $vehicle->id,
                             ]);
 
-                            // 4) kirim WA ke penjual
+                            // 4) kirim WA (opsional)
                             $waSent = false;
                             if (!empty($data['send_whatsapp'])) {
                                 $waSent = app(WhatsAppService::class)->sendText(
@@ -241,10 +246,6 @@ class RequestsTable
                                 );
                             }
 
-                            // 5) hapus request dari tabel (supaya hilang dari list)
-                            $record->delete();
-
-                            // 6) toast
                             Notification::make()
                                 ->title('Request approved')
                                 ->body(
@@ -254,8 +255,7 @@ class RequestsTable
                                 ->success()
                                 ->send();
                         });
-                    })
-                    ->visible(fn (VehicleRequest $r) => $r->status !== 'converted'),
+                    }),
 
                 // ======== REJECT ========
                 Action::make('reject')
@@ -263,6 +263,7 @@ class RequestsTable
                     ->color('danger')
                     ->icon('heroicon-o-x-mark')
                     ->requiresConfirmation()
+                    ->visible(fn (VehicleRequest $r) => ! in_array($r->status, ['converted', 'rejected']))
                     ->modalHeading('Reject request')
                     ->modalSubmitActionLabel('Reject')
                     ->form([
@@ -277,7 +278,7 @@ class RequestsTable
                     ])
                     ->action(function (array $data, VehicleRequest $record) {
                         DB::transaction(function () use ($data, $record) {
-                            // 1) kirim WA penolakan (lebih dulu sebelum hapus)
+                            // 1) kirim WA penolakan (sebelum status diubah)
                             $waSent = false;
                             if (!empty($data['send_whatsapp'])) {
                                 $waSent = app(WhatsAppService::class)->sendText(
@@ -289,10 +290,13 @@ class RequestsTable
                                 );
                             }
 
-                            // 2) hapus request dari list
-                            $record->delete();
+                            // 2) TIDAK dihapus—cukup tandai rejected
+                            $record->update([
+                                'status' => 'rejected',
+                                // boleh juga simpan reason ke notes atau kolom khusus
+                                'notes'  => trim(($record->notes ? $record->notes."\n" : '').'Reject: '.$data['reason']),
+                            ]);
 
-                            // 3) toast
                             Notification::make()
                                 ->title('Request rejected')
                                 ->body(($waSent ? 'WhatsApp terkirim ✅' : 'WhatsApp tidak terkirim ❌') . "\nAlasan: {$data['reason']}")

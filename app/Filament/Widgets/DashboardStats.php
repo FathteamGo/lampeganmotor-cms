@@ -63,10 +63,19 @@ class DashboardStats extends BaseWidget
         $totalPengeluaranTahunIni = Expense::whereYear('expense_date', Carbon::now()->year)->sum('amount');
 
         // Aset
-        $totalAsetMotor = Vehicle::sum('purchase_price');
-        $totalAsetLainnya = OtherAsset::sum('value');
-        $totalNilaiAset = $totalAsetMotor + $totalAsetLainnya;
+       // Kendaraan: hanya available + sesuai periode
+        $totalAsetMotor = Vehicle::where('status', 'available')
+            // ->whereBetween('expense_date', [$startDate, $endDate]) 
+            ->sum('sale_price');
 
+        // OtherAsset: sesuai periode
+        $totalAsetLainnyaPeriode = OtherAsset::whereBetween('acquisition_date', [$startDate, $endDate])
+            ->sum('value');
+
+        $totalAsetLainnya = OtherAsset::sum('value');
+
+        // Total
+        $totalNilaiAset = $totalAsetMotor + $totalAsetLainnya;
         // =============================
         // Stats
         // =============================
@@ -120,8 +129,8 @@ class DashboardStats extends BaseWidget
                 ->description('Nilai seluruh aset kendaraan')
                 ->color('info'),
 
-            Stat::make('Total Aset Lainnya', 'Rp ' . number_format($totalAsetLainnya, 0, ',', '.'))
-                ->description('Nilai aset non-kendaraan')
+            Stat::make('Total Aset Lainnya', 'Rp ' . number_format($totalAsetLainnyaPeriode, 0, ',', '.'))
+                ->description("{$startDate->format('d M Y')} s/d {$endDate->format('d M Y')}")
                 ->color('info'),
 
             Stat::make('Total Nilai Aset', 'Rp ' . number_format($totalNilaiAset, 0, ',', '.'))

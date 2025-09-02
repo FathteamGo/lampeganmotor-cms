@@ -57,6 +57,7 @@ class AdminPanelProvider extends PanelProvider
 
                 NavigationGroup::make()
                     ->label('Transactions')
+                    ->icon('heroicon-o-currency-dollar')
                     ->collapsed(),
 
                 NavigationGroup::make()

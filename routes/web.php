@@ -18,6 +18,9 @@ Route::get('/vehicles/{vehicle}', [LandingController::class, 'show'])->name('lan
 Route::get('/jual-motor-anda', [LandingController::class, 'sellForm'])->name('landing.sell.form');
 Route::post('/jual-motor-anda', [LandingController::class, 'sellSubmit'])->name('landing.sell.submit');
 
+Route::get('/ajax/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
+    ->name('ajax.models.byBrand');
+
 // API untuk ambil model by brand (AJAX)
 Route::get('/api/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
     ->name('sell.models-by-brand');

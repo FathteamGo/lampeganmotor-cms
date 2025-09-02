@@ -39,7 +39,8 @@ return [
     'url'     => env('WA_GATEWAY_URL', 'http://wa4.fath.my.id/send-message'),
     'api_key' => env('WA_GATEWAY_API_KEY', 'It2m6nmupQf8Ub8M3PEiZy4NjXsHSj'),
     'sender'  => env('WA_GATEWAY_SENDER','6289635850446'),
-    'owner'   => env('WA_GATEWAY_OWNER', '6281394510605'),
+    // 'owner'   => env('WA_GATEWAY_OWNER', '6281394510605'),
+    'owner'   => env('WA_GATEWAY_OWNER'),
     ],
 
 ];

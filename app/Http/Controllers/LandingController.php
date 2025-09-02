@@ -10,10 +10,11 @@ use App\Models\Type;
 use App\Models\VehicleModel;
 use App\Models\Supplier;
 use App\Models\Year;
-// use App\Models\Request;
 use App\Models\Request as VehicleRequest;
 use App\Models\VehiclePhoto;
 use App\Services\WhatsAppService;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class LandingController extends Controller
 {
@@ -75,13 +76,13 @@ class LandingController extends Controller
     }
 
     /**
-     * Form untuk user jual motor.
+     * Form jual motor (dropdown dari tabel).
      */
     public function sellForm()
     {
-        $brands = Brand::orderBy('name')->get();
-        $types  = Type::orderBy('name')->get();
-        $years  = Year::orderBy('year', 'desc')->get();
+        $brands = Brand::orderBy('name')->select('id','name')->get();
+        $types  = Type::orderBy('name')->select('id','name')->get();
+        $years  = Year::orderBy('year', 'desc')->select('id','year')->get();
 
         $heroSlides = [
             [
@@ -100,98 +101,101 @@ class LandingController extends Controller
     }
 
     /**
-     * Proses submit form jual motor → masuk ke suppliers, years, requests, vehicle_photos.
+     * Proses submit form jual motor → masuk ke suppliers, requests, vehicle_photos.
+     * Versi ini memakai brand_id, vehicle_model_id, year_id dari dropdown.
      */
     public function sellSubmit(Request $request)
     {
-        $request->validate([
-            'name'         => 'required|string|max:255',
-            'phone'        => 'required|string|max:20',
-            'brand_name'   => 'required|string|max:255',
-            'model_name'   => 'required|string|max:255',
-            'year'         => 'required|digits:4',
-            'odometer'     => 'nullable|integer|min:0',
-            'license_plate'=> 'required|string|max:15',
-            'notes'        => 'nullable|string',
-            'photos'       => ['nullable','array','max:5'],
-            'photos.*'     => ['file','mimes:jpg,jpeg,png,webp','max:4096'],
+        $validated = $request->validate([
+            'name'             => ['required','string','max:255'],
+            'phone'            => ['required','string','max:20'],
+            'brand_id'         => ['required', Rule::exists('brands','id')],
+            'vehicle_model_id' => ['required', Rule::exists('vehicle_models','id')],
+            'year_id'          => ['required', Rule::exists('years','id')],
+            'license_plate'    => ['required','string','max:15'],
+            'odometer'         => ['nullable','integer','min:0'],
+            'notes'            => ['nullable','string'],
+            'photos'           => ['nullable','array','max:5'],
+            'photos.*'         => ['file','image','mimes:jpg,jpeg,png,webp','max:4096'],
         ]);
 
-        // 1) Supplier (penjual)
-        $supplier = Supplier::firstOrCreate(
-            ['phone' => $request->phone],
-            ['name'  => $request->name]
-        );
+        DB::transaction(function () use ($request, $validated) {
+            // 1) Supplier (penjual)
+            $supplier = Supplier::firstOrCreate(
+                ['phone' => $validated['phone']],
+                ['name'  => $validated['name']]
+            );
 
-        // 2) Brand & Model
-        $brand = Brand::firstOrCreate(['name' => trim($request->brand_name)]);
-        $model = VehicleModel::firstOrCreate(['brand_id' => $brand->id, 'name' => trim($request->model_name)]);
+            // 2) Simpan LEAD (request)
+            $lead = VehicleRequest::create([
+                'supplier_id'      => $supplier->id,
+                'brand_id'         => $validated['brand_id'],
+                'vehicle_model_id' => $validated['vehicle_model_id'],
+                'year_id'          => $validated['year_id'],
+                'odometer'         => $validated['odometer'] ?? null,
+                'license_plate'    => $validated['license_plate'],
+                'notes'            => $validated['notes'] ?? null,
+                'type'             => 'sell',
+                'status'           => 'hold',
+            ]);
 
-        // 3) Year
-        $year  = Year::firstOrCreate(['year' => (int) $request->year]);
-
-        // 4) Simpan LEAD
-        $lead = VehicleRequest::create([
-            'supplier_id'      => $supplier->id,
-            'brand_id'         => $brand->id,
-            'vehicle_model_id' => $model->id,
-            'year_id'          => $year->id,
-            'odometer'         => $request->odometer,
-            'license_plate'    => $request->license_plate,
-            'notes'            => $request->notes,
-            'type'             => 'sell',
-            'status'           => 'hold',
-        ]);
-
-        // 5) Foto
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $i => $file) {
-                $path = $file->store("requests/{$lead->id}", 'public');
-                VehiclePhoto::create([
-                    'request_id'  => $lead->id,
-                    'path'        => $path,
-                    'photo_order' => $i,
-                ]);
+            // 3) Foto (simpan path relatif di disk public)
+            if ($request->hasFile('photos')) {
+                foreach ($request->file('photos') as $i => $file) {
+                    if (!$file) continue;
+                    $path = $file->store("requests/{$lead->id}", 'public');
+                    VehiclePhoto::create([
+                        'request_id'  => $lead->id,
+                        'path'        => $path,       // simpan "requests/{id}/file.jpg"
+                        'photo_order' => $i,
+                    ]);
+                }
             }
-        }
 
-        // 6) Kirim WhatsApp (non-blocking; kalau gagal tetap lanjut)
-        try {
-            $wa = app(WhatsAppService::class);
+            // 4) Notifikasi WhatsApp (best-effort)
+            try {
+                $wa = app(WhatsAppService::class);
 
-            $title = "{$brand->name} {$model->name} {$year->year}";
-            $plate = $request->license_plate;
-            $odo   = $request->odometer ? number_format((int)$request->odometer, 0, ',', '.') . ' km' : '-';
+                $brand = Brand::find($validated['brand_id']);
+                $model = VehicleModel::find($validated['vehicle_model_id']);
+                $year  = Year::find($validated['year_id']);
 
-            // Ke penjual (supplier)
-            $msgSupplier =
-                "Halo {$supplier->name}, terima kasih sudah mengajukan Jual Motor ke Lampegan Motor.\n\n".
-                "Detail unit:\n".
-                "- Unit: {$title}\n".
-                "- Plat: {$plate}\n".
-                "- Odometer: {$odo}\n".
-                "- Catatan: ".($request->notes ?: '-')."\n\n".
-                "Tim kami akan menghubungi Anda via WhatsApp untuk proses selanjutnya 🙏";
-            $wa->sendText($supplier->phone, $msgSupplier);
+                $title = "{$brand->name} {$model->name} {$year->year}";
+                $plate = $validated['license_plate'];
+                $odo   = isset($validated['odometer'])
+                    ? number_format((int)$validated['odometer'], 0, ',', '.') . ' km'
+                    : '-';
 
-            // Ke owner (admin)
-            $owner = config('services.wa_gateway.owner');
-            if ($owner) {
-                $msgOwner =
-                    "📥 *Request Jual Masuk*\n\n".
-                    "Nama: {$supplier->name}\n".
-                    "WA: {$supplier->phone}\n".
-                    "Unit: {$title}\n".
-                    "Plat: {$plate}\n".
-                    "Odometer: {$odo}\n".
-                    "Request ID: #{$lead->id}\n".
-                    "Catatan: ".($request->notes ?: '-');
-                $wa->sendText($owner, $msgOwner);
+                // Ke penjual (supplier)
+                $msgSupplier =
+                    "Halo {$supplier->name}, terima kasih sudah mengajukan Jual Motor ke Lampegan Motor.\n\n".
+                    "Detail unit:\n".
+                    "- Unit: {$title}\n".
+                    "- Plat: {$plate}\n".
+                    "- Odometer: {$odo}\n".
+                    "- Catatan: ".($validated['notes'] ?? '-')."\n\n".
+                    "Tim kami akan menghubungi Anda via WhatsApp untuk proses selanjutnya 🙏";
+                $wa->sendText($supplier->phone, $msgSupplier);
+
+                // Ke owner (admin)
+                $owner = config('services.wa_gateway.owner');
+                if ($owner) {
+                    $msgOwner =
+                        "📥 *Request Jual Masuk*\n\n".
+                        "Nama: {$supplier->name}\n".
+                        "WA: {$supplier->phone}\n".
+                        "Unit: {$title}\n".
+                        "Plat: {$plate}\n".
+                        "Odometer: {$odo}\n".
+                        "Request ID: #{$lead->id}\n".
+                        "Catatan: ".($validated['notes'] ?? '-');
+                    $wa->sendText($owner, $msgOwner);
+                }
+            } catch (\Throwable $e) {
+                // optional log
+                // \Log::warning('WA notify failed: '.$e->getMessage());
             }
-        } catch (\Throwable $e) {
-            // boleh di-log kalau mau:
-            // \Log::warning('WA notify failed: '.$e->getMessage());
-        }
+        });
 
         return redirect()
             ->route('landing.sell.form')
@@ -199,7 +203,7 @@ class LandingController extends Controller
     }
 
     /**
-     * Ajax ambil model by brand
+     * Ajax ambil model by brand (JSON)
      */
     public function modelsByBrand(Brand $brand)
     {

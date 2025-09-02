@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('sale_date');
             $table->decimal('sale_price', 15, 2); // Harga jual final
             $table->string('payment_method')->default('cash'); // cash, credit, transfer
-            $table->text('notes')->nullable();
+            $table->text('notes')->nullable();  
             $table->timestamps();
         });
     }

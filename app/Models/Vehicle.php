@@ -11,7 +11,7 @@ class Vehicle extends Model
 {
     protected $fillable = ['vehicle_model_id', 'type_id', 'color_id', 'year_id', 'vin', 'license_plate', 'engine_number', 'bpkb_number', 'purchase_price', 'sale_price', 'status', 'description', 'dp_percentage', 'engine_specification', 'notes', 'location']; // Agar bisa diisi massal
     /** @use HasFactory<\Database\Factories\VehicleFactory> */
-    use HasFactory;
+    use HasFactory; 
 
     public function vehicleModel()
     {

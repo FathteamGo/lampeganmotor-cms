@@ -77,13 +77,14 @@ class RequestsTable
                     ->label('View')
                     ->icon('heroicon-o-eye'),
 
+                // ======== APPROVE ========
                 Action::make('approve')
                     ->label('Approve')
                     ->color('success')
                     ->icon('heroicon-o-check')
                     ->requiresConfirmation()
                     ->form([
-                        // ======== REQUIRED relations ========
+                        // REQUIRED relations
                         Forms\Components\Select::make('type_id')
                             ->label('Type')
                             ->options(fn () => Type::orderBy('name')->pluck('name','id'))
@@ -94,7 +95,7 @@ class RequestsTable
                             ->options(fn () => Color::orderBy('name')->pluck('name','id'))
                             ->required(),
 
-                        // ======== UNIQUE & REQUIRED in vehicles ========
+                        // UNIQUE & REQUIRED in vehicles
                         Forms\Components\TextInput::make('vin')
                             ->label('VIN')
                             ->required()
@@ -107,7 +108,7 @@ class RequestsTable
                             ->maxLength(255)
                             ->rule(Rule::unique('vehicles','engine_number')),
 
-                        // ======== OPTIONAL uniques ========
+                        // OPTIONAL uniques
                         Forms\Components\TextInput::make('license_plate')
                             ->label('License Plate')
                             ->maxLength(255)
@@ -127,7 +128,7 @@ class RequestsTable
                                     ->where(fn ($q) => $q->whereNotNull('bpkb_number'))
                             ),
 
-                        // ======== PRICES ========
+                        // PRICES
                         Forms\Components\TextInput::make('purchase_price')
                             ->label('Purchase Price')
                             ->numeric()
@@ -140,14 +141,14 @@ class RequestsTable
                             ->minValue(0)
                             ->nullable(),
 
-                        // ======== ODOMETER ========
+                        // ODOMETER
                         Forms\Components\TextInput::make('odometer')
                             ->label('Odometer (KM)')
                             ->numeric()
                             ->minValue(0)
                             ->default(fn (VehicleRequest $r) => (int) $r->odometer),
 
-                        // ======== STATUS VEHICLE ========
+                        // STATUS VEHICLE
                         Forms\Components\Select::make('vehicle_status')
                             ->label('Vehicle Status')
                             ->options([
@@ -159,7 +160,7 @@ class RequestsTable
                             ->default('hold')
                             ->required(),
 
-                        // ======== FREE TEXTS ========
+                        // FREE TEXTS
                         Forms\Components\Textarea::make('description')
                             ->label('Description')
                             ->rows(3)
@@ -188,7 +189,7 @@ class RequestsTable
                             ->default(fn (VehicleRequest $r) => $r->notes)
                             ->nullable(),
 
-                        // ======== NOTIF ========
+                        // NOTIF
                         Forms\Components\Toggle::make('send_whatsapp')
                             ->label('Kirim WhatsApp ke supplier')
                             ->default(true),
@@ -224,26 +225,26 @@ class RequestsTable
                                 ]);
                             }
 
-                            // 3) update request
+                            // 3) update request (hanya agar ada jejak sebelum dihapus)
                             $record->update([
                                 'status'     => 'available',
                                 'vehicle_id' => $vehicle->id,
                             ]);
 
-                            $record->delete();
-
-                            // 4) kirim WA
+                            // 4) kirim WA ke penjual
                             $waSent = false;
                             if (!empty($data['send_whatsapp'])) {
                                 $waSent = app(WhatsAppService::class)->sendText(
                                     $record->supplier->phone,
                                     "Halo {$record->supplier->name},\n".
-                                    "Pengajuan motor Anda ({$record->brand->name} {$record->vehicleModel->name} {$record->year->year}, plat {$record->license_plate}) telah kami APPROVE dan diproses.\n".
-                                    "Terima kasih."
+                                    "Pengajuan motor Anda ({$record->brand->name} {$record->vehicleModel->name} {$record->year->year}, plat {$record->license_plate}) telah *DISETUJUI* dan diproses sebagai unit stok kami. Terima kasih 🙏"
                                 );
                             }
 
-                            // 5) toast notifikasi
+                            // 5) hapus request dari tabel (supaya hilang dari list)
+                            $record->delete();
+
+                            // 6) toast
                             Notification::make()
                                 ->title('Request approved')
                                 ->body(
@@ -255,6 +256,50 @@ class RequestsTable
                         });
                     })
                     ->visible(fn (VehicleRequest $r) => $r->status !== 'converted'),
+
+                // ======== REJECT ========
+                Action::make('reject')
+                    ->label('Reject')
+                    ->color('danger')
+                    ->icon('heroicon-o-x-mark')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reject request')
+                    ->modalSubmitActionLabel('Reject')
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label('Alasan penolakan')
+                            ->rows(3)
+                            ->required()
+                            ->minLength(5),
+                        Forms\Components\Toggle::make('send_whatsapp')
+                            ->label('Kirim WhatsApp ke supplier')
+                            ->default(true),
+                    ])
+                    ->action(function (array $data, VehicleRequest $record) {
+                        DB::transaction(function () use ($data, $record) {
+                            // 1) kirim WA penolakan (lebih dulu sebelum hapus)
+                            $waSent = false;
+                            if (!empty($data['send_whatsapp'])) {
+                                $waSent = app(WhatsAppService::class)->sendText(
+                                    $record->supplier->phone,
+                                    "Halo {$record->supplier->name},\n".
+                                    "Maaf, pengajuan motor Anda ({$record->brand->name} {$record->vehicleModel->name} {$record->year->year}, plat {$record->license_plate}) *DITOLAK*.\n".
+                                    "Alasan: {$data['reason']}\n\n".
+                                    "Terima kasih telah menghubungi Lampegan Motor."
+                                );
+                            }
+
+                            // 2) hapus request dari list
+                            $record->delete();
+
+                            // 3) toast
+                            Notification::make()
+                                ->title('Request rejected')
+                                ->body(($waSent ? 'WhatsApp terkirim ✅' : 'WhatsApp tidak terkirim ❌') . "\nAlasan: {$data['reason']}")
+                                ->danger()
+                                ->send();
+                        });
+                    }),
             ])
             ->actionsColumnLabel('Actions')
             ->actionsAlignment('start')

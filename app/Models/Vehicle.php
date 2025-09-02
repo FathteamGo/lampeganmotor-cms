@@ -17,6 +17,11 @@ class Vehicle extends Model
     {
         return $this->belongsTo(VehicleModel::class);
     }
+    // Accessor agar bisa dipakai di Filament
+public function getDisplayNameAttribute()
+{
+    return $this->vehicleModel->name ?? 'Unknown';
+}
     public function type()
     {
         return $this->belongsTo(Type::class);

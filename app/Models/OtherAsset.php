@@ -11,3 +11,6 @@ class OtherAsset extends Model
     /** @use HasFactory<\Database\Factories\OtherAssetFactory> */
     use HasFactory;
 }
+
+
+

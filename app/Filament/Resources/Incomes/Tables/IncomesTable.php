@@ -17,22 +17,34 @@ class IncomesTable
             ->columns([
                 TextColumn::make('description')
                     ->searchable(),
-                TextColumn::make('category_id')
-                    ->numeric()
-                    ->sortable(),
+
+                // Tampilkan nama kategori (relasi)
+                TextColumn::make('category.name')
+                    ->label('Kategori')
+                    ->sortable()
+                    ->searchable(),
+
                 TextColumn::make('amount')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->label('Jumlah'),
+
                 TextColumn::make('income_date')
                     ->date()
-                    ->sortable(),
-                TextColumn::make('customer_id')
-                    ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->label('Tanggal'),
+
+                // Tampilkan nama customer (relasi)
+                TextColumn::make('customer.name')
+                    ->label('Customer')
+                    ->sortable()
+                    ->searchable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()

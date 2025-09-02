@@ -16,14 +16,16 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\MenuItem;
+
+// Import yang ditambahkan
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Support\Facades\Blade;
+use App\Http\Middleware\SetLocale; // Import middleware
 
 use App\Filament\Widgets\DashboardStats;
 use App\Filament\Widgets\SalesChart;
 use App\Filament\Widgets\RevenueChart;
-
-use Filament\Support\Facades\FilamentView;
-use Filament\View\PanelsRenderHook;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -75,7 +77,12 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-document-chart-bar')
                     ->collapsed(),
             ])
-           
+            // Tambahkan render hook untuk language switcher
+           ->renderHook(
+                PanelsRenderHook::TOPBAR_END,
+                fn (): string => view('components.language-switcher')->render()
+            )
+        
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -86,10 +93,16 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                SetLocale::class, // Tambahkan middleware locale
             ])
             ->authMiddleware([
                 Authenticate::class,
             ]);
     }
+    
+    public function boot()
+    {
+        // Register Livewire component jika belum auto-discovery
+        \Livewire\Livewire::component('language-switcher', \App\Livewire\LanguageSwitcher::class);
+    }
 }
-

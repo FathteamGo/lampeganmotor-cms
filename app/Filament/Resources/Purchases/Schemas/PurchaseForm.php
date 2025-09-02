@@ -15,16 +15,21 @@ class PurchaseForm
             ->components([
                 // Dropdown Vehicle ambil dari relasi + accessor name
                 Select::make('vehicle_id')
-                    ->label('Vehicle')
-                    ->options(
-                        \App\Models\Vehicle::with('vehicleModel')
-                            ->get()
-                            ->mapWithKeys(fn($vehicle) => [
-                                $vehicle->id => $vehicle->vehicleModel->name ?? 'Unknown',
-                            ])
-                    )
-                    ->searchable()
-                    ->required(),
+                ->label('Vehicle')
+                ->options(
+                    \App\Models\Vehicle::with(['vehicleModel', 'color'])
+                        ->get()
+                        ->mapWithKeys(fn($vehicle) => [
+                            $vehicle->id => sprintf(
+                                '%s | %s | %s',
+                                $vehicle->vehicleModel->name ?? 'Unknown Model',
+                                $vehicle->color->name ?? 'Unknown Color',
+                                $vehicle->license_plate ?? 'No Plate'
+                            ),
+                        ])
+                )
+                ->searchable()
+                ->required(),
 
                 // Dropdown Supplier ambil nama supplier
                 Select::make('supplier_id')

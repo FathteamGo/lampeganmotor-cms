@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
+use App\Models\Request;
 
 // Halaman welcome (default Laravel)
 Route::get('/', function () {
@@ -35,13 +36,8 @@ Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsBy
 
 
 
-Route::get('/set-locale/{locale}', function ($locale) {
-    if (in_array($locale, ['id', 'en'])) {
-        session(['locale' => $locale]);
-        app()->setLocale($locale);
-    }
-
-    return redirect()->back();
-})->name('set-locale');
-
+Route::post('/language/switch', function (Request $request) {
+    session(['locale' => $request->locale]);
+    return back();
+})->name('language.switch');
 

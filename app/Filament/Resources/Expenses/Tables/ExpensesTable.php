@@ -16,21 +16,32 @@ class ExpensesTable
         return $table
             ->columns([
                 TextColumn::make('description')
+                    ->label('Deskripsi')
                     ->searchable(),
-                TextColumn::make('category_id')
-                    ->numeric()
-                    ->sortable(),
+
+                TextColumn::make('category.name')
+                    ->label('Kategori')
+                    ->sortable()
+                    ->searchable(),
+
                 TextColumn::make('amount')
+                    ->label('Jumlah')
                     ->numeric()
                     ->sortable(),
+
                 TextColumn::make('expense_date')
+                    ->label('Tanggal')
                     ->date()
                     ->sortable(),
+
                 TextColumn::make('created_at')
+                    ->label('Created At')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
+                    ->label('Updated At')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

@@ -293,8 +293,6 @@ class RequestsTable
                             // 2) TIDAK dihapus—cukup tandai rejected
                             $record->update([
                                 'status' => 'rejected',
-                                // boleh juga simpan reason ke notes atau kolom khusus
-                                'notes'  => trim(($record->notes ? $record->notes."\n" : '').'Reject: '.$data['reason']),
                             ]);
 
                             Notification::make()

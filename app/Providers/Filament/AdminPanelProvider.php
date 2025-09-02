@@ -55,6 +55,7 @@ class AdminPanelProvider extends PanelProvider
                 // ⬇⬇⬇ HAPUS icon di group ini
                 NavigationGroup::make()
                     ->label('Transactions')
+                    ->icon('heroicon-o-currency-dollar')
                     ->collapsed(),
 
                 NavigationGroup::make()

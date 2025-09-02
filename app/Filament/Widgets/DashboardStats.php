@@ -129,8 +129,8 @@ class DashboardStats extends BaseWidget
                 ->description('Nilai seluruh aset kendaraan')
                 ->color('info'),
 
-            Stat::make('Total Aset Lainnya', 'Rp ' . number_format($totalAsetLainnyaPeriode, 0, ',', '.'))
-                ->description("{$startDate->format('d M Y')} s/d {$endDate->format('d M Y')}")
+            Stat::make('Total Aset Lainnya', 'Rp ' . number_format($totalAsetLainnya, 0, ',', '.'))
+                ->description("Total Seluruh Aset Lainnya")
                 ->color('info'),
 
             Stat::make('Total Nilai Aset', 'Rp ' . number_format($totalNilaiAset, 0, ',', '.'))

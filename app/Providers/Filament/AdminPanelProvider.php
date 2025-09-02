@@ -6,7 +6,6 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -17,9 +16,14 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\MenuItem;
+
 use App\Filament\Widgets\DashboardStats;
 use App\Filament\Widgets\SalesChart;
 use App\Filament\Widgets\RevenueChart;
+
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -33,10 +37,9 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
-            ->pages([])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 DashboardStats::class,
                 SalesChart::class,
@@ -52,7 +55,6 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-user-group')
                     ->collapsed(),
 
-                // ⬇⬇⬇ HAPUS icon di group ini
                 NavigationGroup::make()
                     ->label('Transactions')
                     ->collapsed(),
@@ -72,6 +74,7 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-document-chart-bar')
                     ->collapsed(),
             ])
+           
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -88,3 +91,4 @@ class AdminPanelProvider extends PanelProvider
             ]);
     }
 }
+

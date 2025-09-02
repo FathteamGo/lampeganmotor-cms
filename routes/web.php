@@ -29,3 +29,16 @@ Route::get('/kontak', fn () => view('frontend.contact'))->name('landing.contact'
 Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
     ->whereNumber('brand')
     ->name('sell.models-by-brand');
+
+
+
+Route::get('/set-locale/{locale}', function ($locale) {
+    if (in_array($locale, ['id', 'en'])) {
+        session(['locale' => $locale]);
+        app()->setLocale($locale);
+    }
+
+    return redirect()->back();
+})->name('set-locale');
+
+

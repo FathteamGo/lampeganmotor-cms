@@ -8,12 +8,9 @@ use Illuminate\Support\Facades\Storage;
 
 @section('content')
 <div class="bg-gray-50 text-gray-900 dark:text-white pb-20">
-    {{-- Hero Slider --}}
     @includeWhen(View::exists('partials.hero-slider'), 'partials.hero-slider')
 
     <div class="container mx-auto max-w-lg px-4 sm:px-6 lg:px-8">
-
-        {{-- Alerts --}}
         @if(session('success'))
             <div class="mb-6 p-4 rounded-lg bg-green-100 text-green-800">
                 {{ session('success') }}
@@ -51,33 +48,43 @@ use Illuminate\Support\Facades\Storage;
                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
                 </div>
 
-                {{-- Merk --}}
+                {{-- Merk (dropdown) --}}
                 <div>
                     <label for="brand_id" class="block text-sm font-medium">Merk</label>
                     <select name="brand_id" id="brand_id" required
-                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
                         <option value="">-- Pilih Merk --</option>
-                        @foreach ($brands as $brand)
-                            <option value="{{ $brand->id }}" @selected(old('brand_id') == $brand->id)>{{ $brand->name }}</option>
+                        @foreach($brands as $b)
+                            <option value="{{ $b->id }}" {{ old('brand_id') == $b->id ? 'selected' : '' }}>
+                                {{ $b->name }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
 
-                {{-- Model (dinamis by brand) --}}
+                {{-- Model (dependent) --}}
                 <div>
                     <label for="vehicle_model_id" class="block text-sm font-medium">Model</label>
                     <select name="vehicle_model_id" id="vehicle_model_id" required
-                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm"
+                        {{ old('brand_id') ? '' : 'disabled' }}>
                         <option value="">-- Pilih Model --</option>
+                        {{-- opsi diisi via JS --}}
                     </select>
                 </div>
 
                 {{-- Tahun --}}
                 <div>
-                    <label for="year" class="block text-sm font-medium">Tahun</label>
-                    <input type="number" name="year" id="year" value="{{ old('year') }}" required min="1900" max="2099"
-                           placeholder="contoh: 2020"
-                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                    <label for="year_id" class="block text-sm font-medium">Tahun</label>
+                    <select name="year_id" id="year_id" required
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                        <option value="">-- Pilih Tahun --</option>
+                        @foreach($years as $y)
+                            <option value="{{ $y->id }}" {{ old('year_id') == $y->id ? 'selected' : '' }}>
+                                {{ $y->year }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 {{-- Plat Nomor --}}
@@ -118,11 +125,9 @@ use Illuminate\Support\Facades\Storage;
                         <small class="block text-gray-500 dark:text-gray-400">Maksimal 5 foto, masing-masing ≤ 4MB.</small>
                     </div>
 
-                    {{-- Preview Grid --}}
                     <div id="preview-grid" class="mt-3 grid grid-cols-3 gap-3"></div>
                 </div>
 
-                {{-- Submit --}}
                 <div class="pt-2">
                     <button type="submit"
                             class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition">
@@ -138,55 +143,52 @@ use Illuminate\Support\Facades\Storage;
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    /** =========================
-     *  Dropdown Model by Brand
-     *  ========================= */
-    const brandSelect = document.getElementById('brand_id');
-    const modelSelect = document.getElementById('vehicle_model_id');
+    // ========= Dependent dropdown: BRAND -> MODELS =========
+    const brandSelect  = document.getElementById('brand_id');
+    const modelSelect  = document.getElementById('vehicle_model_id');
+    const oldBrandId   = "{{ old('brand_id') }}";
+    const oldModelId   = "{{ old('vehicle_model_id') }}";
 
-    const setLoading = (loading) => {
-        modelSelect.disabled = loading;
-        modelSelect.innerHTML = loading
-            ? '<option value="">Memuat model...</option>'
-            : '<option value="">-- Pilih Model --</option>';
-    };
+    const populateModels = async (brandId, selectedId = null) => {
+        modelSelect.innerHTML = '<option value="">-- Pilih Model --</option>';
+        modelSelect.disabled = true;
+        if (!brandId) return;
 
-    const loadModels = async (brandId, preselected = null) => {
-        if (!brandId) { setLoading(false); return; }
-        setLoading(true);
         try {
-            const url = "{{ route('sell.models-by-brand', ['brand' => 'BRAND_ID']) }}".replace('BRAND_ID', brandId);
+            const url = `{{ route('ajax.models.byBrand', ':id') }}`.replace(':id', brandId);
             const res = await fetch(url);
             const data = await res.json();
-            setLoading(false);
+
             data.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id;
                 opt.textContent = m.name;
-                if (preselected && String(preselected) === String(m.id)) opt.selected = true;
+                if (String(selectedId) === String(m.id)) opt.selected = true;
                 modelSelect.appendChild(opt);
             });
+
+            modelSelect.disabled = false;
         } catch (e) {
-            setLoading(false);
             console.error(e);
+            alert('Gagal memuat model. Coba lagi.');
         }
     };
 
-    brandSelect.addEventListener('change', e => loadModels(e.target.value));
+    brandSelect?.addEventListener('change', (e) => {
+        populateModels(e.target.value);
+    });
 
-    @if(old('brand_id'))
-        loadModels('{{ old('brand_id') }}', '{{ old('vehicle_model_id') }}');
-    @endif
+    // Auto-populate saat reload (validasi gagal)
+    if (oldBrandId) {
+        populateModels(oldBrandId, oldModelId);
+    }
 
-    /** =========================
-     *  Foto Dinamis + Preview
-     *  ========================= */
+    // ========= Preview foto (yang sudah kamu punya) =========
     const MAX_FILES = 5;
     const MAX_SIZE = 4 * 1024 * 1024; // 4MB
     const wrapper = document.getElementById('photos-wrapper');
     const previewGrid = document.getElementById('preview-grid');
 
-    // helper: buat elemen preview card
     const makeThumb = (idx, src, name, size) => {
         const item = document.createElement('div');
         item.className = 'relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700';
@@ -235,19 +237,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const onChangeInput = (e) => {
         const input = e.target;
         const file = input.files?.[0];
-        // jika user batal pilih file (clear), hilangkan preview & hentikan
-        if (!file) {
-            refreshPreviews();
-            return;
-        }
-        // validasi ukuran per file
+
+        if (!file) { refreshPreviews(); return; }
+
         if (file.size > MAX_SIZE) {
             alert('Ukuran tiap foto maksimal 4MB.');
             input.value = '';
             refreshPreviews();
             return;
         }
-        // validasi tipe
         const okTypes = ['image/jpeg','image/png','image/webp'];
         if (!okTypes.includes(file.type)) {
             alert('Format harus JPG/PNG/WebP.');
@@ -256,14 +254,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // jika jumlah input belum 5 dan input ini baru terisi, tambah input baru
         if (countInputs() < MAX_FILES) {
-            // Pastikan tidak menambah dua kali jika user ganti file di input yang lama
             const all = wrapper.querySelectorAll('.photo-input');
             const filled = Array.from(all).filter(i => i.files && i.files.length > 0).length;
-            if (filled === countInputs()) {
-                addInput();
-            }
+            if (filled === countInputs()) addInput();
         }
         refreshPreviews();
     };
@@ -283,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // aktifkan listener pada input pertama
     wrapper.querySelector('.photo-input').addEventListener('change', onChangeInput);
 });
 </script>

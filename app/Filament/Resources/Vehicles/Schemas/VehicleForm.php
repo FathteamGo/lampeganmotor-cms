@@ -84,6 +84,13 @@ class VehicleForm
                     ->minValue(0)
                     ->maxValue(100)
                     ->suffix('%'),
+
+                // Odometer
+                TextInput::make('odometer')
+                    ->label('Odometer (KM)')
+                    ->numeric()
+                    ->minValue(0),
+
                 // Status Dropdown
                 Select::make('status')
                     ->label('Status')

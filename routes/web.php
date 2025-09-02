@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PurchaseReportExportController;
 use App\Http\Controllers\SalesReportExportController;
+use App\Models\Request;
 
 // Halaman welcome (default Laravel)
 Route::get('/', function () {
@@ -20,6 +21,9 @@ Route::get('/vehicles/{vehicle}', [LandingController::class, 'show'])->name('lan
 Route::get('/jual-motor-anda', [LandingController::class, 'sellForm'])->name('landing.sell.form');
 Route::post('/jual-motor-anda', [LandingController::class, 'sellSubmit'])->name('landing.sell.submit');
 
+Route::get('/ajax/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
+    ->name('ajax.models.byBrand');
+
 // API untuk ambil model by brand (AJAX)
 Route::get('/api/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
     ->name('sell.models-by-brand');
@@ -28,6 +32,7 @@ Route::get('/api/models-by-brand/{brand}', [LandingController::class, 'modelsByB
 Route::get('/tentang', fn () => view('frontend.about'))->name('landing.about');
 Route::get('/kontak', fn () => view('frontend.contact'))->name('landing.contact');
 
+
 //export purchse report excel
 Route::get('/purchase-report/export', [PurchaseReportExportController::class, 'exportExcel'])
     ->name('purchase-report.export');
@@ -35,4 +40,15 @@ Route::get('/purchase-report/export', [PurchaseReportExportController::class, 'e
     
 Route::get('/sales-report/export', [SalesReportExportController::class, 'exportExcel'])
     ->name('sales-report.export');
+
+Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
+    ->whereNumber('brand')
+    ->name('sell.models-by-brand');
+
+
+
+Route::post('/language/switch', function (Request $request) {
+    session(['locale' => $request->locale]);
+    return back();
+})->name('language.switch');
 

@@ -15,24 +15,36 @@ class PurchasesTable
     {
         return $table
             ->columns([
-                TextColumn::make('vehicle_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('supplier_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('vehicle.vehicleModel.name')
+                    ->label('Model')
+                    ->sortable()
+                    ->searchable(),
+                    
+                TextColumn::make('supplier.name')
+                    ->label('Supplier')
+                    ->sortable()
+                    ->searchable(),
+
                 TextColumn::make('purchase_date')
                     ->date()
+                    ->label('Tanggal Pembelian')
                     ->sortable(),
+
                 TextColumn::make('total_price')
                     ->numeric()
+                    ->prefix('Rp')
+                    ->label('Total Harga')
                     ->sortable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
+                    ->label('Dibuat')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
                     ->dateTime()
+                    ->label('Diperbarui')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

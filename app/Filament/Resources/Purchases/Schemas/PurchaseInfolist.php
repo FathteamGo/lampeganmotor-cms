@@ -11,18 +11,28 @@ class PurchaseInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('vehicle_id')
-                    ->numeric(),
-                TextEntry::make('supplier_id')
-                    ->numeric(),
+                TextEntry::make('vehicle.vehicleModel.name')
+                    ->label('Model'),
+
+                TextEntry::make('supplier.name')
+                    ->label('Supplier'),
+
                 TextEntry::make('purchase_date')
-                    ->date(),
+                    ->date()
+                    ->label('Tanggal Pembelian'),
+
                 TextEntry::make('total_price')
-                    ->numeric(),
+                    ->numeric()
+                    ->prefix('Rp')
+                    ->label('Total Harga'),
+
                 TextEntry::make('created_at')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->label('Dibuat'),
+
                 TextEntry::make('updated_at')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->label('Diperbarui'),
             ]);
     }
 }

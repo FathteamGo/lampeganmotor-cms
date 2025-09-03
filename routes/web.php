@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
+use App\Exports\VehiclesExport;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Http\Controllers\AssetReportController;
+
 
 // Halaman welcome (default Laravel)
 Route::get('/', function () {
@@ -32,3 +36,11 @@ Route::get('/kontak', fn () => view('frontend.contact'))->name('landing.contact'
 Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
     ->whereNumber('brand')
     ->name('sell.models-by-brand');
+
+
+
+Route::get('/inventory/export/excel', function () {
+    return Excel::download(new VehiclesExport, 'vehicles.xlsx');
+})->name('inventory.export.excel');
+
+Route::get('/asset/export/excel', [AssetReportController::class, 'exportExcel'])->name('asset.export.excel');

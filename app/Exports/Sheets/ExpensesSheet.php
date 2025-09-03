@@ -5,7 +5,6 @@ namespace App\Exports\Sheets;
 use App\Models\Expense;
 use App\Exports\Sheets\Concerns\SheetStyling;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Schema as DbSchema;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -19,42 +18,40 @@ class ExpensesSheet implements FromArray, WithTitle, WithEvents
     public function __construct(
         protected string $start,
         protected string $end,
+        protected ?string $search = null,
     ) {}
 
-    public function title(): string
-    {
-        return 'Expenses';
-    }
+    public function title(): string { return 'Expenses'; }
 
     public function array(): array
     {
-        $dateCol   = DbSchema::hasColumn('expenses', 'expense_date') ? 'expense_date' : (DbSchema::hasColumn('expenses','created_at') ? 'created_at' : null);
-        $amountCol = DbSchema::hasColumn('expenses', 'amount') ? 'amount' : null;
+        $headers = ['TANGGAL','NAMA','KATEGORI','TAHUN','KETERANGAN','NOMINAL'];
 
-        $opt = array_filter([
-            DbSchema::hasColumn('expenses', 'description') ? 'description' : null,
-        ]);
+        $q = Expense::query()
+            ->whereBetween('expense_date', [$this->start, $this->end])
+            ->orderBy('expense_date');
 
-        $headers = array_merge(['DATE', 'AMOUNT'], array_map(fn ($c) => strtoupper($c), $opt));
+        if (filled($this->search)) {
+            $s = '%'.trim($this->search).'%';
+            $q->where(function ($qq) use ($s) {
+                $qq->where('description','like',$s)
+                   ->orWhere('notes','like',$s)
+                   ->orWhere('amount','like',$s)
+                   ->orWhere('name','like',$s)
+                   ->orWhere('category','like',$s);
+            });
+        }
 
         $rows = [];
-        $query = Expense::query()
-            ->when($dateCol, fn ($q) => $q->whereDate($dateCol, '>=', $this->start))
-            ->when($dateCol, fn ($q) => $q->whereDate($dateCol, '<=', $this->end))
-            ->orderBy($dateCol ?? 'id');
-
-        $selectCols = array_filter([$dateCol, $amountCol, ...$opt]);
-        $data = $selectCols ? $query->get($selectCols) : $query->get();
-
-        foreach ($data as $r) {
-            $row = [];
-            $dateVal = $dateCol ? Carbon::parse($r->{$dateCol}) : null;
-            $row[] = $dateVal ? $dateVal->toDateString() : '';
-            $row[] = $amountCol ? (float) $r->{$amountCol} : 0;
-            foreach ($opt as $c) {
-                $row[] = (string) ($r->{$c} ?? '');
-            }
-            $rows[] = $row;
+        foreach ($q->get() as $r) {
+            $rows[] = [
+                Carbon::parse($r->expense_date ?? $r->created_at)->toDateString(),
+                (string) ($r->name ?? $r->title ?? $r->description ?? ''),
+                (string) ($r->category ?? ''),
+                (string) ($r->year ?? ''),
+                (string) ($r->notes ?? $r->description ?? ''),
+                (float) ($r->amount ?? 0), // tanpa minus, sama seperti tampilan
+            ];
         }
 
         return [$headers, ...$rows];

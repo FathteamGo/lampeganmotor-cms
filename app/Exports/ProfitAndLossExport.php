@@ -13,15 +13,16 @@ class ProfitAndLossExport implements WithMultipleSheets
     public function __construct(
         protected string $startDate,
         protected string $endDate,
+        protected ?string $search = null,
     ) {}
 
     public function sheets(): array
     {
         return [
             new SummarySheet($this->startDate, $this->endDate),
-            new SalesSheet($this->startDate, $this->endDate),
-            new IncomesSheet($this->startDate, $this->endDate),
-            new ExpensesSheet($this->startDate, $this->endDate),
+            new SalesSheet  ($this->startDate, $this->endDate, $this->search),
+            new IncomesSheet($this->startDate, $this->endDate, $this->search),
+            new ExpensesSheet($this->startDate, $this->endDate, $this->search),
         ];
     }
 }

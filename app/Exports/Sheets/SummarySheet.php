@@ -23,21 +23,14 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithCustomStartC
         protected string $startCell = 'C2',
     ) {}
 
-    public function title(): string
-    {
-        return 'Summary';
-    }
-
-    public function startCell(): string
-    {
-        return $this->startCell;
-    }
+    public function title(): string { return 'Summary'; }
+    public function startCell(): string { return $this->startCell; }
 
     public function array(): array
     {
-        $sales    = (float) Sale::query()->whereDate('sale_date', '>=', $this->start)->whereDate('sale_date', '<=', $this->end)->sum('sale_price');
-        $incomes  = (float) Income::query()->whereDate('income_date', '>=', $this->start)->whereDate('income_date', '<=', $this->end)->sum('amount');
-        $expenses = (float) Expense::query()->whereDate('expense_date', '>=', $this->start)->whereDate('expense_date', '<=', $this->end)->sum('amount');
+        $sales    = (float) Sale::whereBetween('sale_date',    [$this->start, $this->end])->sum('sale_price');
+        $incomes  = (float) Income::whereBetween('income_date',[$this->start, $this->end])->sum('amount');
+        $expenses = (float) Expense::whereBetween('expense_date',[$this->start, $this->end])->sum('amount');
         $profit   = $sales + $incomes - $expenses;
 
         return [
@@ -47,14 +40,15 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithCustomStartC
             ['ITEM', 'NILAI'],
             ['SALES',   $sales],
             ['INCOME',  $incomes],
+            // EXPENSE tanpa minus (nilai positif)
             ['EXPENSE', $expenses],
+            // TOTAL angka saja (Excel otomatis kasih tanda minus kalau loss)
             ['TOTAL',   $profit],
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        // hitung posisi berdasar startCell
         [$colLetters, $row] = $this->splitCell($this->startCell);
         $baseIdx = Coordinate::columnIndexFromString($colLetters);
         $col1    = Coordinate::stringFromColumnIndex($baseIdx);
@@ -66,37 +60,33 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithCustomStartC
         $firstData = $headerRow + 1;
         $last      = (int) $sheet->getHighestDataRow();
 
-        // Judul & Periode (merge selebar tabel, center)
+        // Title
         $sheet->mergeCells("{$col1}{$titleRow}:{$col2}{$titleRow}");
         $sheet->getStyle("{$col1}{$titleRow}")->getFont()->setBold(true)->setSize(18);
         $sheet->getStyle("{$col1}{$titleRow}:{$col2}{$titleRow}")
-              ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                               ->setVertical(Alignment::VERTICAL_CENTER);
+              ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
         $sheet->getRowDimension($titleRow)->setRowHeight(26);
 
+        // Periode
         $sheet->mergeCells("{$col1}{$periodRow}:{$col2}{$periodRow}");
         $sheet->getStyle("{$col1}{$periodRow}:{$col2}{$periodRow}")
-              ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                               ->setVertical(Alignment::VERTICAL_CENTER);
+              ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
 
-        // Header tabel
+        // Header
         $sheet->getStyle("{$col1}{$headerRow}:{$col2}{$headerRow}")->getFont()->setBold(true);
         $sheet->getStyle("{$col1}{$headerRow}:{$col2}{$headerRow}")
               ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFEFEFEF');
         $sheet->getStyle("{$col1}{$headerRow}:{$col2}{$headerRow}")
               ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         $sheet->getStyle("{$col1}{$headerRow}:{$col2}{$headerRow}")
-              ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                               ->setVertical(Alignment::VERTICAL_CENTER);
+              ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        // Tabel data (SALES..TOTAL) – border, Rp, dan center semua
+        // Tabel
         $tableRange = "{$col1}{$firstData}:{$col2}{$last}";
         $sheet->getStyle($tableRange)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         $sheet->getStyle("{$col2}{$firstData}:{$col2}{$last}")
               ->getNumberFormat()->setFormatCode("\"Rp\" #,##0");
-        $sheet->getStyle($tableRange)
-              ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                               ->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle($tableRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // TOTAL highlight
         $sheet->getStyle("{$col1}{$last}:{$col2}{$last}")->getFont()->setBold(true);
@@ -112,9 +102,7 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithCustomStartC
 
     protected function splitCell(string $cell): array
     {
-        if (!preg_match('/^([A-Z]+)(\d+)$/i', $cell, $m)) {
-            return ['A', 1];
-        }
+        if (!preg_match('/^([A-Z]+)(\d+)$/i', $cell, $m)) return ['A', 1];
         return [strtoupper($m[1]), (int) $m[2]];
     }
 }

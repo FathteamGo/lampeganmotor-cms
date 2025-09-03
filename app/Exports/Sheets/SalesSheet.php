@@ -5,7 +5,6 @@ namespace App\Exports\Sheets;
 use App\Models\Sale;
 use App\Exports\Sheets\Concerns\SheetStyling;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Schema as DbSchema;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -19,58 +18,51 @@ class SalesSheet implements FromArray, WithTitle, WithEvents
     public function __construct(
         protected string $start,
         protected string $end,
+        protected ?string $search = null,
     ) {}
 
-    public function title(): string
-    {
-        return 'Sales';
-    }
+    public function title(): string { return 'Sales'; }
 
     public function array(): array
     {
-        // Base kolom wajib (cek eksistensi aman)
-        $dateCol   = $this->has('sales', 'sale_date') ? 'sale_date' : (DbSchema::hasColumn('sales','created_at') ? 'created_at' : null);
-        $amountCol = $this->has('sales', 'sale_price') ? 'sale_price' : null;
+        $headers = ['TANGGAL','NAMA','KATEGORI','TAHUN','KETERANGAN','NOMINAL','NO INVOICE','TIPE','MODEL','WARNA','METODE'];
 
-        // Opsional
-        $opt = array_filter([
-            $this->has('sales', 'payment_method') ? 'payment_method' : null,
-            $this->has('sales', 'notes')          ? 'notes' : null,
-            $this->has('sales', 'license_plate')  ? 'license_plate' : null,
-        ]);
+        $q = Sale::query()
+            ->with(['vehicle.vehicleModel.brand','vehicle.vehicleModel','vehicle.type','vehicle.color','vehicle.year','customer'])
+            ->whereBetween('sale_date', [$this->start, $this->end])
+            ->orderBy('sale_date');
 
-        // Header
-        $headers = array_merge(['DATE', 'AMOUNT'], array_map(function ($c) {
-            return match ($c) {
-                'payment_method' => 'PAYMENT',
-                'notes'          => 'NOTE',
-                'license_plate'  => 'PLATE',
-                default          => strtoupper($c),
-            };
-        }, $opt));
+        // Global search (mirror dari widget SalesTable)
+        if (filled($this->search)) {
+            $term = trim($this->search);
+            $s = "%{$term}%";
+            $num = preg_replace('/\D+/', '', $term) ?: null;
+
+            $q->where(function ($qq) use ($s, $num) {
+                $qq->where('notes', 'like', $s)
+                   ->orWhere('sale_price', 'like', $s)
+                   ->when($num, fn ($w) => $w->orWhere('id', (int) $num))
+                   ->orWhereHas('customer', fn ($x) => $x->where('name', 'like', $s))
+                   ->orWhereHas('vehicle.vehicleModel', fn ($x) => $x->where('name', 'like', $s))
+                   ->orWhereHas('vehicle.vehicleModel.brand', fn ($x) => $x->where('name', 'like', $s));
+            });
+        }
 
         $rows = [];
-        $query = Sale::query()
-            ->when($dateCol, fn ($q) => $q->whereDate($dateCol, '>=', $this->start))
-            ->when($dateCol, fn ($q) => $q->whereDate($dateCol, '<=', $this->end))
-            ->orderBy($dateCol ?? 'id');
-
-        $selectCols = array_filter([$dateCol, $amountCol, ...$opt]);
-        $data = $selectCols ? $query->get($selectCols) : $query->get();
-
-        foreach ($data as $r) {
-            $row = [];
-            // DATE
-            $dateVal = $dateCol ? Carbon::parse($r->{$dateCol}) : null;
-            $row[] = $dateVal ? $dateVal->toDateString() : '';
-            // AMOUNT
-            $row[] = $amountCol ? (float) $r->{$amountCol} : 0;
-
-            // optional
-            foreach ($opt as $c) {
-                $row[] = (string) ($r->{$c} ?? '');
-            }
-            $rows[] = $row;
+        foreach ($q->get() as $r) {
+            $rows[] = [
+                Carbon::parse($r->sale_date)->toDateString(),
+                (string) optional($r->customer)->name,
+                (string) optional(optional(optional($r->vehicle)->vehicleModel)->brand)->name,
+                (string) optional(optional($r->vehicle)->year)->year,
+                (string) ($r->notes ?? ''),
+                (float) ($r->sale_price ?? 0),
+                'INV' . str_pad((string) $r->id, 7, '0', STR_PAD_LEFT),
+                (string) optional(optional($r->vehicle)->type)->name,
+                (string) optional(optional($r->vehicle)->vehicleModel)->name,
+                (string) optional(optional($r->vehicle)->color)->name,
+                (string) ($r->payment_method ?? ''),
+            ];
         }
 
         return [$headers, ...$rows];
@@ -80,13 +72,9 @@ class SalesSheet implements FromArray, WithTitle, WithEvents
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                /** @var Worksheet $sheet */
                 $sheet = $event->sheet->getDelegate();
                 $rowCount = max(1, $sheet->getHighestDataRow());
-                $colCount = $sheet->getHighestDataColumn();
-                $colCount = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($colCount);
-
-                // Terapkan styling tabel
+                $colCount = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
                 $this->applyTableStyles($sheet, $colCount, $rowCount, $this->headerValues($sheet));
             }
         ];
@@ -98,7 +86,7 @@ class SalesSheet implements FromArray, WithTitle, WithEvents
         $cells = [];
         for ($c = 'A'; $c <= $lastCol; $c++) {
             $cells[] = (string) $sheet->getCell($c.'1')->getValue();
-            if ($c === $lastCol) break; // PHP's char++ trick
+            if ($c === $lastCol) break;
         }
         return $cells;
     }

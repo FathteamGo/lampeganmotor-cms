@@ -39,7 +39,7 @@ class ProfitAndLossReport extends Page
     public array $wa = ['phone' => '', 'note' => ''];
 
     /** Nomor default auto-send */
-    protected string $waAutoNumber = '0895600067676';
+    protected string $waAutoNumber = '081394510605';
 
     public function mount(): void
     {
@@ -59,10 +59,12 @@ class ProfitAndLossReport extends Page
     public function exportToExcel()
     {
         return Excel::download(
-            new ProfitAndLossExport($this->dateStart, $this->dateEnd),
+            new \App\Exports\ProfitAndLossOneSheetExport($this->dateStart, $this->dateEnd, $this->search),
             "profit-loss_{$this->dateStart}_{$this->dateEnd}.xlsx"
         );
     }
+
+
 
     /** Normalisasi 08xxxx -> 62xxxx */
     protected function normalizePhone(string $raw): string
@@ -124,10 +126,6 @@ class ProfitAndLossReport extends Page
             $ok = false;
             logger()->error('WA send error', ['e' => $e]);
         }
-
-        $ok
-            ? Notification::make()->title('WhatsApp terkirim')->success()->send()
-            : Notification::make()->title('Gagal mengirim WhatsApp')->body('Periksa kredensial.')->danger()->send();
     }
 
     /** Buka modal manual (jika dipakai) */

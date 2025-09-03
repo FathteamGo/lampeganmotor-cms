@@ -6,16 +6,47 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Sale;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class ProfitAndLossReport extends Page
 {
-    protected static string | UnitEnum | null $navigationGroup = 'Report & Audit';
-    protected static ?string $navigationLabel = 'Profit & Loss';
-    protected static ?string $title = 'Laporan & Audit Profit & Loss';
+    protected static string | UnitEnum | null $navigationGroup = 'navigation.report_audit';
+    protected static ?string $navigationLabel = 'navigation.profit_loss';
+    protected static ?string $title = 'navigation.profit_loss';
     protected static ?int $navigationSort = 5;
 
     protected string $view = 'filament.pages.profit-and-loss-report';
+
+   
+    public static function getNavigationGroup(): ?string
+    {
+        return __(static::$navigationGroup);
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __(static::$navigationLabel);
+    }
+
+    public function getTitle(): string
+    {
+        return __(static::$title);
+    }
+
+     public static function shouldRegisterNavigation(): bool
+{
+    $user = Auth::user();
+
+    return $user && $user->role === 'owner';
+}
+
+ public static function canAccess(): bool
+    {
+    $user = Auth::user();
+
+    return $user && $user->role === 'owner';
+    }
 
     // Filter tanggal (global)
     public ?string $dateStart = null;

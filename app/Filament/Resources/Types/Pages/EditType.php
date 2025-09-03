@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Types\Pages;
 
 use App\Filament\Resources\Types\TypeResource;
 use Filament\Actions\DeleteAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditType extends EditRecord
@@ -13,7 +14,8 @@ class EditType extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+             DeleteAction::make()
+                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

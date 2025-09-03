@@ -15,22 +15,22 @@ class ExpenseForm
         return $schema
             ->components([
                 TextInput::make('description')
-                    ->label('Deskripsi')
+                    ->label(__('tables.description'))
                     ->required(),
 
                 Select::make('category_id')
-                    ->label('Kategori')
+                    ->label(__('tables.category_name'))
                     ->options(Category::all()->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
                 TextInput::make('amount')
-                    ->label('Jumlah')
+                    ->label(__('tables.amount'))
                     ->required()
                     ->numeric(),
 
                 DatePicker::make('expense_date')
-                    ->label('Tanggal')
+                    ->label(__('tables.expense_date'))
                     ->required(),
             ]);
     }

@@ -26,7 +26,7 @@
         "tomatophp/filament-translations": "^4.0"
     },
     "require-dev": {
-        "barryvdh/laravel-ide-helper": "^3.6",
+        "barryvdh/laravel-ide-helper": "*",
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",

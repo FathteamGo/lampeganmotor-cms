@@ -15,16 +15,21 @@ class CustomersTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('tables.customers')) // multi-bahasa
                     ->searchable(),
                 TextColumn::make('nik')
+                    ->label(__('tables.nik')) // multi-bahasa
                     ->searchable(),
                 TextColumn::make('phone')
+                    ->label(__('tables.phone')) // multi-bahasa
                     ->searchable(),
                 TextColumn::make('created_at')
+                    ->label(__('tables.created_at')) // multi-bahasa
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
+                    ->label(__('tables.updated_at')) // multi-bahasa
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -33,11 +38,13 @@ class CustomersTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label(__('tables.edit')), // multi-bahasa
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label(__('tables.delete')), // multi-bahasa
                 ]),
             ]);
     }

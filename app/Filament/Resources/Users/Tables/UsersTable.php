@@ -15,19 +15,29 @@ class UsersTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('tables.name'))
                     ->searchable(),
+
                 TextColumn::make('email')
-                    ->label('Email address')
+                    ->label(__('tables.email'))
                     ->searchable(),
+
                 TextColumn::make('email_verified_at')
+                    ->label(__('tables.email_verified_at'))
                     ->dateTime()
                     ->sortable(),
-                TextColumn::make('role'),
+
+                TextColumn::make('role')
+                    ->label(__('tables.role')),
+
                 TextColumn::make('created_at')
+                    ->label(__('tables.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
+                    ->label(__('tables.updated_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -36,11 +46,11 @@ class UsersTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->label(__('tables.delete')),
                 ]),
             ]);
     }

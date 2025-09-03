@@ -10,22 +10,39 @@ use App\Filament\Resources\Sales\Schemas\SaleForm;
 use App\Filament\Resources\Sales\Schemas\SaleInfolist;
 use App\Filament\Resources\Sales\Tables\SalesTable;
 use App\Models\Sale;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class SaleResource extends Resource
 {
     protected static ?string $model = Sale::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $recordTitleAttribute = 'notes'; // sesuaikan dengan field utama di model Sale
 
-    protected static string | UnitEnum | null $navigationGroup = 'Transactions';
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.transactions');
+    }
 
-    protected static ?string $recordTitleAttribute = 'notes';
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.sales');
+    }
+
+    /** 🔹 Label Jamak */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.sales');
+    }
+
+    /** 🔹 Label Tunggal */
+    public static function getLabel(): string
+    {
+        return __('navigation.sales');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -44,18 +61,16 @@ class SaleResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListSales::route('/'),
+            'index'  => ListSales::route('/'),
             'create' => CreateSale::route('/create'),
-            'view' => ViewSale::route('/{record}'),
-            'edit' => EditSale::route('/{record}/edit'),
+            'view'   => ViewSale::route('/{record}'),
+            'edit'   => EditSale::route('/{record}/edit'),
         ];
     }
 }

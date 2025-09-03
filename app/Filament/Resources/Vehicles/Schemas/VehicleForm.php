@@ -7,7 +7,6 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
 use App\Models\VehicleModel;
 use App\Models\Type;
@@ -19,67 +18,72 @@ class VehicleForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
-            ->components([
+            ->columns(2)
+            ->schema([
                 // Vehicle Model Dropdown
                 Select::make('vehicle_model_id')
-                    ->label('Vehicle Model')
-                    ->options(VehicleModel::all()->pluck('name', 'id')) // Mengambil data dari model VehicleModel
-                    ->searchable() // Menambahkan fitur pencarian
+                    ->label(__('navigation.vehicle_models'))
+                    ->options(VehicleModel::orderBy('name')->pluck('name', 'id'))
+                    ->searchable()
                     ->required(),
 
                 // Type Dropdown
                 Select::make('type_id')
-                    ->label('Type')
-                    ->options(Type::all()->pluck('name', 'id')) // Mengambil data dari model Type
+                    ->label(__('tables.type'))
+                    ->options(Type::orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
                 // Color Dropdown
                 Select::make('color_id')
-                    ->label('Color')
-                    ->options(Color::all()->pluck('name', 'id')) // Mengambil data dari model Color
+                    ->label(__('tables.color'))
+                    ->options(Color::orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
                 // Year Dropdown
                 Select::make('year_id')
-                    ->label('Year')
-                    ->options(Year::all()->pluck('year', 'id')) // Mengambil data dari model Year
+                    ->label(__('tables.year'))
+                    ->options(Year::orderBy('year')->pluck('year', 'id'))
                     ->searchable()
                     ->required(),
 
                 // VIN
                 TextInput::make('vin')
-                    ->label('VIN')
-                    ->required(),
+                    ->label(__('tables.vin'))
+                    ->required()
+                    ->maxLength(255),
 
                 // Engine Number
                 TextInput::make('engine_number')
-                    ->label('Engine Number')
-                    ->required(),
+                    ->label(__('tables.engine_number'))
+                    ->required()
+                    ->maxLength(255),
 
                 // License Plate
                 TextInput::make('license_plate')
-                    ->label('License Plate'),
+                    ->label(__('tables.license_plate'))
+                    ->maxLength(255),
 
                 // BPKB Number
                 TextInput::make('bpkb_number')
-                    ->label('BPKB Number'),
+                    ->label(__('tables.bpkb_number'))
+                    ->maxLength(255),
 
                 // Purchase Price
                 TextInput::make('purchase_price')
-                    ->label('Purchase Price')
+                    ->label(__('tables.purchase_price'))
                     ->required()
                     ->numeric(),
 
                 // Sale Price
                 TextInput::make('sale_price')
-                    ->label('Sale Price')
+                    ->label(__('tables.sale_price'))
                     ->numeric(),
 
                 // DP Percentage
                 TextInput::make('dp_percentage')
-                    ->label('DP Percentage')
+                    ->label(__('tables.dp_percentage'))
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
@@ -87,47 +91,54 @@ class VehicleForm
 
                 // Odometer
                 TextInput::make('odometer')
-                    ->label('Odometer (KM)')
+                    ->label(__('tables.odometer'))
                     ->numeric()
                     ->minValue(0),
 
                 // Status Dropdown
                 Select::make('status')
-                    ->label('Status')
+                    ->label(__('tables.status'))
                     ->options([
-                        'available' => 'Available',
-                        'sold' => 'Sold',
-                        'in_repair' => 'In Repair',
-                        'hold' => 'Hold',
+                        'available' => __('tables.available'),
+                        'sold' => __('tables.sold'),
+                        'in_repair' => __('tables.in_repair'),
+                        'hold' => __('tables.hold'),
                     ])
                     ->default('hold')
                     ->required(),
 
                 // Engine Specification
                 TextInput::make('engine_specification')
-                    ->label('Engine Specification'),
+                    ->label(__('tables.engine_specification')),
+
                 // Location
                 TextInput::make('location')
-                    ->label('Location'),
+                    ->label(__('tables.location')),
 
                 // Notes
                 RichEditor::make('notes')
-                    ->label('Notes')
+                    ->label(__('tables.notes'))
                     ->columnSpanFull(),
 
                 // Description
                 RichEditor::make('description')
-                    ->label('Description')
+                    ->label(__('tables.description'))
                     ->columnSpanFull(),
 
                 // Photos Repeater
                 Repeater::make('photos')
                     ->relationship()
-                    ->label('Photos')
+                    ->label(__('tables.photos'))
                     ->columnSpanFull()
                     ->schema([
-                        FileUpload::make('path')->label('Image')->image()->disk('public')->directory('vehicle-photos')->required(),
-                        TextInput::make('caption')->label('Caption'),
+                        FileUpload::make('path')
+                            ->label(__('tables.image'))
+                            ->image()
+                            ->disk('public')
+                            ->directory('vehicle-photos')
+                            ->required(),
+                        TextInput::make('caption')
+                            ->label(__('tables.caption')),
                     ])->grid(2),
             ]);
     }

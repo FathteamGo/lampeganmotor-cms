@@ -10,22 +10,39 @@ use App\Filament\Resources\Purchases\Schemas\PurchaseForm;
 use App\Filament\Resources\Purchases\Schemas\PurchaseInfolist;
 use App\Filament\Resources\Purchases\Tables\PurchasesTable;
 use App\Models\Purchase;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class PurchaseResource extends Resource
 {
     protected static ?string $model = Purchase::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Transactions';
-
     protected static ?string $recordTitleAttribute = 'notes';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.transactions');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.purchases');
+    }
+
+    /** 🔹 Label Jamak */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.purchases');
+    }
+
+    /** 🔹 Label Tunggal */
+    public static function getLabel(): string
+    {
+        return __('navigation.purchases');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -44,18 +61,16 @@ class PurchaseResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListPurchases::route('/'),
+            'index'  => ListPurchases::route('/'),
             'create' => CreatePurchase::route('/create'),
-            'view' => ViewPurchase::route('/{record}'),
-            'edit' => EditPurchase::route('/{record}/edit'),
+            'view'   => ViewPurchase::route('/{record}'),
+            'edit'   => EditPurchase::route('/{record}/edit'),
         ];
     }
 }

@@ -9,19 +9,16 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Navigation\NavigationGroup;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Filament\Navigation\NavigationGroup;
-
-// Import yang ditambahkan
-use Filament\Support\Facades\FilamentView;
-use Filament\View\PanelsRenderHook;
-use Illuminate\Support\Facades\Blade;
-use App\Http\Middleware\SetLocale; // Import middleware
+use Illuminate\Support\Facades\Auth;
+use App\Http\Middleware\SetLocale;
 
 use App\Filament\Widgets\DashboardStats;
 use App\Filament\Widgets\SalesChart;
@@ -31,6 +28,59 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        $navigationGroups = [
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.master_data'))
+                ->icon('heroicon-o-circle-stack')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.user_management'))
+                ->icon('heroicon-o-user-group')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.transactions'))
+                ->icon('heroicon-o-currency-dollar')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.financial'))
+                ->icon('heroicon-o-banknotes')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.assets_management'))
+                ->icon('heroicon-o-archive-box')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.settings'))
+                ->icon('heroicon-o-cog-6-tooth')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.system'))
+                ->icon('heroicon-o-server-stack')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.help_support'))
+                ->icon('heroicon-o-question-mark-circle')
+                ->collapsed(),
+        ];
+
+        // Hanya tambahkan Report & Audit untuk owner
+        if (Auth::check() && Auth::user()->role === 'owner') {
+            // Insert pada posisi ke-6 (sebelum Settings)
+            array_splice($navigationGroups, 5, 0, [
+                NavigationGroup::make()
+                    ->label(fn() => __('navigation.report_audit'))
+                    ->icon('heroicon-o-document-chart-bar')
+                    ->collapsed()
+            ]);
+        }
+
         return $panel
             ->default()
             ->id('admin')
@@ -47,42 +97,19 @@ class AdminPanelProvider extends PanelProvider
                 SalesChart::class,
                 RevenueChart::class,
             ])
-            ->navigationGroups([
-                NavigationGroup::make()
-                    ->label(__('navigation.master_data'))
-                    ->icon('heroicon-o-circle-stack'),
-
-                NavigationGroup::make()
-                    ->label('User Management')
-                    ->icon('heroicon-o-user-group')
-                    ->collapsed(),
-
-                NavigationGroup::make()
-                    ->label('Transactions')
-                    ->icon('heroicon-o-currency-dollar')
-                    ->collapsed(),
-
-                NavigationGroup::make()
-                    ->label('Financial')
-                    ->icon('heroicon-o-banknotes')
-                    ->collapsed(),
-
-                NavigationGroup::make()
-                    ->label('Assets Management')
-                    ->icon('heroicon-o-archive-box')
-                    ->collapsed(),
-
-                NavigationGroup::make()
-                    ->label('Report & Audit')
-                    ->icon('heroicon-o-document-chart-bar')
-                    ->collapsed(),
-            ])
-            // Tambahkan render hook untuk language switcher
-           ->renderHook(
+            ->navigationGroups($navigationGroups)
+            ->renderHook(
                 PanelsRenderHook::TOPBAR_END,
-                fn (): string => view('components.language-switcher')->render()
+                fn(): string => '<div style="margin-left: 0.5rem; padding-left: 1rem;">' . view('components.language-switcher')->render() . '</div>'
             )
-        
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn(): string => '<style>
+                    .fi-topbar-end > div:last-child { margin-left: 0.5rem !important; padding-left: 0.5rem !important; }
+                    .fi-topbar-end .fi-btn { margin-right: 0.5rem !important; }
+                    .fi-topbar-end { gap: 0rem !important; }
+                </style>'
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -93,16 +120,10 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                SetLocale::class, 
+                SetLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
             ]);
-    }
-    
-    public function boot()
-    {
-        // Register Livewire component jika belum auto-discovery
-        \Livewire\Livewire::component('language-switcher', \App\Livewire\LanguageSwitcher::class);
     }
 }

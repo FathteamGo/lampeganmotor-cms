@@ -10,9 +10,12 @@ class ColorForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
-            ->components([
+            ->columns(1) 
+            ->schema([
                 TextInput::make('name')
-                    ->required(),
+                    ->label(__('tables.name'))  // multi-bahasa
+                    ->required()
+                    ->maxLength(255),
             ]);
     }
 }

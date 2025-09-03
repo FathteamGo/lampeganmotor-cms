@@ -17,12 +17,17 @@ class SaleForm
             ->components([
                 // Dropdown Vehicle
                 Select::make('vehicle_id')
-                    ->label('Vehicle')
+                    ->label(__('tables.purchase_model')) // Bisa pakai label model juga
                     ->options(
-                        Vehicle::with('vehicleModel')
+                        Vehicle::with(['vehicleModel', 'color'])
                             ->get()
                             ->mapWithKeys(fn($vehicle) => [
-                                $vehicle->id => $vehicle->vehicleModel->name ?? 'Unknown',
+                                $vehicle->id => sprintf(
+                                    '%s | %s | %s',
+                                    $vehicle->vehicleModel->name ?? 'Unknown Model',
+                                    $vehicle->color->name ?? 'Unknown Color',
+                                    $vehicle->license_plate ?? 'No Plate'
+                                ),
                             ])
                     )
                     ->searchable()
@@ -30,48 +35,25 @@ class SaleForm
 
                 // Dropdown Customer
                 Select::make('customer_id')
-                    ->label('Customer')
-                    ->options(
-                        Customer::all()->pluck('name', 'id') // [id => name]
-                    )
+                    ->label(__('tables.customer'))
+                    ->options(Customer::all()->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
-                Select::make('vehicle_id')
-                ->label('Vehicle')
-                ->options(
-                    \App\Models\Vehicle::with(['vehicleModel', 'color'])
-                        ->get()
-                        ->mapWithKeys(fn($vehicle) => [
-                            $vehicle->id => sprintf(
-                                '%s | %s | %s',
-                                $vehicle->vehicleModel->name ?? 'Unknown Model',
-                                $vehicle->color->name ?? 'Unknown Color',
-                                $vehicle->license_plate ?? 'No Plate'
-                            ),
-                        ])
-                )
-                ->searchable()
-                ->required(),
 
-
-                Select::make('customer_id')
-                ->label('Customer')
-                ->options(
-                    \App\Models\Customer::all()
-                        ->pluck('name', 'id')
-                )
-                ->searchable()
-                ->required(),
-
+                // Tanggal penjualan
                 DatePicker::make('sale_date')
+                    ->label(__('tables.sale_date'))
                     ->required(),
 
+                // Harga jual
                 TextInput::make('sale_price')
-                    ->required()
-                    ->numeric(),
+                    ->label(__('tables.sale_price'))
+                    ->numeric()
+                    ->required(),
 
+                // Metode pembayaran
                 Select::make('payment_method')
-                    ->label('Payment Method')
+                    ->label(__('tables.payment_method'))
                     ->options([
                         'cash'     => 'Cash',
                         'credit'   => 'Credit',
@@ -80,7 +62,9 @@ class SaleForm
                     ->default('cash')
                     ->required(),
 
+                // Catatan tambahan
                 Textarea::make('notes')
+                    ->label(__('tables.note'))
                     ->columnSpanFull(),
             ]);
     }

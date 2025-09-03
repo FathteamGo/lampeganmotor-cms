@@ -22,12 +22,12 @@ use Illuminate\Support\Facades\Storage;
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Form Jual Motor</h2>
 
             <form wire:submit.prevent="submit" class="space-y-6">
-                {{ $this->form }}
+                {{ $this->form }}   
 
                 <div class="flex justify-end">
-                    <x-filament::button type="submit" color="success">
+                    <x-fil type="submit" color="success">
                         Kirim Data
-                    </x-filament::button>
+                    </x-fil ament::button>
                 </div>
             </form>
         </div>

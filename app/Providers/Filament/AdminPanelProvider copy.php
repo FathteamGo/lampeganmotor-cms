@@ -21,7 +21,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Support\Facades\Blade;
-use App\Http\Middleware\SetLocale; // Import middleware
+use App\Http\Middleware\SetLocale;
 
 use App\Filament\Widgets\DashboardStats;
 use App\Filament\Widgets\SalesChart;
@@ -48,35 +48,36 @@ class AdminPanelProvider extends PanelProvider
                 RevenueChart::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make()
-                    ->label(__('navigation.master_data'))
-                    ->icon('heroicon-o-circle-stack'),
+    NavigationGroup::make()
+        ->label(__('navigation.master_data'))
+        ->icon('heroicon-o-rectangle-stack'),
 
-                NavigationGroup::make()
-                    ->label('User Management')
-                    ->icon('heroicon-o-user-group')
-                    ->collapsed(),
+    NavigationGroup::make()
+        ->label(__('navigation.user_management'))
+        ->icon('heroicon-o-users')
+        ->collapsed(),
 
-                NavigationGroup::make()
-                    ->label('Transactions')
-                    ->icon('heroicon-o-currency-dollar')
-                    ->collapsed(),
+    NavigationGroup::make()
+        ->label(__('navigation.transactions'))
+        ->icon('heroicon-o-currency-dollar')
+        ->collapsed(),
 
-                NavigationGroup::make()
-                    ->label('Financial')
-                    ->icon('heroicon-o-banknotes')
-                    ->collapsed(),
+    NavigationGroup::make()
+        ->label(__('navigation.financial'))
+        ->icon('heroicon-o-banknotes')
+        ->collapsed(),
 
-                NavigationGroup::make()
-                    ->label('Assets Management')
-                    ->icon('heroicon-o-archive-box')
-                    ->collapsed(),
+    NavigationGroup::make()
+        ->label(__('navigation.assets_management'))
+        ->icon('heroicon-o-archive')
+        ->collapsed(),
 
-                NavigationGroup::make()
-                    ->label('Report & Audit')
-                    ->icon('heroicon-o-document-chart-bar')
-                    ->collapsed(),
-            ])
+    NavigationGroup::make()
+        ->label(__('navigation.report_audit'))
+        ->icon('heroicon-o-document-chart-bar')
+        ->collapsed(),
+])
+
             // Tambahkan render hook untuk language switcher
            ->renderHook(
                 PanelsRenderHook::TOPBAR_END,
@@ -93,7 +94,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                SetLocale::class, 
+                SetLocale::class, // Tambahkan middleware locale
             ])
             ->authMiddleware([
                 Authenticate::class,

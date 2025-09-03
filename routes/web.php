@@ -47,8 +47,3 @@ Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsBy
 
 
 
-Route::post('/language/switch', function (Request $request) {
-    session(['locale' => $request->locale]);
-    return back();
-})->name('language.switch');
-

@@ -12,8 +12,9 @@ class IncomeInfolist
         return $schema
             ->components([
                 TextEntry::make('description'),
-                TextEntry::make('category_id')
-                    ->numeric(),
+                // Tampilkan nama kategori, bukan ID
+                TextEntry::make('category.name')
+                    ->label('Kategori'),
                 TextEntry::make('amount')
                     ->numeric(),
                 TextEntry::make('income_date')

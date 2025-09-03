@@ -15,9 +15,6 @@ class DashboardStats extends BaseWidget
 {
     use InteractsWithPageFilters;
 
-    /**
-     * Set 3 card per baris
-     */
     protected function getColumns(): int
     {
         return 3;
@@ -25,116 +22,87 @@ class DashboardStats extends BaseWidget
 
     protected function getStats(): array
     {
-        // Ambil filter dari pageFilters
-        $startDate = ! is_null($this->pageFilters['startDate'] ?? null)
+        $startDate = isset($this->pageFilters['startDate']) && $this->pageFilters['startDate']
             ? Carbon::parse($this->pageFilters['startDate'])
             : Carbon::today();
 
-        $endDate = ! is_null($this->pageFilters['endDate'] ?? null)
+        $endDate = isset($this->pageFilters['endDate']) && $this->pageFilters['endDate']
             ? Carbon::parse($this->pageFilters['endDate'])
             : Carbon::today();
 
-        // =============================
-        // Data
-        // =============================
-
-        // Stok unit tersedia
+        // ================= DATA =================
         $stokUnit = Vehicle::where('status', 'available')->count();
 
-        // Terjual
         $terjualPeriode = Sale::whereBetween('sale_date', [$startDate, $endDate])->count();
         $terjualBulanIni = Sale::whereYear('sale_date', Carbon::now()->year)
             ->whereMonth('sale_date', Carbon::now()->month)
             ->count();
         $terjualTahunIni = Sale::whereYear('sale_date', Carbon::now()->year)->count();
 
-        // Penjualan
         $totalPenjualanPeriode = Sale::whereBetween('sale_date', [$startDate, $endDate])->sum('sale_price');
         $totalPenjualanBulanIni = Sale::whereYear('sale_date', Carbon::now()->year)
             ->whereMonth('sale_date', Carbon::now()->month)
             ->sum('sale_price');
         $totalPenjualanTahunIni = Sale::whereYear('sale_date', Carbon::now()->year)->sum('sale_price');
 
-        // Pengeluaran
         $totalPengeluaranPeriode = Expense::whereBetween('expense_date', [$startDate, $endDate])->sum('amount');
         $totalPengeluaranBulanIni = Expense::whereYear('expense_date', Carbon::now()->year)
             ->whereMonth('expense_date', Carbon::now()->month)
             ->sum('amount');
         $totalPengeluaranTahunIni = Expense::whereYear('expense_date', Carbon::now()->year)->sum('amount');
 
-        // Aset
-       // Kendaraan: hanya available + sesuai periode
-        $totalAsetMotor = Vehicle::where('status', 'available')
-            // ->whereBetween('expense_date', [$startDate, $endDate]) 
-            ->sum('sale_price');
-
-        // OtherAsset: sesuai periode
-        $totalAsetLainnyaPeriode = OtherAsset::whereBetween('acquisition_date', [$startDate, $endDate])
-            ->sum('value');
-
+        $totalAsetMotor = Vehicle::where('status', 'available')->sum('sale_price');
         $totalAsetLainnya = OtherAsset::sum('value');
-
-        // Total
         $totalNilaiAset = $totalAsetMotor + $totalAsetLainnya;
-        // =============================
-        // Stats
-        // =============================
+
+        // ================= STATS =================
         return [
-            // ================= STOK =================
-            Stat::make('Stok Unit', $stokUnit)
-                ->description('Total unit tersedia')
+            Stat::make(__('dashboard.stock_unit'), $stokUnit)
+                ->description(__('dashboard.total_available_units'))
                 ->color('primary'),
 
-            // ================= TERJUAL =================
-            Stat::make('Terjual (Periode)', $terjualPeriode . ' Unit')
+            Stat::make(__('dashboard.sold_period'), $terjualPeriode . ' ' . __('dashboard.unit'))
                 ->description("{$startDate->format('d M Y')} s/d {$endDate->format('d M Y')}")
                 ->color('success'),
 
-            Stat::make('Terjual (Bulan Ini)', $terjualBulanIni . ' Unit')
-                ->description('Jumlah unit terjual bulan ini')
+            Stat::make(__('dashboard.sold_this_month'), $terjualBulanIni . ' ' . __('dashboard.unit'))
+                ->description(__('dashboard.units_sold_this_month'))
                 ->color('success'),
 
-            // Stat::make('Terjual (Tahun Ini)', $terjualTahunIni . ' Unit')
-            //     ->description('Jumlah unit terjual tahun ini')
-            //     ->color('success'),
-
-            // ================= PENJUALAN =================
-            Stat::make('Penjualan (Periode)', 'Rp ' . number_format($totalPenjualanPeriode, 0, ',', '.'))
+            Stat::make(__('dashboard.sales_period'), 'Rp ' . number_format($totalPenjualanPeriode, 0, ',', '.'))
                 ->description("{$startDate->format('d M Y')} s/d {$endDate->format('d M Y')}")
                 ->color('warning'),
 
-            Stat::make('Penjualan (Bulan Ini)', 'Rp ' . number_format($totalPenjualanBulanIni, 0, ',', '.'))
-                ->description('Akumulasi penjualan bulan ini')
+            Stat::make(__('dashboard.sales_this_month'), 'Rp ' . number_format($totalPenjualanBulanIni, 0, ',', '.'))
+                ->description(__('dashboard.accumulated_sales_this_month'))
                 ->color('warning'),
 
-            Stat::make('Penjualan (Tahun Ini)', 'Rp ' . number_format($totalPenjualanTahunIni, 0, ',', '.'))
-                ->description('Akumulasi penjualan tahun ini')
+            Stat::make(__('dashboard.sales_this_year'), 'Rp ' . number_format($totalPenjualanTahunIni, 0, ',', '.'))
+                ->description(__('dashboard.accumulated_sales_this_year'))
                 ->color('warning'),
 
-            // ================= PENGELUARAN =================
-            Stat::make('Pengeluaran (Periode)', 'Rp ' . number_format($totalPengeluaranPeriode, 0, ',', '.'))
+            Stat::make(__('dashboard.expenses_period'), 'Rp ' . number_format($totalPengeluaranPeriode, 0, ',', '.'))
                 ->description("{$startDate->format('d M Y')} s/d {$endDate->format('d M Y')}")
                 ->color('danger'),
 
-            Stat::make('Pengeluaran (Bulan Ini)', 'Rp ' . number_format($totalPengeluaranBulanIni, 0, ',', '.'))
-                ->description('Total pengeluaran bulan ini')
+            Stat::make(__('dashboard.expenses_this_month'), 'Rp ' . number_format($totalPengeluaranBulanIni, 0, ',', '.'))
+                ->description(__('dashboard.total_expenses_this_month'))
                 ->color('danger'),
 
-            Stat::make('Pengeluaran (Tahun Ini)', 'Rp ' . number_format($totalPengeluaranTahunIni, 0, ',', '.'))
-                ->description('Total pengeluaran tahun ini')
+            Stat::make(__('dashboard.expenses_this_year'), 'Rp ' . number_format($totalPengeluaranTahunIni, 0, ',', '.'))
+                ->description(__('dashboard.total_expenses_this_year'))
                 ->color('danger'),
 
-            // ================= ASET =================
-            Stat::make('Total Aset Motor', 'Rp ' . number_format($totalAsetMotor, 0, ',', '.'))
-                ->description('Nilai seluruh aset kendaraan')
+            Stat::make(__('dashboard.total_motor_assets'), 'Rp ' . number_format($totalAsetMotor, 0, ',', '.'))
+                ->description(__('dashboard.value_all_vehicle_assets'))
                 ->color('info'),
 
-            Stat::make('Total Aset Lainnya', 'Rp ' . number_format($totalAsetLainnya, 0, ',', '.'))
-                ->description("Total Seluruh Aset Lainnya")
+            Stat::make(__('dashboard.total_other_assets'), 'Rp ' . number_format($totalAsetLainnya, 0, ',', '.'))
+                ->description(__('dashboard.total_all_other_assets'))
                 ->color('info'),
 
-            Stat::make('Total Nilai Aset', 'Rp ' . number_format($totalNilaiAset, 0, ',', '.'))
-                ->description('Akumulasi semua aset')
+            Stat::make(__('dashboard.total_asset_value'), 'Rp ' . number_format($totalNilaiAset, 0, ',', '.'))
+                ->description(__('dashboard.accumulation_all_assets'))
                 ->color('primary'),
         ];
     }

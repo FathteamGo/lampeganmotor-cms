@@ -12,16 +12,26 @@ class ExpenseInfolist
         return $schema
             ->components([
                 TextEntry::make('description'),
-                TextEntry::make('category_id')
-                    ->numeric(),
+
+                // Tampilkan nama kategori, bukan ID
+                TextEntry::make('category.name')
+                    ->label('Kategori'),
+
                 TextEntry::make('amount')
-                    ->numeric(),
+                    ->numeric()
+                    ->label('Jumlah'),
+
                 TextEntry::make('expense_date')
-                    ->date(),
+                    ->date()
+                    ->label('Tanggal'),
+
                 TextEntry::make('created_at')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->label('Dibuat'),
+
                 TextEntry::make('updated_at')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->label('Diupdate'),
             ]);
     }
 }

@@ -18,8 +18,7 @@ class LanguageSwitcher extends Component
     public function switchLanguage($locale)
     {
         Session::put('locale', $locale);
-        
-        // Langsung redirect ke halaman saat ini dengan locale baru
+
         return redirect(request()->fullUrl());
     }
 

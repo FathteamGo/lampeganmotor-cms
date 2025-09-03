@@ -15,7 +15,8 @@ class AssetReport extends Page implements Tables\Contracts\HasTable
 
     protected static string|\UnitEnum|null $navigationGroup = 'Report & Audit';
     protected static ?string $navigationLabel               = 'Asset Report';
-    protected static ?string $title                         = 'Laporan Asset & Stok Unit';
+    protected static ?string $title                         = 'Report & Audit
+';
 
     protected string $view = 'filament.pages.asset-report';
 
@@ -24,6 +25,7 @@ class AssetReport extends Page implements Tables\Contracts\HasTable
     {
         return $table
             ->query(OtherAsset::query())
+            ->heading('Harta Tidak Bergerak')
             ->columns([
                 Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
                 Tables\Columns\TextColumn::make('name')->label('Nama Asset')->searchable(),

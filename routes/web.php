@@ -2,9 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
-use App\Http\Controllers\PurchaseReportExportController;
-use App\Http\Controllers\SalesReportExportController;
-use App\Models\Request;
+
+use App\Exports\VehiclesExport;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Http\Controllers\AssetReportController;
+
+
 
 // Halaman welcome (default Laravel)
 Route::get('/', function () {
@@ -47,8 +50,8 @@ Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsBy
 
 
 
-Route::post('/language/switch', function (Request $request) {
-    session(['locale' => $request->locale]);
-    return back();
-})->name('language.switch');
+
+Route::get('/inventory/export/excel', function () {
+    return Excel::download(new VehiclesExport, 'vehicles.xlsx');
+})->name('inventory.export.excel');
 

@@ -3,18 +3,27 @@
 namespace App\Filament\Pages;
 
 use App\Models\Sale;
-use Filament\Forms;
 use Filament\Pages\Page;
 use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\SalesReportExport;
 use UnitEnum;
 
-class SalesReport extends Page implements HasTable
+class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
 {
-    use InteractsWithTable;
+    use InteractsWithSchemas;
+    use Tables\Concerns\InteractsWithTable;
 
     protected static string|UnitEnum|null $navigationGroup = 'navigation.report_audit';
     protected static ?string $navigationLabel = 'navigation.sales_report';
@@ -23,7 +32,25 @@ class SalesReport extends Page implements HasTable
 
     protected string $view = 'filament.pages.sales-report';
 
-    // 🔑 Multi bahasa untuk sidebar & title
+    public ?array $filters = [
+        'startDate' => null,
+        'endDate'   => null,
+        'search'    => null,
+    ];
+
+    // Role only owner
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return __(static::$navigationGroup);
@@ -39,86 +66,82 @@ class SalesReport extends Page implements HasTable
         return __(static::$title);
     }
 
-      public static function shouldRegisterNavigation(): bool
+    public function mount(): void
     {
-    $user = Auth::user();
-
-    return $user && $user->role === 'owner';
+        $this->filters['startDate'] = now()->startOfMonth()->toDateString();
+        $this->filters['endDate'] = now()->endOfMonth()->toDateString();
     }
 
-     public static function canAccess(): bool
+    public function form(Schema $schema): Schema
     {
-    $user = Auth::user();
+        return $schema
+            ->components([
+                Section::make()
+                    ->schema([
+                        DatePicker::make('startDate')
+                            ->label('Start Date')
+                            ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
 
-    return $user && $user->role === 'owner';
+                        DatePicker::make('endDate')
+                            ->label('End Date')
+                            ->minDate(fn (Get $get) => $get('startDate') ?: now())
+                            ->maxDate(now()),
+
+                        TextInput::make('search')
+                            ->label('Search')
+                            ->placeholder('Search invoice / customer / VIN...'),
+                    ])
+                    ->columns(3)
+                    ->columnSpanFull(),
+            ])
+            ->statePath('filters');
     }
 
+    public function exportExcel()
+    {
+        $query = $this->table($this->makeTable())->getQuery();
+
+        return Excel::download(new SalesReportExport($query), 'sales-report.xlsx');
+    }
 
     public function table(Table $table): Table
     {
+        $start  = data_get($this->filters, 'startDate');
+        $end    = data_get($this->filters, 'endDate');
+        $search = data_get($this->filters, 'search');
+
         return $table
             ->query(
                 Sale::query()
-                    ->with([
-                        'vehicle.vehicleModel.brand',
-                        'vehicle.type',
-                        'vehicle.color',
-                        'vehicle.year',
-                        'customer',
-                    ])
+                    ->with(['vehicle.vehicleModel.brand', 'vehicle.type', 'vehicle.color', 'vehicle.year', 'customer'])
+                    ->when($start, fn ($q) => $q->whereDate('sale_date', '>=', Carbon::parse($start)))
+                    ->when($end, fn ($q) => $q->whereDate('sale_date', '<=', Carbon::parse($end)))
+                    ->when($search, fn ($q, $s) =>
+                        $q->where(function ($sub) use ($s) {
+                            $sub->where('id', 'like', "%{$s}%")
+                                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$s}%"))
+                                ->orWhereHas('vehicle', fn ($v) =>
+                                    $v->where('vin', 'like', "%{$s}%")
+                                      ->orWhere('license_plate', 'like', "%{$s}%")
+                                );
+                        })
+                    )
             )
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label(__('navigation.invoice_number'))
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('sale_date')
-                    ->label(__('navigation.date'))
-                    ->date('F d, Y'),
-
-                Tables\Columns\TextColumn::make('customer.name')
-                    ->label(__('navigation.customer'))
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('vehicle.vehicleModel.brand.name')
-                    ->label(__('navigation.brand')),
-                Tables\Columns\TextColumn::make('vehicle.type.name')
-                    ->label(__('navigation.type')),
-                Tables\Columns\TextColumn::make('vehicle.vehicleModel.name')
-                    ->label(__('navigation.model')),
-                Tables\Columns\TextColumn::make('vehicle.color.name')
-                    ->label(__('navigation.color')),
-                Tables\Columns\TextColumn::make('vehicle.year.year')
-                    ->label(__('navigation.year')),
-                Tables\Columns\TextColumn::make('vehicle.vin')
-                    ->label(__('navigation.vin')),
-                Tables\Columns\TextColumn::make('vehicle.license_plate')
-                    ->label(__('navigation.license_plate')),
-
-                Tables\Columns\TextColumn::make('sale_price')
-                    ->money('IDR')
-                    ->label(__('navigation.sale_price')),
-
-                Tables\Columns\TextColumn::make('payment_method')
-                    ->label(__('navigation.payment_method')),
-            ])
-            ->filters([
-                Tables\Filters\Filter::make('sale_date')
-                    ->form([
-                        Forms\Components\DatePicker::make('from')
-                            ->label(__('navigation.start_date'))
-                            ->default(now()->startOfMonth()),
-
-                        Forms\Components\DatePicker::make('until')
-                            ->label(__('navigation.end_date'))
-                            ->default(now()->endOfMonth()),
-                    ])
-                    ->query(function ($query, array $data) {
-                        return $query
-                            ->when($data['from'] ?? null, fn($q, $from) => $q->whereDate('sale_date', '>=', $from))
-                            ->when($data['until'] ?? null, fn($q, $until) => $q->whereDate('sale_date', '<=', $until));
-                    }),
+                TextColumn::make('id')->label('Invoice Number')->sortable(),
+                TextColumn::make('sale_date')->label('Date')->date('F d, Y'),
+                TextColumn::make('customer.name')->label('Customer'),
+                TextColumn::make('customer.phone')->label('Phone'),
+                TextColumn::make('customer.address')->label('Location'),
+                TextColumn::make('vehicle.vehicleModel.brand.name')->label('Brand'),
+                TextColumn::make('vehicle.type.name')->label('Type'),
+                TextColumn::make('vehicle.vehicleModel.name')->label('Model'),
+                TextColumn::make('vehicle.color.name')->label('Color'),
+                TextColumn::make('vehicle.year.year')->label('Year'),
+                TextColumn::make('vehicle.vin')->label('VIN'),
+                TextColumn::make('vehicle.license_plate')->label('License Plate'),
+                TextColumn::make('sale_price')->money('IDR')->label('Sale Price'),
+                TextColumn::make('payment_method')->label('Payment Method'),
             ])
             ->paginated(false);
     }

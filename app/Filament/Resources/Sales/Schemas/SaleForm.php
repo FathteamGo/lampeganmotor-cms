@@ -39,30 +39,33 @@ class SaleForm
                     ->options(Customer::all()->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
-
-                // Tanggal penjualan
                 DatePicker::make('sale_date')
                     ->label(__('tables.sale_date'))
                     ->required(),
-
-                // Harga jual
                 TextInput::make('sale_price')
                     ->label(__('tables.sale_price'))
                     ->numeric()
                     ->required(),
-
-                // Metode pembayaran
                 Select::make('payment_method')
                     ->label(__('tables.payment_method'))
                     ->options([
-                        'cash'     => 'Cash',
-                        'credit'   => 'Credit',
-                        'transfer' => 'Transfer',
+                        'cash'        => 'Cash',
+                        'credit'      => 'Credit',
+                        'tukartambah' => 'Tukar Tambah',
+                        'cash_tempo'  => 'Cash Tempo',
                     ])
                     ->default('cash')
                     ->required(),
+                // Sisa Pembayaran (hanya muncul saat cash tempo)
+                TextInput::make('remaining_payment')
+                    ->label('Sisa Pembayaran')
+                    ->numeric()
+                    ->visible(fn ($get) => $get('payment_method') === 'cashsale_tempo'),
 
-                // Catatan tambahan
+                // Tanggal Jatuh Tempo (hanya muncul saat cash tempo)
+                DatePicker::make('due_date')
+                    ->label('Tanggal Jatuh Tempo')
+                    ->visible(fn ($get) => $get('payment_method') === 'cash_tempo'),
                 Textarea::make('notes')
                     ->label(__('tables.note'))
                     ->columnSpanFull(),

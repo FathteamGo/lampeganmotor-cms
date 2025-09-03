@@ -14,9 +14,12 @@ class AssetReport extends Page implements Tables\Contracts\HasTable
 {
     use Tables\Concerns\InteractsWithTable;
 
+
     protected static string|\UnitEnum|null $navigationGroup = 'navigation.report_audit';
     protected static ?string $navigationLabel = 'navigation.asset_report';
+
     protected static ?string $title = 'navigation.asset_report_title';
+
 
     protected string $view = 'filament.pages.asset-report';
 
@@ -54,6 +57,7 @@ class AssetReport extends Page implements Tables\Contracts\HasTable
     {
         return $table
             ->query(OtherAsset::query())
+            ->heading('Harta Tidak Bergerak')
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('#')

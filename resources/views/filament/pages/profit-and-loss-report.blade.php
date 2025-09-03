@@ -1,74 +1,71 @@
 <x-filament-panels::page>
-    {{-- Header + Summary kecil --}}
-    <div class="flex flex-col gap-3 mb-4">
-        <div class="flex items-center justify-between">
-            <h2 class="text-base font-semibold">Laporan & Audit Profit & Loss</h2>
-
-            <div class="flex items-center gap-2">
-                <x-filament::button icon="heroicon-o-arrow-down-tray" wire:click="$refresh">
-                    Export Excel
-                </x-filament::button>
-                <x-filament::button icon="heroicon-o-share">
-                    Generate to WhatsApp
-                </x-filament::button>
+    {{-- TOOLBAR ATAS --}}
+    <div class="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <x-filament::section class="mt-2 shadow-sm">
+            <div class="fi-section-content p-0">
+                <div class="flex items-center gap-3 md:gap-4 flex-nowrap">
+                    {{-- SEARCH kiri --}}
+                    <div class="w-72 md:w-80">
+                        <x-filament::input.wrapper>
+                            <x-slot name="prefix">
+                                <x-filament::icon icon="heroicon-o-magnifying-glass" class="h-5 w-5 text-gray-400" />
+                            </x-slot>
+                            <x-filament::input
+                                wire:model.live.debounce.400ms="search"
+                                placeholder="Cari…"
+                                autocomplete="off"
+                            />
+                        </x-filament::input.wrapper>
+                    </div>
+                    <br>
+                    {{-- TOMBOL kanan --}}
+                    <div class="ml-auto flex items-center gap-2 whitespace-nowrap shrink-0">
+                        <x-filament::button color="success" icon="heroicon-o-arrow-down-tray" wire:click="exportToExcel">
+                            Export Excel
+                        </x-filament::button>
+                        <x-filament::button icon="heroicon-o-paper-airplane" wire:click="sendWhatsAppAuto">
+                            Generate to WhatsApp
+                        </x-filament::button>
+                    </div>
+                </div>
             </div>
-        </div>
+        </x-filament::section>
     </div>
 
-    {{-- Body: Sales (full), Income & Expense (2 kolom), Summary besar --}}
-    <div class="grid grid-cols-12 gap-4">
-        {{-- SALES: filter tanggal ADA di dalam widget ini --}}
-        <div class="col-span-12">
+    {{-- KONTEN --}}
+    <div class="space-y-6 mt-6">
+        {{-- SALES --}}
+        <div class="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
             @livewire(\App\Filament\Widgets\SalesTable::class,
-                ['dateStart' => $dateStart, 'dateEnd' => $dateEnd],
-                key('sales-'.$dateStart.$dateEnd))
+                ['dateStart' => $dateStart, 'dateEnd' => $dateEnd, 'search' => $search],
+                key('sales-'.$dateStart.$dateEnd.'-'.$search))
         </div>
 
-        {{-- INCOME (kiri) --}}
-        <div class="col-span-12 lg:col-span-6">
+        <br>
+
+        {{-- INCOME --}}
+        <div class="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
             @livewire(\App\Filament\Widgets\IncomeTable::class,
-                ['dateStart' => $dateStart, 'dateEnd' => $dateEnd],
-                key('income-'.$dateStart.$dateEnd))
+                ['dateStart' => $dateStart, 'dateEnd' => $dateEnd, 'search' => $search],
+                key('income-'.$dateStart.$dateEnd.'-'.$search))
         </div>
 
-        {{-- EXPENSE (kanan) --}}
-        <div class="col-span-12 lg:col-span-6">
+        <br>
+
+        {{-- EXPENSE --}}
+        <div class="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
             @livewire(\App\Filament\Widgets\ExpenseTable::class,
-                ['dateStart' => $dateStart, 'dateEnd' => $dateEnd],
-                key('expense-'.$dateStart.$dateEnd))
+                ['dateStart' => $dateStart, 'dateEnd' => $dateEnd, 'search' => $search],
+                key('expense-'.$dateStart.$dateEnd.'-'.$search))
         </div>
 
-{{-- SUMMARY BOX --}}
-<div class="col-span-12">
-    <div class="rounded-xl border border-gray-200 dark:border-gray-800
-                bg-white dark:bg-gray-900/50
-                shadow-sm overflow-hidden">   {{-- ⬅️ tambah shadow + bg + overflow-hidden --}}
-        <table class="min-w-full text-xs">
-            <tbody>
-            <tr class="border-b dark:border-gray-800">
-                <td class="px-3 py-2 w-32">SALES</td>
-                <td class="px-3 py-2 text-right">{{ $this->formatIdr($totalSales) }}</td>
-            </tr>
-            <tr class="border-b dark:border-gray-800">
-                <td class="px-3 py-2">INCOME</td>
-                <td class="px-3 py-2 text-right">{{ $this->formatIdr($totalIncomes) }}</td>
-            </tr>
-            <tr class="border-b dark:border-gray-800">
-                <td class="px-3 py-2">EXPENSE</td>
-                <td class="px-3 py-2 text-right">{{ $this->formatIdr($totalExpenses) }}</td>
-            </tr>
-            @php $profit = $this->profit; @endphp
-            <tr>
-                <td class="px-3 py-2 font-semibold">Total</td>
-                <td class="px-3 py-2 text-right font-semibold">
-                    {{ $profit >= 0 ? '(' . $this->formatIdr($profit) . ') Profit' : '(' . $this->formatIdr(abs($profit)) . ') Loss' }}
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+        <br>
 
-
+        {{-- ASSET: pakai widget summary table --}}
+        @livewire(\App\Filament\Widgets\AssetSummaryTable::class, [
+            'totalSales'     => $totalSales,
+            'totalIncomes'   => $totalIncomes,
+            'totalExpenses'  => $totalExpenses,
+        ], key('asset-'.$dateStart.$dateEnd))
     </div>
 </x-filament-panels::page>

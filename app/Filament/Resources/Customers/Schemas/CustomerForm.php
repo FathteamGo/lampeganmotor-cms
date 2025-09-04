@@ -13,11 +13,18 @@ class CustomerForm
         return $schema
             ->components([
                 TextInput::make('name')
+                    ->label(__('tables.customer')) // label dari lang file
                     ->required(),
-                TextInput::make('nik'),
+
+                TextInput::make('nik')
+                    ->label(__('tables.nik')),
+
                 TextInput::make('phone')
+                    ->label(__('tables.phone'))
                     ->tel(),
+
                 Textarea::make('address')
+                    ->label(__('tables.address')) // jangan lupa tambahkan 'address' di lang
                     ->columnSpanFull(),
             ]);
     }

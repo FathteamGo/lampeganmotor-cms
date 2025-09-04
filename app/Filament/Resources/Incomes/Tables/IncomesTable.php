@@ -16,36 +16,37 @@ class IncomesTable
         return $table
             ->columns([
                 TextColumn::make('description')
+                    ->label(__('tables.description'))
                     ->searchable(),
 
-                // Tampilkan nama kategori (relasi)
                 TextColumn::make('category.name')
-                    ->label('Kategori')
+                    ->label(__('tables.category'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('amount')
                     ->numeric()
                     ->sortable()
-                    ->label('Jumlah'),
+                    ->label(__('tables.amount')),
 
                 TextColumn::make('income_date')
                     ->date()
                     ->sortable()
-                    ->label('Tanggal'),
+                    ->label(__('tables.income_date')),
 
-                // Tampilkan nama customer (relasi)
                 TextColumn::make('customer.name')
-                    ->label('Customer')
+                    ->label(__('tables.customer'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('created_at')
+                    ->label(__('tables.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('updated_at')
+                    ->label(__('tables.updated_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -54,12 +55,15 @@ class IncomesTable
                 //
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()
+                    ->label(__('tables.view')),
+                EditAction::make()
+                    ->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label(__('tables.delete')),
                 ]),
             ]);
     }

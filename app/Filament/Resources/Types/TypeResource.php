@@ -8,22 +8,39 @@ use App\Filament\Resources\Types\Pages\ListTypes;
 use App\Filament\Resources\Types\Schemas\TypeForm;
 use App\Filament\Resources\Types\Tables\TypesTable;
 use App\Models\Type;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class TypeResource extends Resource
 {
     protected static ?string $model = Type::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Master Data';
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.master_data');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.types');
+    }
+
+    /** 🔹 Label Jamak */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.types');
+    }
+
+    /** 🔹 Label Tunggal */
+    public static function getLabel(): string
+    {
+        return __('navigation.types');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -37,17 +54,15 @@ class TypeResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListTypes::route('/'),
+            'index'  => ListTypes::route('/'),
             'create' => CreateType::route('/create'),
-            'edit' => EditType::route('/{record}/edit'),
+            'edit'   => EditType::route('/{record}/edit'),
         ];
     }
 }

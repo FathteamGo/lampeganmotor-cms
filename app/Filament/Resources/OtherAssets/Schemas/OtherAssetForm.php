@@ -14,13 +14,20 @@ class OtherAssetForm
         return $schema
             ->components([
                 TextInput::make('name')
+                    ->label(__('tables.name'))
                     ->required(),
+
                 Textarea::make('description')
+                    ->label(__('tables.description'))
                     ->columnSpanFull(),
+
                 TextInput::make('value')
+                    ->label(__('tables.value'))
                     ->required()
                     ->numeric(),
+
                 DatePicker::make('acquisition_date')
+                    ->label(__('tables.acquisition_date'))
                     ->required(),
             ]);
     }

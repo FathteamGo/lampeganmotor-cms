@@ -16,33 +16,35 @@ class IncomeForm
         return $schema
             ->components([
                 TextInput::make('description')
+                    ->label(__('tables.description'))
                     ->required()
                     ->maxLength(255),
 
                 // Relasi ke Category
-                 Select::make('category_id')
-                    ->label('Kategori')
+                Select::make('category_id')
+                    ->label(__('tables.category_name'))
                     ->options(Category::all()->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
                 TextInput::make('amount')
+                    ->label(__('tables.amount'))
                     ->required()
                     ->numeric()
                     ->prefix('Rp'),
 
                 DatePicker::make('income_date')
-                    ->required()
-                    ->label('Tanggal'),
+                    ->label(__('tables.income_date'))
+                    ->required(),
 
                 // Relasi ke Customer
                 Select::make('customer_id')
-                    ->label('Customer')
+                    ->label(__('tables.customer_name'))
                     ->relationship('customer', 'name')
                     ->searchable(),
 
                 Textarea::make('notes')
-                    ->label('Catatan')
+                    ->label(__('tables.note'))
                     ->columnSpanFull(),
             ]);
     }

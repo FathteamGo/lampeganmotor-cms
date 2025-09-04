@@ -11,15 +11,24 @@ class OtherAssetInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('name'),
+                TextEntry::make('name')
+                    ->label(__('tables.other_asset_name')),
+
                 TextEntry::make('value')
-                    ->numeric(),
+                    ->numeric()
+                    ->label(__('tables.other_asset_value')),
+
                 TextEntry::make('acquisition_date')
-                    ->date(),
+                    ->date()
+                    ->label(__('tables.other_asset_acquisition_date')),
+
                 TextEntry::make('created_at')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->label(__('tables.created_at')),
+
                 TextEntry::make('updated_at')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->label(__('tables.updated_at')),
             ]);
     }
 }

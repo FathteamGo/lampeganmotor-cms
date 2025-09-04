@@ -8,22 +8,39 @@ use App\Filament\Resources\Customers\Pages\ListCustomers;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
 use App\Models\Customer;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class CustomerResource extends Resource
 {
     protected static ?string $model = Customer::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'User Management';
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.user_management');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.customers');
+    }
+
+    /** 🔹 Label Jamak (List, Index) */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.customers');
+    }
+
+    /** 🔹 Label Tunggal (Create, Edit) */
+    public static function getLabel(): string
+    {
+        return __('navigation.customer');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -37,9 +54,7 @@ class CustomerResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

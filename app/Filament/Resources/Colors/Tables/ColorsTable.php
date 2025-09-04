@@ -15,12 +15,15 @@ class ColorsTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('tables.name')) // multi-bahasa
                     ->searchable(),
                 TextColumn::make('created_at')
+                    ->label(__('tables.created_at')) // multi-bahasa
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
+                    ->label(__('tables.updated_at')) // multi-bahasa
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -29,11 +32,13 @@ class ColorsTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label(__('tables.edit')), // multi-bahasa
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label(__('tables.delete')), // multi-bahasa
                 ]),
             ]);
     }

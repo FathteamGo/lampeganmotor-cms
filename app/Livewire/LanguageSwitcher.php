@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Session;
-use Filament\Notifications\Notification;
 
 class LanguageSwitcher extends Component
 {
@@ -17,9 +16,13 @@ class LanguageSwitcher extends Component
 
     public function switchLanguage($locale)
     {
+        // Simpan locale ke session
         Session::put('locale', $locale);
-        
-        // Langsung redirect ke halaman saat ini dengan locale baru
+
+        // Update currentLocale untuk Livewire state
+        $this->currentLocale = $locale;
+
+        // Redirect ke halaman saat ini agar bahasa berubah
         return redirect(request()->fullUrl());
     }
 

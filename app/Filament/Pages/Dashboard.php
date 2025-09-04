@@ -15,19 +15,21 @@ class Dashboard extends BaseDashboard
 
     public function filtersForm(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Section::make()
-                    ->schema([
-                        DatePicker::make('startDate')
-                            ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
-                        DatePicker::make('endDate')
-                            ->minDate(fn (Get $get) => $get('startDate') ?: now())
-                            ->maxDate(now()),
-                    ])
-                    ->columns(3)
-                    ->columnSpanFull(),
-            ]);
+         return $schema
+        ->components([
+            Section::make()
+                ->schema([
+                    DatePicker::make('startDate')
+                        ->label(fn () => __('dashboard.start_date'))
+                        ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
+                    DatePicker::make('endDate')
+                        ->label(fn () => __('dashboard.end_date'))
+                        ->minDate(fn (Get $get) => $get('startDate') ?: now())
+                        ->maxDate(now()),
+                ])
+                ->columns(3)
+                ->columnSpanFull(),
+        ]);
     }
 
 

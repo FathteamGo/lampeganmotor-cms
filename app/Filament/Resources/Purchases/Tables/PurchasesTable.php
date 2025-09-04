@@ -16,35 +16,35 @@ class PurchasesTable
         return $table
             ->columns([
                 TextColumn::make('vehicle.vehicleModel.name')
-                    ->label('Model')
+                    ->label(__('tables.purchase_model'))
                     ->sortable()
                     ->searchable(),
-                    
+
                 TextColumn::make('supplier.name')
-                    ->label('Supplier')
+                    ->label(__('tables.purchase_supplier'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('purchase_date')
                     ->date()
-                    ->label('Tanggal Pembelian')
+                    ->label(__('tables.purchase_date'))
                     ->sortable(),
 
                 TextColumn::make('total_price')
                     ->numeric()
                     ->prefix('Rp')
-                    ->label('Total Harga')
+                    ->label(__('tables.purchase_total_price'))
                     ->sortable(),
 
                 TextColumn::make('created_at')
                     ->dateTime()
-                    ->label('Dibuat')
+                    ->label(__('tables.created_at'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('updated_at')
                     ->dateTime()
-                    ->label('Diperbarui')
+                    ->label(__('tables.updated_at'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -52,12 +52,15 @@ class PurchasesTable
                 //
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()
+                    ->label(__('tables.view')),
+                EditAction::make()
+                    ->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label(__('tables.delete')),
                 ]),
             ]);
     }

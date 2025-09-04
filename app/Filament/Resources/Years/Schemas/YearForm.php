@@ -12,6 +12,7 @@ class YearForm
         return $schema
             ->components([
                 TextInput::make('year')
+                    ->label(__('tables.year'))
                     ->required(),
             ]);
     }

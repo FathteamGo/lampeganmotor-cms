@@ -40,4 +40,5 @@ return [
     'end_date' => 'End Date',
     'filter' => 'Filter',
     'reset' => 'Reset',
+
 ];

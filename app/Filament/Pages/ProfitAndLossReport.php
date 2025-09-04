@@ -11,19 +11,57 @@ use App\Models\Sale;
 use App\Services\WhatsAppService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Maatwebsite\Excel\Facades\Excel;
 use Psr\Http\Message\ResponseInterface;
+use UnitEnum;
 
 class ProfitAndLossReport extends Page
 {
-    protected static string|\UnitEnum|null $navigationGroup = 'Report & Audit';
-    protected static ?string $navigationLabel = 'Profit & Loss';
-    protected static ?string $title = 'Profit & Loss';
+    protected static string | UnitEnum | null $navigationGroup = 'navigation.report_audit';
+    protected static ?string $navigationLabel = 'navigation.profit_loss';
+    protected static ?string $title = 'navigation.profit_loss'; 
+
+
+
     protected static ?int $navigationSort = 5;
 
     protected string $view = 'filament.pages.profit-and-loss-report';
 
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __(static::$navigationGroup);
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __(static::$navigationLabel);
+    }
+
+    public function getTitle(): string
+    {
+        return __(static::$title);
+    }
+
+     public static function shouldRegisterNavigation(): bool
+{
+    $user = Auth::user();
+
+    return $user && $user->role === 'owner';
+}
+
+
+ public static function canAccess(): bool
+    {
+    $user = Auth::user();
+
+    return $user && $user->role === 'owner';
+    }
+
+    // Filter tanggal (global)
     // Header filter
     public ?string $dateStart = null;
     public ?string $dateEnd   = null;

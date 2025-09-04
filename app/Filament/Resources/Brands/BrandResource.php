@@ -8,22 +8,39 @@ use App\Filament\Resources\Brands\Pages\ListBrands;
 use App\Filament\Resources\Brands\Schemas\BrandForm;
 use App\Filament\Resources\Brands\Tables\BrandsTable;
 use App\Models\Brand;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class BrandResource extends Resource
 {
     protected static ?string $model = Brand::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Master Data';
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.master_data');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.brands');
+    }
+
+    /** 🔹 Label Jamak (List, Index) */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.brands');
+    }
+
+    /** 🔹 Label Tunggal (Create, Edit) */
+    public static function getLabel(): string
+    {
+        return __('navigation.brands');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -37,9 +54,7 @@ class BrandResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

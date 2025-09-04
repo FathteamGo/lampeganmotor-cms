@@ -3,16 +3,20 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Sale;
-use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 
 class RevenueChart extends ChartWidget
 {
-    // heading bersifat NON-STATIC
-    protected ?string $heading = 'Revenue Info';
+    // heading NON-STATIC, bisa pakai __()
+    protected ?string $heading = null;
 
-    // sort HARUS bersifat STATIC
+    // sort HARUS static
     protected static ?int $sort = 3;
+
+    public function getHeading(): ?string
+    {
+        return __('widgets.revenue_info');
+    }
 
     protected function getData(): array
     {
@@ -27,7 +31,7 @@ class RevenueChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Pendapatan',
+                    'label' => __('widgets.revenue'),
                     'data' => [$thisMonthRevenue, $lastMonthRevenue],
                     'backgroundColor' => [
                         'rgb(54, 162, 235)',
@@ -35,7 +39,10 @@ class RevenueChart extends ChartWidget
                     ],
                 ],
             ],
-            'labels' => ['Bulan Ini', 'Bulan Lalu'],
+            'labels' => [
+                __('widgets.this_month'),
+                __('widgets.last_month'),
+            ],
         ];
     }
 

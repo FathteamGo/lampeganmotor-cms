@@ -16,32 +16,32 @@ class ExpensesTable
         return $table
             ->columns([
                 TextColumn::make('description')
-                    ->label('Deskripsi')
+                    ->label(__('tables.description')) // multi-bahasa
                     ->searchable(),
 
                 TextColumn::make('category.name')
-                    ->label('Kategori')
+                    ->label(__('tables.category')) // multi-bahasa
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('amount')
-                    ->label('Jumlah')
+                    ->label(__('tables.amount')) // multi-bahasa
                     ->numeric()
                     ->sortable(),
 
                 TextColumn::make('expense_date')
-                    ->label('Tanggal')
+                    ->label(__('tables.expense_date')) // multi-bahasa
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('created_at')
-                    ->label('Created At')
+                    ->label(__('tables.created_at')) // multi-bahasa
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('updated_at')
-                    ->label('Updated At')
+                    ->label(__('tables.updated_at')) // multi-bahasa
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -50,12 +50,15 @@ class ExpensesTable
                 //
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()
+                    ->label(__('tables.view')), // multi-bahasa
+                EditAction::make()
+                    ->label(__('tables.edit')), // multi-bahasa
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label(__('tables.delete')), // multi-bahasa
                 ]),
             ]);
     }

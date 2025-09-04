@@ -10,22 +10,39 @@ use App\Filament\Resources\OtherAssets\Schemas\OtherAssetForm;
 use App\Filament\Resources\OtherAssets\Schemas\OtherAssetInfolist;
 use App\Filament\Resources\OtherAssets\Tables\OtherAssetsTable;
 use App\Models\OtherAsset;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class OtherAssetResource extends Resource
 {
     protected static ?string $model = OtherAsset::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Assets Management';
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.assets_management');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.other_assets');
+    }
+
+    /** 🔹 Label Jamak */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.other_assets');
+    }
+
+    /** 🔹 Label Tunggal */
+    public static function getLabel(): string
+    {
+        return __('navigation.other_assets');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -44,9 +61,7 @@ class OtherAssetResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

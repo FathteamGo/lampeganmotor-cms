@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Sales\Pages;
 use App\Filament\Resources\Sales\SaleResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditSale extends EditRecord
@@ -15,7 +16,8 @@ class EditSale extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+             DeleteAction::make()
+                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

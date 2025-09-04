@@ -15,12 +15,17 @@ class YearsTable
         return $table
             ->columns([
                 TextColumn::make('year')
+                    ->label(__('tables.year'))
                     ->searchable(),
+
                 TextColumn::make('created_at')
+                    ->label(__('tables.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
+                    ->label(__('tables.updated_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -29,11 +34,11 @@ class YearsTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->label(__('tables.delete')),
                 ]),
             ]);
     }

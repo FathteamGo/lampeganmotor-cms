@@ -6,6 +6,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use App\Models\Vehicle;
+use App\Models\Supplier;
 
 class PurchaseForm
 {
@@ -13,42 +15,45 @@ class PurchaseForm
     {
         return $schema
             ->components([
-                // Dropdown Vehicle ambil dari relasi + accessor name
+                // Vehicle dropdown dengan accessor name
                 Select::make('vehicle_id')
-                ->label('Vehicle')
-                ->options(
-                    \App\Models\Vehicle::with(['vehicleModel', 'color'])
-                        ->get()
-                        ->mapWithKeys(fn($vehicle) => [
-                            $vehicle->id => sprintf(
-                                '%s | %s | %s',
-                                $vehicle->vehicleModel->name ?? 'Unknown Model',
-                                $vehicle->color->name ?? 'Unknown Color',
-                                $vehicle->license_plate ?? 'No Plate'
-                            ),
-                        ])
-                )
-                ->searchable()
-                ->required(),
-
-                // Dropdown Supplier ambil nama supplier
-                Select::make('supplier_id')
-                    ->label('Supplier')
+                    ->label(__('tables.purchase_model'))
                     ->options(
-                        \App\Models\Supplier::all()
-                            ->pluck('name', 'id') // ambil [id => name]
+                        Vehicle::with(['vehicleModel', 'color'])
+                            ->get()
+                            ->mapWithKeys(fn($vehicle) => [
+                                $vehicle->id => sprintf(
+                                    '%s | %s | %s',
+                                    $vehicle->vehicleModel->name ?? 'Unknown Model',
+                                    $vehicle->color->name ?? 'Unknown Color',
+                                    $vehicle->license_plate ?? 'No Plate'
+                                ),
+                            ])
                     )
                     ->searchable()
                     ->required(),
 
-                DatePicker::make('purchase_date')
+                // Supplier dropdown
+                Select::make('supplier_id')
+                    ->label(__('tables.purchase_supplier'))
+                    ->options(Supplier::all()->pluck('name', 'id'))
+                    ->searchable()
                     ->required(),
 
+                // Tanggal pembelian
+                DatePicker::make('purchase_date')
+                    ->label(__('tables.purchase_date'))
+                    ->required(),
+
+                // Total harga
                 TextInput::make('total_price')
+                    ->label(__('tables.purchase_total_price'))
                     ->numeric()
                     ->required(),
 
+                // Catatan tambahan
                 Textarea::make('notes')
+                    ->label(__('tables.note'))
                     ->columnSpanFull(),
             ]);
     }

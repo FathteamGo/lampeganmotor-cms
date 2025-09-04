@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Vehicles\Pages;
 use App\Filament\Resources\Vehicles\VehicleResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditVehicle extends EditRecord
@@ -15,7 +16,8 @@ class EditVehicle extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

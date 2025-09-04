@@ -16,48 +16,48 @@ class SalesTable
         return $table
             ->columns([
                 TextColumn::make('vehicle.vehicleModel.name')
-                    ->label('Model')
+                    ->label(__('tables.model'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('vehicle.color.name')
-                    ->label('Warna')
+                    ->label(__('tables.color'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('vehicle.license_plate')
-                    ->label('Plat Nomor')
+                    ->label(__('tables.license_plate'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('customer.name')
-                    ->label('Customer')
+                    ->label(__('tables.customer'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('sale_date')
                     ->date()
-                    ->label('Tanggal Jual')
+                    ->label(__('tables.sale_date'))
                     ->sortable(),
 
                 TextColumn::make('sale_price')
                     ->numeric()
-                    ->label('Harga Jual')
+                    ->label(__('tables.sale_price'))
                     ->sortable(),
 
                 TextColumn::make('payment_method')
-                    ->label('Metode Pembayaran')
+                    ->label(__('tables.payment_method'))
                     ->searchable(),
 
                 TextColumn::make('created_at')
                     ->dateTime()
-                    ->label('Created At')
+                    ->label(__('tables.created_at'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('updated_at')
                     ->dateTime()
-                    ->label('Updated At')
+                    ->label(__('tables.updated_at'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -65,12 +65,12 @@ class SalesTable
                 //
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()->label(__('tables.view')),
+                EditAction::make()->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->label(__('tables.delete')),
                 ]),
             ]);
     }

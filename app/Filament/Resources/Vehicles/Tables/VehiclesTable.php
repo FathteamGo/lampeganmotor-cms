@@ -16,61 +16,80 @@ class VehiclesTable
         return $table
             ->columns([
                 TextColumn::make('vehicleModel.name')
-                    ->label('Model')
+                    ->label(__('tables.model'))
                     ->sortable()
                     ->searchable(),
+
                 TextColumn::make('type.name')
-                    ->label('Type')
+                    ->label(__('tables.type'))
                     ->sortable()
                     ->searchable(),
+
                 TextColumn::make('color.name')
-                    ->label('Color')
+                    ->label(__('tables.color'))
                     ->sortable()
                     ->searchable(),
+
                 TextColumn::make('year.year')
-                    ->label('Year')
+                    ->label(__('tables.year'))
                     ->sortable()
                     ->searchable(),
+
                 TextColumn::make('vin')
+                    ->label(__('tables.vin'))
                     ->searchable(),
+
                 TextColumn::make('engine_number')
+                    ->label(__('tables.engine_number'))
                     ->searchable(),
+
                 TextColumn::make('license_plate')
-                    ->label('License Plate')
+                    ->label(__('tables.license_plate'))
                     ->searchable(),
+
                 TextColumn::make('bpkb_number')
+                    ->label(__('tables.bpkb_number'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('purchase_price')
+                    ->label(__('tables.purchase_price'))
                     ->numeric()
                     ->sortable()
                     ->money('IDR'),
+
                 TextColumn::make('sale_price')
+                    ->label(__('tables.sale_price'))
                     ->numeric()
                     ->sortable()
                     ->money('IDR'),
 
                 TextColumn::make('odometer')
-                    ->label('Odometer')
+                    ->label(__('tables.odometer'))
                     ->numeric()
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('status')
+                    ->label(__('tables.status'))
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'available' => 'success',
-                        'sold' => 'danger',
+                        'sold'      => 'danger',
                         'in_repair' => 'warning',
-                        'hold' => 'gray',
-                        default => 'gray',
+                        'hold'      => 'gray',
+                        default     => 'gray',
                     })
                     ->searchable(),
+
                 TextColumn::make('created_at')
+                    ->label(__('tables.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
+                    ->label(__('tables.updated_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -79,12 +98,12 @@ class VehiclesTable
                 //
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()->label(__('tables.view')),
+                EditAction::make()->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->label(__('tables.delete')),
                 ]),
             ]);
     }

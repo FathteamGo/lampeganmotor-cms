@@ -13,6 +13,7 @@ class CategoryForm
         return $schema
             ->components([
                 TextInput::make('name')
+                    ->label(__('tables.category')) // pakai lang
                     ->required(),
                 Select::make('type')
                     ->options(['income' => 'Income', 'expense' => 'Expense'])

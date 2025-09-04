@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Colors\Pages;
 
 use App\Filament\Resources\Colors\ColorResource;
 use Filament\Actions\DeleteAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditColor extends EditRecord
@@ -12,8 +13,9 @@ class EditColor extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            DeleteAction::make(),
+         return [
+             DeleteAction::make()
+                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

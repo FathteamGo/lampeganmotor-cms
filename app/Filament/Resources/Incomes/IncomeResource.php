@@ -10,22 +10,39 @@ use App\Filament\Resources\Incomes\Schemas\IncomeForm;
 use App\Filament\Resources\Incomes\Schemas\IncomeInfolist;
 use App\Filament\Resources\Incomes\Tables\IncomesTable;
 use App\Models\Income;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class IncomeResource extends Resource
 {
     protected static ?string $model = Income::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Financial';
-
     protected static ?string $recordTitleAttribute = 'description';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.financial');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.incomes');
+    }
+
+    /** 🔹 Label Jamak (List, Index) */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.incomes');
+    }
+
+    /** 🔹 Label Tunggal (Create, Edit, View) */
+    public static function getLabel(): string
+    {
+        return __('navigation.incomes');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -44,9 +61,7 @@ class IncomeResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

@@ -202,7 +202,7 @@ namespace App\Models{
  * @property int $id
  * @property int $vehicle_id
  * @property int $supplier_id
- * @property string $purchase_date
+ * @property \Illuminate\Support\Carbon $purchase_date
  * @property string $total_price
  * @property string|null $notes
  * @property \Illuminate\Support\Carbon|null $created_at
@@ -341,12 +341,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * App\Models\User
- *
- * @method bool hasRole(string|array $roles)
- * @method bool hasAnyRole(string|array $roles)
- * @method bool hasAllRoles(string|array $roles)
- * @method \Spatie\Permission\Models\Role[] getRoleNames()
  * @property int $id
  * @property string $name
  * @property string $email

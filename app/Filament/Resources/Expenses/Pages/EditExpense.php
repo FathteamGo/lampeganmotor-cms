@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Expenses\Pages;
 use App\Filament\Resources\Expenses\ExpenseResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditExpense extends EditRecord
@@ -15,7 +16,8 @@ class EditExpense extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+             DeleteAction::make()
+                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

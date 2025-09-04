@@ -36,14 +36,6 @@ Route::get('/tentang', fn () => view('frontend.about'))->name('landing.about');
 Route::get('/kontak', fn () => view('frontend.contact'))->name('landing.contact');
 
 
-//export purchse report excel
-Route::get('/purchase-report/export', [PurchaseReportExportController::class, 'exportExcel'])
-    ->name('purchase-report.export');
-
-    
-Route::get('/sales-report/export', [SalesReportExportController::class, 'exportExcel'])
-    ->name('sales-report.export');
-
 Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
     ->whereNumber('brand')
     ->name('sell.models-by-brand');
@@ -57,7 +49,9 @@ Route::get('/inventory/export/excel', function () {
 
 
 
+
 Route::get('/export/asset-report', function () {
     return Excel::download(new AssetReportExport, 'laporan-asset.xlsx');
 })->name('export.asset-report');
+
 

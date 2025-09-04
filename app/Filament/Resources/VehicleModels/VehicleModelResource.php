@@ -8,22 +8,39 @@ use App\Filament\Resources\VehicleModels\Pages\ListVehicleModels;
 use App\Filament\Resources\VehicleModels\Schemas\VehicleModelForm;
 use App\Filament\Resources\VehicleModels\Tables\VehicleModelsTable;
 use App\Models\VehicleModel;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class VehicleModelResource extends Resource
 {
     protected static ?string $model = VehicleModel::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Master Data';
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.master_data');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.vehicle_models');
+    }
+
+    /** 🔹 Label Jamak */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.vehicle_models');
+    }
+
+    /** 🔹 Label Tunggal */
+    public static function getLabel(): string
+    {
+        return __('navigation.vehicle_models');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -37,17 +54,15 @@ class VehicleModelResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListVehicleModels::route('/'),
+            'index'  => ListVehicleModels::route('/'),
             'create' => CreateVehicleModel::route('/create'),
-            'edit' => EditVehicleModel::route('/{record}/edit'),
+            'edit'   => EditVehicleModel::route('/{record}/edit'),
         ];
     }
 }

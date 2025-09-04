@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Purchases\Pages;
 use App\Filament\Resources\Purchases\PurchaseResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPurchase extends EditRecord
@@ -15,7 +16,8 @@ class EditPurchase extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+             DeleteAction::make()
+                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

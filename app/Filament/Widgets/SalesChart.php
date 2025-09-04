@@ -3,15 +3,19 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Sale;
-use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 
 class SalesChart extends ChartWidget
 {
-    protected ?string $heading = 'Penjualan Statistic';
+    protected ?string $heading = null;
 
-    // sort HARUS bersifat STATIC
-    protected static ?int $sort = 2; // Urutan widget di dashboard
+    // sort HARUS static
+    protected static ?int $sort = 2;
+
+    public function getHeading(): ?string
+    {
+        return __('widgets.sales_statistics');
+    }
 
     protected function getData(): array
     {
@@ -30,13 +34,26 @@ class SalesChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Penjualan',
+                    'label' => __('widgets.sales'),
                     'data' => $data,
                     'borderColor' => 'rgb(75, 192, 192)',
                     'tension' => 0.4,
                 ],
             ],
-            'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+            'labels' => [
+                __('months.jan'),
+                __('months.feb'),
+                __('months.mar'),
+                __('months.apr'),
+                __('months.may'),
+                __('months.jun'),
+                __('months.jul'),
+                __('months.aug'),
+                __('months.sep'),
+                __('months.oct'),
+                __('months.nov'),
+                __('months.dec'),
+            ],
         ];
     }
 

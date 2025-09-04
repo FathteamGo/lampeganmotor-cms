@@ -15,14 +15,21 @@ class SuppliersTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('tables.name'))
                     ->searchable(),
+
                 TextColumn::make('phone')
+                    ->label(__('tables.phone'))
                     ->searchable(),
+
                 TextColumn::make('created_at')
+                    ->label(__('tables.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
+                    ->label(__('tables.updated_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -31,11 +38,11 @@ class SuppliersTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->label(__('tables.delete')),
                 ]),
             ]);
     }

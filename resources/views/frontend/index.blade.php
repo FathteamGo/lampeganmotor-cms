@@ -8,7 +8,8 @@ use Illuminate\Support\Number;
 @section('title', 'Galeri Motor - Lampegan Motor')
 
 @section('content')
-<div class="bg-gray-50  text-gray-900 dark:text-white pb-20">
+<div class="bg-white text-black dark:text-white pb-20">
+
     {{-- Hero Slider --}}
     @include('partials.hero-slider')
 
@@ -18,35 +19,47 @@ use Illuminate\Support\Number;
     {{-- Filter Section --}}
     @include('partials.filter')
 
-
-    <div class="container mx-auto max-w-lg px-4 sm:px-6 lg:px-8">
+    {{-- Konten Galeri --}}
+    <div class="mx-auto max-w-sm px-4">
         @if ($vehicles->isEmpty())
-        <p class="text-center text-xl text-gray-600 dark:text-gray-400">Tidak ada motor yang ditemukan dengan filter yang dipilih.</p>
+            <p class="text-center text-lg text-black dark:text-white">
+                Tidak ada motor yang ditemukan dengan filter yang dipilih.
+            </p>
         @else
-        <div class="grid grid-cols-1 gap-6">
-            @foreach ($vehicles as $vehicle)
-            <a href="{{ route('landing.show', $vehicle) }}" class="block bg-white dark:bg-gray-800 rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                <div class="aspect-w-1 aspect-h-1 w-full overflow-hidden"> {{-- Gambar kotak --}}
-                    <img src="{{ $vehicle->photos->first() ? Storage::url($vehicle->photos->first()->path) : asset('assets/images/placeholder.jpg') }}"
-                        alt=" {{ $vehicle->displayName }}"
-                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                </div>
-                <div class="p-4">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-red-500 transition-colors">
-                        {{ $vehicle->displayName }}
-                    </h3>
-                    <p class="text-gray-600 dark:text-gray-300 text-sm mb-3">Tahun {{ $vehicle->year->year ?? 'N/A' }}</p>
-                    <p class="text-2xl font-bold text-red-600 dark:text-red-500">
-                        {{ Number::currency($vehicle->sale_price, 'IDR', 'id') }}
-                    </p>
-                </div>
-            </a>
-            @endforeach
-        </div>
+            <div class="grid grid-cols-1 gap-6">
+                @foreach ($vehicles as $vehicle)
+                    <a href="{{ route('landing.show', $vehicle) }}"
+                       class="block bg-white dark:bg-black rounded-lg shadow-md hover:shadow-xl 
+                              transition-all duration-300 overflow-hidden group">
+                        {{-- Gambar kotak --}}
+                        <div class="aspect-w-1 aspect-h-1 w-full overflow-hidden">
+                            <img
+                                src="{{ $vehicle->photos->first() ? Storage::url($vehicle->photos->first()->path) : asset('assets/images/placeholder.jpg') }}"
+                                alt="{{ $vehicle->displayName }}"
+                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            >
+                        </div>
 
-        <div class="mt-8">
-            {{ $vehicles->links() }}
-        </div>
+                        <div class="p-4">
+                            <h3 class="text-lg font-semibold text-black dark:text-white mb-1 
+                                       group-hover:text-red-500 transition-colors">
+                                {{ $vehicle->displayName }}
+                            </h3>
+                            <p class="text-sm text-black dark:text-white mb-2">
+                                Tahun {{ $vehicle->year->year ?? 'N/A' }}
+                            </p>
+                            <p class="text-xl font-bold text-red-600 dark:text-red-500">
+                                {{ Number::currency($vehicle->sale_price, 'IDR', 'id') }}
+                            </p>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+
+            {{-- Pagination --}}
+            <div class="mt-6">
+                {{ $vehicles->links() }}
+            </div>
         @endif
     </div>
 </div>
@@ -84,11 +97,11 @@ use Illuminate\Support\Number;
             showSlide(currentSlide);
         }
 
-        nextButton.addEventListener('click', nextSlide);
-        prevButton.addEventListener('click', prevSlide);
+        prevButton?.addEventListener('click', prevSlide);
+        nextButton?.addEventListener('click', nextSlide);
 
         // Auto slide
-        let autoSlideInterval = setInterval(nextSlide, 5000); // Change slide every 5 seconds
+        let autoSlideInterval = setInterval(nextSlide, 5000);
 
         // Pause auto slide on hover
         slider.addEventListener('mouseenter', () => clearInterval(autoSlideInterval));
@@ -104,16 +117,9 @@ use Illuminate\Support\Number;
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Cek apakah URL memiliki hash #filter-section saat halaman dimuat
         if (window.location.hash === '#filter-section') {
-            // Cari elemennya
             const filterElement = document.getElementById('filter-section');
-            if (filterElement) {
-                // Lakukan scroll ke elemen tersebut
-                filterElement.scrollIntoView({
-                    behavior: 'smooth'
-                });
-            }
+            filterElement?.scrollIntoView({ behavior: 'smooth' });
         }
     });
 </script>

@@ -11,27 +11,28 @@ class ExpenseInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('description'),
+                TextEntry::make('description')
+                    ->label(__('tables.description')),
 
                 // Tampilkan nama kategori, bukan ID
                 TextEntry::make('category.name')
-                    ->label('Kategori'),
+                    ->label(__('tables.category')),
 
                 TextEntry::make('amount')
                     ->numeric()
-                    ->label('Jumlah'),
+                    ->label(__('tables.amount')),
 
                 TextEntry::make('expense_date')
                     ->date()
-                    ->label('Tanggal'),
+                    ->label(__('tables.expense_date')),
 
                 TextEntry::make('created_at')
                     ->dateTime()
-                    ->label('Dibuat'),
+                    ->label(__('tables.created_at')),
 
                 TextEntry::make('updated_at')
                     ->dateTime()
-                    ->label('Diupdate'),
+                    ->label(__('tables.updated_at')),
             ]);
     }
 }

@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->unsignedInteger('odometer')->nullable();
 
             $table->enum('type', ['buy','sell'])->default('sell');
-            $table->enum('status', ['available', 'sold', 'in_repair', 'hold'])->default('hold');
+            $table->enum('status', ['available', 'sold', 'in_repair', 'hold', 'converted', 'rejected'])->default('hold');
             $table->text('notes')->nullable();
 
             $table->foreignId('vehicle_id')->nullable()->constrained('vehicles')->nullOnDelete();

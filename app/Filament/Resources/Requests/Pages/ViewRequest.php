@@ -11,6 +11,7 @@ class ViewRequest extends ViewRecord
 {
     protected static string $resource = RequestResource::class;
 
+    protected static ?string $breadcrumb = 'View';
     public function getTitle(): string
     {
         return 'Detail Request';

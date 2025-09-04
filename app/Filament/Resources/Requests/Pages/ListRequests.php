@@ -10,6 +10,8 @@ class ListRequests extends ListRecords
 {
     protected static string $resource = RequestResource::class;
 
+    protected static ?string $breadcrumb = 'List';
+
     protected function getHeaderActions(): array
     {
         return [

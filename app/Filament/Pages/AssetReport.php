@@ -55,46 +55,47 @@ class AssetReport extends Page implements Tables\Contracts\HasTable
         return __(static::$title);
     }
 
-    public function table(Table $table): Table
-    {
-        return $table
-            ->query(OtherAsset::query())
-            ->heading('Harta Tidak Bergerak')
-            ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('#')
-                    ->sortable(),
+   public function table(Table $table): Table
+{
+    return $table
+        ->query(OtherAsset::query())
+        ->heading(__('navigation.asset_report_heading')) 
+        ->columns([
+            Tables\Columns\TextColumn::make('id')
+                ->label(__('tables.number')) 
+                ->sortable(),
 
-                Tables\Columns\TextColumn::make('name')
-                    ->label(__('navigation.other_assets'))
-                    ->searchable(),
+            Tables\Columns\TextColumn::make('name')
+                ->label(__('navigation.other_assets'))
+                ->searchable(),
 
-                Tables\Columns\TextColumn::make('description')
-                    ->label(__('tables.description'))
-                    ->wrap(),
+            Tables\Columns\TextColumn::make('description')
+                ->label(__('tables.description'))
+                ->wrap(),
 
-                Tables\Columns\TextColumn::make('acquisition_date')
-                    ->label(__('navigation.acquisition_date'))
-                    ->date('d M Y'),
+            Tables\Columns\TextColumn::make('acquisition_date')
+                ->label(__('navigation.acquisition_date'))
+                ->date('d M Y'),
 
-                Tables\Columns\TextColumn::make('value')
-                    ->label(__('navigation.asset_value'))
-                    ->money('idr', true)
-                    ->alignRight(),
-            ])
-            ->filters([
-                Filter::make('acquisition_date')
-                    ->form([
-                        DatePicker::make('from')->label(__('navigation.from_date')),
-                        DatePicker::make('until')->label(__('navigation.until_date')),
-                    ])
-                    ->query(function ($query, array $data) {
-                        return $query
-                            ->when($data['from'], fn ($q, $date) => $q->whereDate('acquisition_date', '>=', $date))
-                            ->when($data['until'], fn ($q, $date) => $q->whereDate('acquisition_date', '<=', $date));
-                    }),
-            ]);
-    }
+            Tables\Columns\TextColumn::make('value')
+                ->label(__('navigation.asset_value'))
+                ->money('idr', true)
+                ->alignRight(),
+        ])
+        ->filters([
+            Filter::make('acquisition_date')
+                ->form([
+                    DatePicker::make('from')->label(__('navigation.from_date')),
+                    DatePicker::make('until')->label(__('navigation.until_date')),
+                ])
+                ->query(function ($query, array $data) {
+                    return $query
+                        ->when($data['from'], fn ($q, $date) => $q->whereDate('acquisition_date', '>=', $date))
+                        ->when($data['until'], fn ($q, $date) => $q->whereDate('acquisition_date', '<=', $date));
+                }),
+        ]);
+}
+
     
 
 }

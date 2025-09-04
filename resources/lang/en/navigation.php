@@ -60,6 +60,8 @@ return [
     'status'           => 'Status',
 
     // Asset Report
+    'number'      => '#',
+    'asset_report_heading'  => 'Fixed Assets',
     'asset_report'       => 'Asset Report',
     'inventory_report'   => 'Inventory Report',
     'asset_report_title' => 'Asset & Stock Report',
@@ -67,6 +69,7 @@ return [
     'asset_description'  => 'Description',
     'acquisition_date'   => 'Acquisition Date',
     'asset_value'        => 'Asset Value',
+    'search' => 'Search',
 
     // Purchase Report
     'report_audit'  => 'Report & Audit',

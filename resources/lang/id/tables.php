@@ -65,6 +65,7 @@ return [
     'sale_date'         => 'Tanggal Jual',
     'sale_price'        => 'Harga Jual',
     'payment_method'    => 'Metode Pembayaran',
+    'number'      => '#',
 
     // Suppliers
     'supplier_name'     => 'Pemasok',

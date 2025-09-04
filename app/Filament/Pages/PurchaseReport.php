@@ -60,7 +60,6 @@ class PurchaseReport extends Page implements HasSchemas, Tables\Contracts\HasTab
     {
         return __(static::$navigationLabel);
     }
-    
 
     public function getTitle(): string
     {
@@ -80,17 +79,17 @@ class PurchaseReport extends Page implements HasSchemas, Tables\Contracts\HasTab
                 Section::make()
                     ->schema([
                         DatePicker::make('startDate')
-                            ->label('Start Date')
+                            ->label(__('navigation.start_date'))
                             ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
 
                         DatePicker::make('endDate')
-                            ->label('End Date')
+                            ->label(__('navigation.end_date'))
                             ->minDate(fn (Get $get) => $get('startDate') ?: now())
                             ->maxDate(now()),
 
                         TextInput::make('search')
-                            ->label('Search')
-                            ->placeholder('Search invoice / supplier / VIN...'),
+                            ->label(__('navigation.search'))
+                            ->placeholder(__('navigation.search')),
                     ])
                     ->columns(3)
                     ->columnSpanFull(),
@@ -98,7 +97,7 @@ class PurchaseReport extends Page implements HasSchemas, Tables\Contracts\HasTab
             ->statePath('filters');
     }
 
-    /** 
+    /**
      * Query builder dengan filter
      */
     protected function buildQuery()
@@ -140,44 +139,43 @@ class PurchaseReport extends Page implements HasSchemas, Tables\Contracts\HasTab
     public function table(Table $table): Table
     {
         return $table
-            ->query(fn () => $this->buildQuery()) // selalu pakai filter terbaru
+            ->query(fn () => $this->buildQuery())
             ->columns([
-                TextColumn::make('id')->label('Invoice Number')->sortable(),
-                TextColumn::make('purchase_date')->label('Date')->date('F d, Y'),
+                TextColumn::make('id')->label(__('tables.number'))->sortable(),
+                TextColumn::make('purchase_date')->label(__('navigation.date'))->date('F d, Y'),
 
                 // Supplier
-                TextColumn::make('supplier.name')->label('Supplier'),
-                TextColumn::make('supplier.phone')->label('Phone'),
-                TextColumn::make('supplier.address')->label('Address'),
+                TextColumn::make('supplier.name')->label(__('navigation.supplier')),
+                TextColumn::make('supplier.phone')->label(__('tables.phone')),
+                TextColumn::make('supplier.address')->label(__('navigation.address')),
 
                 // Vehicle
-                TextColumn::make('vehicle.vehicleModel.brand.name')->label('Brand'),
-                TextColumn::make('vehicle.type.name')->label('Type'),
-                TextColumn::make('vehicle.vehicleModel.name')->label('Model'),
-                TextColumn::make('vehicle.color.name')->label('Color'),
-                TextColumn::make('vehicle.year.year')->label('Year'),
-                TextColumn::make('vehicle.vin')->label('VIN'),
-                TextColumn::make('vehicle.license_plate')->label('License Plate'),
-                TextColumn::make('vehicle.status')->label('Status'),
+                TextColumn::make('vehicle.vehicleModel.brand.name')->label(__('tables.brand')),
+                TextColumn::make('vehicle.type.name')->label(__('tables.type')),
+                TextColumn::make('vehicle.vehicleModel.name')->label(__('tables.model')),
+                TextColumn::make('vehicle.color.name')->label(__('tables.color')),
+                TextColumn::make('vehicle.year.year')->label(__('tables.year')),
+                TextColumn::make('vehicle.vin')->label(__('tables.vin')),
+                TextColumn::make('vehicle.license_plate')->label(__('tables.license_plate')),
+                TextColumn::make('vehicle.status')->label(__('tables.status')),
 
                 // Purchase info
-                TextColumn::make('total_price')->money('IDR')->label('Total Price'),
-                TextColumn::make('payment_method')->label('Payment Method'),
+                TextColumn::make('total_price')->money('IDR')->label(__('tables.total_price')),
+                TextColumn::make('payment_method')->label(__('tables.payment_method')),
 
                 // Tambahan kolom manual
-                TextColumn::make('otr')->label('OTR')->getStateUsing(fn () => ''),
-                TextColumn::make('additional_fee')->label('Additional Fee')->getStateUsing(fn () => ''),
-                TextColumn::make('dp')->label('DP')->getStateUsing(fn () => ''),
-                TextColumn::make('remaining_debt')->label('Remaining Debt')->getStateUsing(fn () => ''),
-                TextColumn::make('branch')->label('Branch')->getStateUsing(fn () => ''),
-                TextColumn::make('notes')->label('Notes')->getStateUsing(fn () => ''),
+                TextColumn::make('otr')->label(__('tables.otr'))->getStateUsing(fn () => ''),
+                TextColumn::make('additional_fee')->label(__('tables.additional_fee'))->getStateUsing(fn () => ''),
+                TextColumn::make('dp')->label(__('tables.dp'))->getStateUsing(fn () => ''),
+                TextColumn::make('remaining_debt')->label(__('tables.remaining_debt'))->getStateUsing(fn () => ''),
+                TextColumn::make('branch')->label(__('tables.branch'))->getStateUsing(fn () => ''),
+                TextColumn::make('notes')->label(__('tables.notes'))->getStateUsing(fn () => ''),
             ])
             ->paginated(false);
     }
 
     public function applyFilters(): void
-{
-    // Tidak perlu isi apa pun
-    // Livewire akan otomatis re-render tabel karena $filters berubah
-}
+    {
+        // Livewire auto refresh
+    }
 }

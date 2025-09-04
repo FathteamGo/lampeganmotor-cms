@@ -49,9 +49,16 @@ Route::get('/inventory/export/excel', function () {
 
 
 
-
 Route::get('/export/asset-report', function () {
     return Excel::download(new AssetReportExport, 'laporan-asset.xlsx');
 })->name('export.asset-report');
+
+
+Route::get('/set-locale/{locale}', function ($locale) {
+    if (in_array($locale, ['id', 'en'])) {
+        session(['locale' => $locale]);
+    }
+    return redirect()->back();
+})->name('set-locale');
 
 

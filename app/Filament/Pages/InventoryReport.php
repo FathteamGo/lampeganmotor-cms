@@ -85,26 +85,53 @@ class InventoryReport extends Page implements Tables\Contracts\HasTable
                             ]),
 
                         TextColumn::make('vehicleModel.brand.name')
-                            ->formatStateUsing(fn($state) => "Brand: {$state}")
+                            ->formatStateUsing(fn($state) => __('tables.brand') . ": {$state}")
                             ->searchable(query: fn(Builder $query, string $search) => 
                                 $query->whereHas('vehicleModel.brand', fn(Builder $q) => $q->where('name', 'like', "%{$search}%"))
                             ),
+
                         TextColumn::make('vehicleModel.name')
-                            ->formatStateUsing(fn($state) => "Model: {$state}")
+                            ->formatStateUsing(fn($state) => __('tables.model') . ": {$state}")
                             ->searchable(query: fn(Builder $query, string $search) =>
                                 $query->whereHas('vehicleModel', fn(Builder $q) => $q->where('name', 'like', "%{$search}%"))
                             ),
-                        TextColumn::make('type.name')->formatStateUsing(fn($state) => "Type: {$state}"),
-                        TextColumn::make('color.name')->formatStateUsing(fn($state) => "Color: {$state}"),
-                        TextColumn::make('year.year')->formatStateUsing(fn($state) => "Year: {$state}"),
-                        TextColumn::make('license_plate')->formatStateUsing(fn($state) => "License Plate: {$state}")->searchable(),
-                        TextColumn::make('vin')->formatStateUsing(fn($state) => "VIN: {$state}")->searchable(),
-                        TextColumn::make('engine_number')->formatStateUsing(fn($state) => "Engine Number: {$state}"),
-                        TextColumn::make('bpkb_number')->formatStateUsing(fn($state) => "BPKB Number: {$state}"),
-                        TextColumn::make('purchase_price')->formatStateUsing(fn($state) => "Harga Beli: Rp ".number_format($state,0,',','.')),
-                        TextColumn::make('sale_price')->formatStateUsing(fn($state) => "Harga Jual: Rp ".number_format($state,0,',','.')),
-                        TextColumn::make('status')->formatStateUsing(fn($state) => "Status: {$state}"),
-                        TextColumn::make('location')->formatStateUsing(fn($state) => "Location: {$state}"),
+
+                        TextColumn::make('type.name')
+                            ->formatStateUsing(fn($state) => __('tables.type') . ": {$state}"),
+
+                        TextColumn::make('color.name')
+                            ->formatStateUsing(fn($state) => __('tables.color') . ": {$state}"),
+
+                        TextColumn::make('year.year')
+                            ->formatStateUsing(fn($state) => __('tables.year') . ": {$state}"),
+
+                        TextColumn::make('license_plate')
+                            ->formatStateUsing(fn($state) => __('tables.license_plate') . ": {$state}")
+                            ->searchable(),
+
+                        TextColumn::make('vin')
+                            ->formatStateUsing(fn($state) => __('tables.vin') . ": {$state}")
+                            ->searchable(),
+
+                        TextColumn::make('engine_number')
+                            ->formatStateUsing(fn($state) => __('tables.engine_number') . ": {$state}"),
+
+                        TextColumn::make('bpkb_number')
+                            ->formatStateUsing(fn($state) => __('tables.bpkb_number') . ": {$state}"),
+
+                        TextColumn::make('purchase_price')
+                            ->label(__('tables.purchase_price'))
+                            ->money('idr', true),
+
+                        TextColumn::make('sale_price')
+                            ->label(__('tables.sale_price'))
+                            ->money('idr', true),
+
+                        TextColumn::make('status')
+                            ->formatStateUsing(fn($state) => __('tables.status') . ": {$state}"),
+
+                        TextColumn::make('location')
+                            ->formatStateUsing(fn($state) => __('tables.location') . ": {$state}"),
                     ]),
                 ])
                 ->extraAttributes([

@@ -9,9 +9,13 @@ return [
     'financial'        => 'Keuangan',
     'assets_management'=> 'Manajemen Aset',
     'report_audit'     => 'Laporan & Audit',
+     'asset_report_heading'  => 'Harta Tidak Bergerak',
+
     'settings'         => 'Pengaturan',
     'system'           => 'Sistem',
+    'number'      => '#',
     'help_support'     => 'Bantuan & Dukungan',
+    
 
     // Master Data
     'brands'           => 'Merek',
@@ -30,6 +34,7 @@ return [
     'permissions'      => 'Izin',
     'teams'            => 'Tim',
     'departments'      => 'Departemen',
+    'search' => 'Search',
 
     // Transactions
     'purchases'        => 'Pembelian',

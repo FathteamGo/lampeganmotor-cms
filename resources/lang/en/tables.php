@@ -58,6 +58,7 @@ return [
     'sold'              => 'Sold',
     'converted'         => 'Converted',
     'rejected'          => 'Rejected',
+    'number'      => '#',
     'note'              => 'Note',
     'plate'             => 'Plate',
 

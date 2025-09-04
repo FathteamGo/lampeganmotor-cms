@@ -13,7 +13,7 @@
 
             {{-- Tombol Terapkan Filter --}}
             <x-filament::button type="submit" color="warning">
-                Terapkan Filter
+                Apply Filter
             </x-filament::button>
         </div>
     </form>

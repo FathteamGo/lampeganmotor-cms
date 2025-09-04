@@ -3,45 +3,52 @@
 namespace App\Filament\Pages;
 
 use App\Models\Purchase;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\TextInput;
 use Filament\Pages\Page;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\PurchaseReportExport;
 use UnitEnum;
 
-class PurchaseReport extends Page implements HasTable
+class PurchaseReport extends Page implements HasSchemas, Tables\Contracts\HasTable
 {
-    use InteractsWithTable;
+    use InteractsWithSchemas;
+    use Tables\Concerns\InteractsWithTable;
 
-    protected static string | UnitEnum | null $navigationGroup = 'navigation.report_audit';
+    protected static string|UnitEnum|null $navigationGroup = 'navigation.report_audit';
     protected static ?string $navigationLabel = 'navigation.purchase_report';
     protected static ?string $title = 'navigation.purchase_report_title';
     protected static ?int $navigationSort = 4;
 
     protected string $view = 'filament.pages.purchase-report';
 
-    // Filter form data
     public ?array $filters = [
         'startDate' => null,
         'endDate'   => null,
         'search'    => null,
     ];
 
-    public function mount(): void
+    // hanya role owner
+    public static function shouldRegisterNavigation(): bool
     {
-        $this->filters = [
-            'startDate' => now()->startOfMonth()->toDateString(),
-            'endDate'   => now()->endOfMonth()->toDateString(),
-            'search'    => null,
-        ];
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
     }
 
     public static function getNavigationGroup(): ?string
@@ -59,104 +66,117 @@ class PurchaseReport extends Page implements HasTable
         return __(static::$title);
     }
 
-    public static function shouldRegisterNavigation(): bool
+    public function mount(): void
     {
-        $user = Auth::user();
-        return $user && $user->role === 'owner';
+        $this->filters['startDate'] = now()->startOfMonth()->toDateString();
+        $this->filters['endDate']   = now()->endOfMonth()->toDateString();
     }
 
-    public static function canAccess(): bool
+    public function form(Schema $schema): Schema
     {
-        $user = Auth::user();
-        return $user && $user->role === 'owner';
+        return $schema
+            ->components([
+                Section::make()
+                    ->schema([
+                        DatePicker::make('startDate')
+                            ->label('Start Date')
+                            ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
+
+                        DatePicker::make('endDate')
+                            ->label('End Date')
+                            ->minDate(fn (Get $get) => $get('startDate') ?: now())
+                            ->maxDate(now()),
+
+                        TextInput::make('search')
+                            ->label('Search')
+                            ->placeholder('Search invoice / supplier / VIN...'),
+                    ])
+                    ->columns(3)
+                    ->columnSpanFull(),
+            ])
+            ->statePath('filters');
     }
 
-    public function form(): array
+    /** 
+     * Query builder dengan filter
+     */
+    protected function buildQuery()
     {
-        return [
-            DatePicker::make('startDate')
-                ->label('Start Date')
-                ->maxDate(fn () => $this->filters['endDate'] ?: now()),
+        $start  = data_get($this->filters, 'startDate');
+        $end    = data_get($this->filters, 'endDate');
+        $search = data_get($this->filters, 'search');
 
-            DatePicker::make('endDate')
-                ->label('End Date')
-                ->minDate(fn () => $this->filters['startDate'] ?: now())
-                ->maxDate(now()),
-
-            TextInput::make('search')
-                ->label('Search')
-                ->placeholder('Search invoice / supplier / VIN...'),
-        ];
+        return Purchase::query()
+            ->with([
+                'vehicle.vehicleModel.brand',
+                'vehicle.type',
+                'vehicle.color',
+                'vehicle.year',
+                'supplier',
+            ])
+            ->when($start, fn ($q) => $q->whereDate('purchase_date', '>=', Carbon::parse($start)))
+            ->when($end, fn ($q) => $q->whereDate('purchase_date', '<=', Carbon::parse($end)))
+            ->when($search, fn ($q, $s) =>
+                $q->where(function ($sub) use ($s) {
+                    $sub->where('id', 'like', "%{$s}%")
+                        ->orWhereHas('supplier', fn ($sup) => $sup->where('name', 'like', "%{$s}%"))
+                        ->orWhereHas('vehicle', fn ($v) =>
+                            $v->where('vin', 'like', "%{$s}%")
+                              ->orWhere('license_plate', 'like', "%{$s}%")
+                        );
+                })
+            );
     }
 
     public function exportExcel()
     {
-        $query = $this->table($this->makeTable())->getQuery();
-
-        return Excel::download(new PurchaseReportExport($query), 'purchase-report.xlsx');
+        return Excel::download(
+            new PurchaseReportExport($this->buildQuery()),
+            'purchase-report.xlsx'
+        );
     }
 
     public function table(Table $table): Table
     {
-        $start  = $this->filters['startDate'] ?? null;
-        $end    = $this->filters['endDate'] ?? null;
-        $search = $this->filters['search'] ?? null;
-
         return $table
-            ->query(
-                Purchase::query()
-                    ->with([
-                        'vehicle.vehicleModel.brand',
-                        'vehicle.type',
-                        'vehicle.color',
-                        'vehicle.year',
-                        'supplier',
-                    ])
-                    ->when($start, fn ($q) => $q->whereDate('purchase_date', '>=', Carbon::parse($start)))
-                    ->when($end, fn ($q) => $q->whereDate('purchase_date', '<=', Carbon::parse($end)))
-                    ->when($search, fn ($q) =>
-                        $q->where('id', 'like', "%{$search}%")
-                          ->orWhereHas('supplier', fn ($s) => $s->where('name', 'like', "%{$search}%"))
-                          ->orWhereHas('vehicle', fn ($v) =>
-                              $v->where('vin', 'like', "%{$search}%")
-                                ->orWhere('license_plate', 'like', "%{$search}%")
-                          )
-                    )
-            )
+            ->query(fn () => $this->buildQuery()) // selalu pakai filter terbaru
             ->columns([
-                TextColumn::make('id')->label(__('navigation.invoice_number'))->sortable(),
-                TextColumn::make('purchase_date')->label(__('navigation.date'))->date('F d, Y'),
+                TextColumn::make('id')->label('Invoice Number')->sortable(),
+                TextColumn::make('purchase_date')->label('Date')->date('F d, Y'),
 
-                // Supplier Info
-                TextColumn::make('supplier.name')->label(__('navigation.supplier')),
-                TextColumn::make('supplier.address')->label(__('navigation.address')),
-                TextColumn::make('supplier.phone')->label(__('navigation.phone')),
+                // Supplier
+                TextColumn::make('supplier.name')->label('Supplier'),
+                TextColumn::make('supplier.phone')->label('Phone'),
+                TextColumn::make('supplier.address')->label('Address'),
 
-                // Vehicle Info
-                TextColumn::make('vehicle.vehicleModel.brand.name')->label(__('navigation.brand')),
-                TextColumn::make('vehicle.type.name')->label(__('navigation.type')),
-                TextColumn::make('vehicle.vehicleModel.name')->label(__('navigation.model')),
-                TextColumn::make('vehicle.color.name')->label(__('navigation.color')),
-                TextColumn::make('vehicle.year.year')->label(__('navigation.year')),
-                TextColumn::make('vehicle.vin')->label(__('navigation.vin')),
-                TextColumn::make('vehicle.license_plate')->label(__('navigation.license_plate')),
-                TextColumn::make('vehicle.status')->label(__('navigation.status')),
+                // Vehicle
+                TextColumn::make('vehicle.vehicleModel.brand.name')->label('Brand'),
+                TextColumn::make('vehicle.type.name')->label('Type'),
+                TextColumn::make('vehicle.vehicleModel.name')->label('Model'),
+                TextColumn::make('vehicle.color.name')->label('Color'),
+                TextColumn::make('vehicle.year.year')->label('Year'),
+                TextColumn::make('vehicle.vin')->label('VIN'),
+                TextColumn::make('vehicle.license_plate')->label('License Plate'),
+                TextColumn::make('vehicle.status')->label('Status'),
 
-                // Purchase Info
-                TextColumn::make('total_price')->money('IDR')->label(__('navigation.total_price')),
-            ])
-            ->filters([
-                Filter::make('purchase_date')
-                    ->form([
-                        DatePicker::make('from')->label(__('navigation.start_date'))->default(now()->startOfMonth()),
-                        DatePicker::make('until')->label(__('navigation.end_date'))->default(now()->endOfMonth()),
-                    ])
-                    ->query(fn ($query, array $data) =>
-                        $query
-                            ->when($data['from'] ?? null, fn($q, $from) => $q->whereDate('purchase_date', '>=', $from))
-                            ->when($data['until'] ?? null, fn($q, $until) => $q->whereDate('purchase_date', '<=', $until))
-                    ),
+                // Purchase info
+                TextColumn::make('total_price')->money('IDR')->label('Total Price'),
+                TextColumn::make('payment_method')->label('Payment Method'),
+
+                // Tambahan kolom manual
+                TextColumn::make('otr')->label('OTR')->getStateUsing(fn () => ''),
+                TextColumn::make('additional_fee')->label('Additional Fee')->getStateUsing(fn () => ''),
+                TextColumn::make('dp')->label('DP')->getStateUsing(fn () => ''),
+                TextColumn::make('remaining_debt')->label('Remaining Debt')->getStateUsing(fn () => ''),
+                TextColumn::make('branch')->label('Branch')->getStateUsing(fn () => ''),
+                TextColumn::make('notes')->label('Notes')->getStateUsing(fn () => ''),
             ])
             ->paginated(false);
     }
+
+    public function applyFilters(): void
+{
+    // Tidak perlu isi apa pun
+    // Livewire akan otomatis re-render tabel karena $filters berubah
+}
 }

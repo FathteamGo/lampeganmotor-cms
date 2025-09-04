@@ -6,9 +6,17 @@ use App\Models\Purchase;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use Illuminate\Support\Carbon;
 
-class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping
+class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithColumnFormatting, WithEvents
 {
     protected $query;
 
@@ -36,8 +44,8 @@ class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping
             'Invoice Number',
             'Date',
             'Supplier',
-            'Address',
             'Phone',
+            'Address',
             'Brand',
             'Type',
             'Model',
@@ -47,6 +55,13 @@ class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping
             'License Plate',
             'Vehicle Status',
             'Total Price',
+            'Payment Method',
+            'OTR',
+            'Additional Fee',
+            'DP',
+            'Remaining Debt',
+            'Branch',
+            'Notes',
         ];
     }
 
@@ -56,8 +71,8 @@ class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping
             $purchase->id,
             Carbon::parse($purchase->purchase_date)->format('Y-m-d'),
             $purchase->supplier?->name,
-            $purchase->supplier?->address,
             $purchase->supplier?->phone,
+            $purchase->supplier?->address,
             $purchase->vehicle?->vehicleModel?->brand?->name,
             $purchase->vehicle?->type?->name,
             $purchase->vehicle?->vehicleModel?->name,
@@ -67,6 +82,54 @@ class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping
             $purchase->vehicle?->license_plate,
             $purchase->vehicle?->status,
             $purchase->total_price,
+            $purchase->payment_method ?? '',
+            $purchase->otr ?? '',
+            $purchase->additional_fee ?? '',
+            $purchase->dp ?? '',
+            $purchase->remaining_debt ?? '',
+            $purchase->branch ?? '',
+            $purchase->notes ?? '',
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            1 => ['font' => ['bold' => true]], // header bold
+        ];
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'N' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+            'P' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+            'Q' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+            'R' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+            'S' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                $sheet = $event->sheet->getDelegate();
+
+                $highestRow = $sheet->getHighestRow();
+                $highestColumn = $sheet->getHighestColumn();
+                $range = "A1:{$highestColumn}{$highestRow}";
+
+                // Border lebih jelas, tapi tetap simpel (medium)
+                $sheet->getStyle($range)->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['argb' => 'FF000000'],
+                        ],
+                    ],
+                ]);
+            },
         ];
     }
 }

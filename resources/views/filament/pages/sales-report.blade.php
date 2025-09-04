@@ -1,7 +1,7 @@
 <x-filament-panels::page>
-    <form wire:submit="applyFilters">
+    <form wire:submit.prevent="applyFilters">
         <div class="flex items-end gap-2">
-            {{-- Bikin wrapper agar form tidak memakan full width --}}
+            {{-- Input filter --}}
             <div class="flex gap-2">
                 {{ $this->form }}
             </div>
@@ -12,7 +12,7 @@
             </x-filament::button>
 
             <x-filament::button type="submit" color="warning">
-                Terapkan Filter
+                Apply Filter
             </x-filament::button>
         </div>
     </form>

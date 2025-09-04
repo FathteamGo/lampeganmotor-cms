@@ -69,6 +69,7 @@ return [
     'asset_value'        => 'Asset Value',
 
     // Purchase Report
+    'report_audit'  => 'Report & Audit',
     'purchase_report'       => 'Purchase Report',
     'purchase_report_title' => 'Purchase Audit Report',
     'supplier'              => 'Supplier',

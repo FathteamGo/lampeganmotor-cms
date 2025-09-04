@@ -14,27 +14,28 @@ class VehicleInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('vehicleModel.name')->label('Model'),
-                TextEntry::make('type.name')->label('Type'),
-                TextEntry::make('color.name')->label('Color'),
-                TextEntry::make('year.year')->label('Year'),
-                TextEntry::make('vin')->label('VIN'),
-                TextEntry::make('engine_number')->label('Engine Number'),
-                TextEntry::make('license_plate')->label('License Plate'),
-                TextEntry::make('bpkb_number')->label('BPKB Number'),
+                TextEntry::make('vehicleModel.name')->label(__('tables.model')),
+                TextEntry::make('type.name')->label(__('tables.type')),
+                TextEntry::make('color.name')->label(__('tables.color')),
+                TextEntry::make('year.year')->label(__('tables.year')),
+                TextEntry::make('vin')->label(__('tables.vin')),
+                TextEntry::make('engine_number')->label(__('tables.engine_number')),
+                TextEntry::make('license_plate')->label(__('tables.license_plate')),
+                TextEntry::make('bpkb_number')->label(__('tables.bpkb_number')),
                 TextEntry::make('purchase_price')
-                    ->label('Purchase Price')
+                    ->label(__('tables.purchase_price'))
                     ->money('IDR'),
                 TextEntry::make('sale_price')
-                    ->label('Sale Price')
+                    ->label(__('tables.sale_price'))
                     ->money('IDR'),
                 TextEntry::make('dp_percentage')
-                    ->label('DP Percentage')
+                    ->label(__('tables.dp_percentage'))
                     ->formatStateUsing(fn($state) => $state ? "{$state}%" : '-'),
                 TextEntry::make('odometer')
-                    ->label('Odometer (KM)')
+                    ->label(__('tables.odometer'))
                     ->formatStateUsing(fn ($state) => $state ? number_format($state) . ' km' : '-'),
                 TextEntry::make('status')
+                    ->label(__('tables.status'))
                     ->color(fn(string $state): string => match ($state) {
                         'available' => 'success',
                         'sold' => 'danger',
@@ -43,14 +44,14 @@ class VehicleInfolist
                         default => 'gray',
                     }),
                 TextEntry::make('engine_specification')
-                    ->label('Engine Specification')
+                    ->label(__('tables.engine_specification'))
                     ->html()
                     ->columnSpanFull(),
                 TextEntry::make('description')
-                    ->label('Description')
+                    ->label(__('tables.description'))
                     ->columnSpanFull(),
                 RepeatableEntry::make('photos')
-                    ->label('Photos')
+                    ->label(__('tables.photos'))
                     ->columnSpanFull()
                     ->grid(3)
                     ->schema([
@@ -59,10 +60,14 @@ class VehicleInfolist
                             ->disk('public')
                             ->height(150)
                             ->extraImgAttributes(['loading' => 'lazy']),
-                        TextEntry::make('caption')->label(''),
+                        TextEntry::make('caption')->label(__('tables.caption')),
                     ]),
-                TextEntry::make('created_at')->dateTime(),
-                TextEntry::make('updated_at')->dateTime(),
+                TextEntry::make('created_at')
+                    ->label(__('tables.created_at'))
+                    ->dateTime(),
+                TextEntry::make('updated_at')
+                    ->label(__('tables.updated_at'))
+                    ->dateTime(),
             ]);
     }
 }

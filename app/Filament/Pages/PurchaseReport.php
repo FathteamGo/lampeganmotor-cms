@@ -53,6 +53,7 @@ class PurchaseReport extends Page implements HasTable
     {
         return __(static::$navigationLabel);
     }
+    
 
     public function getTitle(): string
     {

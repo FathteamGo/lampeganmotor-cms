@@ -28,59 +28,6 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        $navigationGroups = [
-            NavigationGroup::make()
-                ->label(fn() => __('navigation.master_data'))
-                ->icon('heroicon-o-circle-stack')
-                ->collapsed(),
-
-            NavigationGroup::make()
-                ->label(fn() => __('navigation.user_management'))
-                ->icon('heroicon-o-user-group')
-                ->collapsed(),
-
-            NavigationGroup::make()
-                ->label(fn() => __('navigation.transactions'))
-                ->icon('heroicon-o-currency-dollar')
-                ->collapsed(),
-
-            NavigationGroup::make()
-                ->label(fn() => __('navigation.financial'))
-                ->icon('heroicon-o-banknotes')
-                ->collapsed(),
-
-            NavigationGroup::make()
-                ->label(fn() => __('navigation.assets_management'))
-                ->icon('heroicon-o-archive-box')
-                ->collapsed(),
-
-            NavigationGroup::make()
-                ->label(fn() => __('navigation.settings'))
-                ->icon('heroicon-o-cog-6-tooth')
-                ->collapsed(),
-
-            NavigationGroup::make()
-                ->label(fn() => __('navigation.system'))
-                ->icon('heroicon-o-server-stack')
-                ->collapsed(),
-
-            NavigationGroup::make()
-                ->label(fn() => __('navigation.help_support'))
-                ->icon('heroicon-o-question-mark-circle')
-                ->collapsed(),
-        ];
-
-        // Tambahkan Report & Audit hanya untuk owner
-        if (Auth::check() && Auth::user()->role === 'owner') {
-            $reportGroup = NavigationGroup::make()
-                ->label(fn() => __('navigation.report_audit'))
-                ->icon('heroicon-o-document-chart-bar')
-                ->collapsed();
-
-            // Sisipkan sebelum Settings (posisi ke-5)
-            array_splice($navigationGroups, 5, 0, [$reportGroup]);
-        }
-
         return $panel
             ->default()
             ->id('admin')
@@ -97,7 +44,7 @@ class AdminPanelProvider extends PanelProvider
                 SalesChart::class,
                 RevenueChart::class,
             ])
-            ->navigationGroups($navigationGroups)
+            ->navigationGroups($this->getNavigationGroups())
             ->renderHook(
                 PanelsRenderHook::TOPBAR_END,
                 fn(): string => '<div style="margin-left: 0.5rem; padding-left: 1rem;">' . view('components.language-switcher')->render() . '</div>'
@@ -125,5 +72,58 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+    }
+
+    private function getNavigationGroups(): array
+    {
+        $navigationGroups = [
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.master_data'))
+                ->icon('heroicon-o-circle-stack')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.user_management'))
+                ->icon('heroicon-o-user-group')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.transactions'))
+                ->icon('heroicon-o-currency-dollar')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.financial'))
+                ->icon('heroicon-o-banknotes')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.assets_management'))
+                ->icon('heroicon-o-archive-box')
+                ->collapsed(),
+
+            // Report & Audit - akan di-hide/show di level resource
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.report_audit'))
+                ->icon('heroicon-o-clipboard-document-list')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.settings'))
+                ->icon('heroicon-o-cog-6-tooth')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.system'))
+                ->icon('heroicon-o-server-stack')
+                ->collapsed(),
+
+            NavigationGroup::make()
+                ->label(fn() => __('navigation.help_support'))
+                ->icon('heroicon-o-question-mark-circle')
+                ->collapsed(),
+        ];
+
+        return $navigationGroups;
     }
 }

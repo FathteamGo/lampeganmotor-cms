@@ -38,6 +38,8 @@ class AssetReport extends Page implements Tables\Contracts\HasTable
     }
 
     
+
+    
     public static function getNavigationGroup(): ?string
     {
         return __(static::$navigationGroup);

@@ -73,6 +73,8 @@ return [
     'type_name'         => 'Nama Tipe',
 
     // Users
+       'no_requests' => 'Tidak ada permintaan',
+    'no_requests_description' => 'Belum ada data permintaan yang tersedia.',
     'email'             => 'Alamat Email',
     'email_verified_at' => 'Email Diverifikasi',
     'role'              => 'Role',

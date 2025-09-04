@@ -12,35 +12,35 @@ class SaleInfolist
         return $schema
             ->components([
                 TextEntry::make('vehicle.vehicleModel.name')
-                    ->label('Model'),
+                    ->label(__('tables.model')),
 
                 TextEntry::make('vehicle.color.name')
-                    ->label('Warna'),
+                    ->label(__('tables.color')),
 
                 TextEntry::make('vehicle.license_plate')
-                    ->label('License Plate'),
+                    ->label(__('tables.license_plate')),
 
                 TextEntry::make('customer.name')
-                    ->label('Customer'),
+                    ->label(__('tables.customer')),
 
                 TextEntry::make('sale_date')
                     ->date()
-                    ->label('Sale Date'),
+                    ->label(__('tables.sale_date')),
 
                 TextEntry::make('sale_price')
                     ->numeric()
-                    ->label('Sale Price'),
+                    ->label(__('tables.sale_price')),
 
                 TextEntry::make('payment_method')
-                    ->label('Payment Method'),
+                    ->label(__('tables.payment_method')),
 
                 TextEntry::make('created_at')
                     ->dateTime()
-                    ->label('Created At'),
+                    ->label(__('tables.created_at')),
 
                 TextEntry::make('updated_at')
                     ->dateTime()
-                    ->label('Updated At'),
+                    ->label(__('tables.updated_at')),
             ]);
     }
 }

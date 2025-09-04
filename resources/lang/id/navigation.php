@@ -22,6 +22,7 @@ return [
     'years'            => 'Tahun',
 
     // User Management
+    'report_audit'  => 'Laporan & Audit',
     'customers'        => 'Pelanggan',
     'suppliers'        => 'Pemasok',
     'users'            => 'Pengguna',

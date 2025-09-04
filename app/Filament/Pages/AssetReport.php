@@ -46,4 +46,6 @@ class AssetReport extends Page implements Tables\Contracts\HasTable
                     }),
             ]);
     }
+    
+
 }

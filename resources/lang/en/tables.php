@@ -66,6 +66,8 @@ return [
     'sale_price'        => 'Sale Price',
     'payment_method'    => 'Payment Method',
 
+      'no_requests' => 'No Requests',
+    'no_requests_description' => 'There are no request records available yet.',
     // Suppliers
     'supplier_name'     => 'Supplier',
     'password'  => 'Password',

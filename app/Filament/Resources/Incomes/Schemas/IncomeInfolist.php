@@ -11,20 +11,32 @@ class IncomeInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('description'),
+                TextEntry::make('description')
+                    ->label(__('tables.description')),
+
                 // Tampilkan nama kategori, bukan ID
                 TextEntry::make('category.name')
-                    ->label('Kategori'),
+                    ->label(__('tables.category')),
+
                 TextEntry::make('amount')
-                    ->numeric(),
+                    ->numeric()
+                    ->label(__('tables.amount')),
+
                 TextEntry::make('income_date')
-                    ->date(),
+                    ->date()
+                    ->label(__('tables.income_date')),
+
                 TextEntry::make('customer_id')
-                    ->numeric(),
+                    ->numeric()
+                    ->label(__('tables.customer')),
+
                 TextEntry::make('created_at')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->label(__('tables.created_at')),
+
                 TextEntry::make('updated_at')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->label(__('tables.updated_at')),
             ]);
     }
 }

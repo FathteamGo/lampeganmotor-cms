@@ -50,6 +50,7 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
         $user = Auth::user();
         return $user && $user->role === 'owner';
     }
+    
 
     public static function getNavigationGroup(): ?string
     {

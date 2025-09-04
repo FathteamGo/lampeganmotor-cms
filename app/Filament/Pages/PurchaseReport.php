@@ -60,6 +60,7 @@ class PurchaseReport extends Page implements HasSchemas, Tables\Contracts\HasTab
     {
         return __(static::$navigationLabel);
     }
+    
 
     public function getTitle(): string
     {

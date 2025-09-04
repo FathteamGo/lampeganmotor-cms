@@ -53,6 +53,7 @@ class ProfitAndLossReport extends Page
     return $user && $user->role === 'owner';
 }
 
+
  public static function canAccess(): bool
     {
     $user = Auth::user();

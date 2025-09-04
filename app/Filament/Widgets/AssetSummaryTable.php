@@ -8,13 +8,19 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class AssetSummaryTable extends BaseWidget
 {
-    protected static ?string $heading = 'Asset';
+    protected static ?string $heading = null; // Heading null, pakai getHeading()
     protected int|string|array $columnSpan = 'full';
 
-    // Diisi dari Page via @livewire(...)
+    // Data diisi dari Page via @livewire(...)
     public float $totalSales = 0.0;
     public float $totalIncomes = 0.0;
     public float $totalExpenses = 0.0;
+
+    // Heading multi-bahasa
+    protected function getHeading(): ?string
+    {
+        return __('tables.asset_summary');
+    }
 
     /** Susun data non-eloquent untuk tabel */
     protected function makeRows(): array
@@ -22,11 +28,10 @@ class AssetSummaryTable extends BaseWidget
         $profit = $this->totalSales + $this->totalIncomes - $this->totalExpenses;
 
         return [
-            ['type' => 'row',   'label' => 'SALE',    'amount' => $this->totalSales],
-            ['type' => 'row',   'label' => 'INCOME',  'amount' => $this->totalIncomes],
-            // EXPENSE tanpa minus:
-            ['type' => 'row',   'label' => 'EXPENSE', 'amount' => $this->totalExpenses],
-            ['type' => 'total', 'label' => 'Total',   'profit' => $profit],
+            ['type' => 'row',   'label' => __('tables.sale'),    'amount' => $this->totalSales],
+            ['type' => 'row',   'label' => __('tables.income'),  'amount' => $this->totalIncomes],
+            ['type' => 'row',   'label' => __('tables.expense'), 'amount' => $this->totalExpenses],
+            ['type' => 'total', 'label' => __('tables.total'),   'profit' => $profit],
         ];
     }
 
@@ -35,30 +40,25 @@ class AssetSummaryTable extends BaseWidget
         $fmt = fn (float $n) => number_format($n, 0, ',', '.');
 
         return $table
-            // Filament v4: records harus Closure
             ->records(fn () => $this->makeRows())
             ->paginated(false)
             ->columns([
                 // Kolom kiri: label
                 Tables\Columns\TextColumn::make('label_display')
                     ->label('')
-                    ->getStateUsing(function ($record) {
-                        if (!is_array($record)) return null;
-                        return ($record['type'] ?? null) === 'total'
-                            ? 'Total'
-                            : strtoupper((string) ($record['label'] ?? ''));
-                    })
+                    ->getStateUsing(fn ($record) => 
+                        is_array($record) 
+                            ? (($record['type'] ?? null) === 'total' 
+                                ? __('tables.total') 
+                                : strtoupper((string) ($record['label'] ?? ''))) 
+                            : null
+                    )
                     ->weight('semibold')
-                    ->extraAttributes(function ($record) {
-                        // Biar kolom kanan nempel ujung kanan, bikin kolom kiri "melar"
-                        $cls = 'w-full';
-                        if (is_array($record) && (($record['type'] ?? null) !== 'total')) {
-                            $cls .= ' uppercase tracking-wider';
-                        }
-                        return ['class' => $cls];
-                    }),
+                    ->extraAttributes(fn ($record) => [
+                        'class' => 'w-full' . (is_array($record) && ($record['type'] ?? null) !== 'total' ? ' uppercase tracking-wider' : '')
+                    ]),
 
-                // Kolom kanan: nilai (selalu rata kanan)
+                // Kolom kanan: nilai
                 Tables\Columns\TextColumn::make('amount_display')
                     ->label('')
                     ->getStateUsing(function ($record) use ($fmt) {
@@ -67,31 +67,21 @@ class AssetSummaryTable extends BaseWidget
                         if (($record['type'] ?? null) === 'total') {
                             $p = (float) ($record['profit'] ?? 0);
                             $sign = $p < 0 ? '-' : '';
-                            return $sign . $fmt(abs($p)) . ' ' . ($p < 0 ? 'Loss' : 'Profit');
+                            return $sign . $fmt(abs($p)) . ' ' . ($p < 0 ? __('tables.loss') : __('tables.profit'));
                         }
 
-                        // Expense tanpa minus; lainnya normal
-                        $amount = (float) ($record['amount'] ?? 0);
-                        return $fmt($amount);
+                        return $fmt((float) ($record['amount'] ?? 0));
                     })
-                    ->extraAttributes(function ($record) {
-                        $classes = 'text-right tabular-nums';
-                        if (is_array($record) && (($record['type'] ?? null) === 'total')) {
-                            $p = (float) ($record['profit'] ?? 0);
-                            $classes .= $p < 0 ? ' text-red-600' : ' text-green-600';
-                        }
-                        return ['class' => $classes];
-                    }),
+                    ->extraAttributes(fn ($record) => [
+                        'class' => 'text-right tabular-nums' . (is_array($record) && ($record['type'] ?? null) === 'total' 
+                            ? ((float) ($record['profit'] ?? 0) < 0 ? ' text-red-600' : ' text-green-600') 
+                            : '')
+                    ]),
             ])
-            // Strip abu untuk 3 baris pertama, dan abu-muda untuk baris total
-            ->recordClasses(function ($record) {
-                if (!is_array($record)) return null;
-
-                return match ($record['type'] ?? null) {
-                    'row'   => 'bg-gray-200 dark:bg-white/10',
-                    'total' => 'bg-gray-100 dark:bg-white/5',
-                    default => null,
-                };
+            ->recordClasses(fn ($record) => match ($record['type'] ?? null) {
+                'row'   => 'bg-gray-200 dark:bg-white/10',
+                'total' => 'bg-gray-100 dark:bg-white/5',
+                default => null,
             });
     }
 }

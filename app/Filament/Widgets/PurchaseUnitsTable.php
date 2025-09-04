@@ -8,7 +8,13 @@ use Filament\Widgets\TableWidget as BaseWidget;
 class PurchaseUnitsTable extends BaseWidget
 {
     protected int|string|array $columnSpan = 'full';
-    protected static ?string $heading          = 'Unit Bergerak';
+    protected static ?string $heading = null; // biarkan null
+
+    protected function getHeading(): ?string
+    {
+        return __('tables.moving_units');
+    }
+
 
     public function table(\Filament\Tables\Table $table): \Filament\Tables\Table
     {
@@ -18,18 +24,18 @@ class PurchaseUnitsTable extends BaseWidget
                     ->with(['vehicle.vehicleModel', 'vehicle.year'])
             )
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
-                Tables\Columns\TextColumn::make('vehicle.vehicleModel.name')->label('Nama Kendaraan'),
-                Tables\Columns\TextColumn::make('vehicle.year.year')->label('Tahun'),
-                Tables\Columns\TextColumn::make('notes')->label('Keterangan')->wrap(),
-                Tables\Columns\TextColumn::make('purchase_date')->label('Tanggal')->date('d M Y'),
-                Tables\Columns\TextColumn::make('total_price')->label('Nominal')->money('idr', true),
+                Tables\Columns\TextColumn::make('id')->label(__('tables.number'))->sortable(),
+                Tables\Columns\TextColumn::make('vehicle.vehicleModel.name')->label(__('tables.name')),
+                Tables\Columns\TextColumn::make('vehicle.year.year')->label(__('tables.year')),
+                Tables\Columns\TextColumn::make('notes')->label(__('tables.notes'))->wrap(),
+                Tables\Columns\TextColumn::make('purchase_date')->label(__('navigation.date'))->date('d M Y'),
+                Tables\Columns\TextColumn::make('total_price')->label(__('tables.amount'))->money('idr', true),
             ])
             ->filters([
                 Tables\Filters\Filter::make('purchase_date')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('from')->label('Dari'),
-                        \Filament\Forms\Components\DatePicker::make('until')->label('Sampai'),
+                        \Filament\Forms\Components\DatePicker::make('from')->label(__('tables.from')),
+                        \Filament\Forms\Components\DatePicker::make('until')->label(__('tables.until')),
                     ])
                     ->query(function ($query, array $data) {
                         return $query

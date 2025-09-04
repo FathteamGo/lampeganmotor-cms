@@ -10,13 +10,17 @@ use Illuminate\Support\Carbon;
 
 class IncomeTable extends BaseWidget
 {
-    protected static ?string $heading = 'Income';
+    protected static ?string $heading = null; // Pakai getHeading()
+    protected int|string|array $columnSpan = 'full';
 
     public ?string $dateStart = null;
     public ?string $dateEnd   = null;
-    public ?string $search    = null;   // <-- NEW
+    public ?string $search    = null;
 
-    protected int|string|array $columnSpan = 'full';
+    protected function getHeading(): ?string
+    {
+        return __('tables.income');
+    }
 
     public function table(Table $table): Table
     {
@@ -26,11 +30,8 @@ class IncomeTable extends BaseWidget
                     ->with(['category'])
                     ->when($this->dateStart, fn ($q) => $q->whereDate('income_date', '>=', $this->dateStart))
                     ->when($this->dateEnd,   fn ($q) => $q->whereDate('income_date', '<=', $this->dateEnd))
-
-                    // GLOBAL SEARCH
                     ->when(filled($this->search), function ($q) {
                         $s = '%' . trim($this->search) . '%';
-
                         $q->where(function ($qq) use ($s) {
                             $qq->where('description', 'like', $s)
                                ->orWhere('notes', 'like', $s)
@@ -42,21 +43,33 @@ class IncomeTable extends BaseWidget
             )
             ->columns([
                 Tables\Columns\TextColumn::make('income_date')
-                    ->label('#')
+                    ->label(__('tables.date'))
                     ->date('d/m/Y')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('description')->label('Nama'),
+
+                Tables\Columns\TextColumn::make('description')
+                    ->label(__('tables.name')),
+
                 Tables\Columns\TextColumn::make('category_id')
-                    ->label('Kategori')
+                    ->label(__('tables.category'))
                     ->getStateUsing(fn (Income $r) => $r->category->name ?? (string) $r->category_id)
                     ->badge()
                     ->toggleable(),
+
                 Tables\Columns\TextColumn::make('year')
-                    ->label('Tahun')
+                    ->label(__('tables.year'))
                     ->getStateUsing(fn (Income $r) => $r->income_date ? Carbon::parse($r->income_date)->year : '')
                     ->toggleable(),
-                Tables\Columns\TextColumn::make('notes')->label('Keterangan')->limit(40)->placeholder('-'),
-                Tables\Columns\TextColumn::make('amount')->label('Nominal')->money('IDR')->sortable(),
+
+                Tables\Columns\TextColumn::make('notes')
+                    ->label(__('tables.notes'))
+                    ->limit(40)
+                    ->placeholder('-'),
+
+                Tables\Columns\TextColumn::make('amount')
+                    ->label(__('tables.amount'))
+                    ->money('IDR')
+                    ->sortable(),
             ])
             ->paginated(false)
             ->striped();

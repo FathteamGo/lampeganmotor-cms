@@ -1,109 +1,123 @@
 <?php
+
 return [
     // General
-    'created_at'        => 'Created At',
-    'updated_at'        => 'Updated At',
-    'edit'              => 'Edit',
-    'delete'            => 'Delete',
-    'view'              => 'View',
+    'created_at' => 'Created At',
+    'updated_at' => 'Updated At',
+    'edit'       => 'Edit',
+    'delete'     => 'Delete',
+    'view'       => 'View',
+    'number'     => '#',
+    'notes'      => 'Notes',
+    'date'       => 'Date',
+    'amount'     => 'Amount',
+    'from'       => 'From',
+    'until'      => 'Until',
+    'address'    => 'Address',
+    'name'       => 'Name',
 
     // Brands
-    'brand'             => 'Brand',
-    'brands'            => 'Brands',
-    'model'             => 'Model',    
+    'brand'      => 'Brand',
+    'brands'     => 'Brands',
+    'model'      => 'Model',
 
     // Categories
-    'category'          => 'Category',
-    'categories'        => 'Categories',
-    'type'              => 'Type',
+    'category'   => 'Category',
+    'categories' => 'Categories',
+    'type'       => 'Type',
 
     // Colors
-    'color'             => 'Color',
-    'colors'            => 'Colors',
+    'color'      => 'Color',
+    'moving_units' => 'Moving Unit',
+    'colors'     => 'Colors',
 
     // Customers
-    'customer'          => 'Customer',
-    'customers'         => 'Customers',
-    'nik'               => 'NIK',
-    'phone'             => 'Phone',
+    'customer'   => 'Customer',
+
+    'sale'       => 'Sale',
+    'income'     => 'Income',
+    'expense'    => 'Expense',
+    'total'      => 'Total',
+    'customers'  => 'Customers',
+    'nik'        => 'NIK',
+    'phone'      => 'Phone',
 
     // Expenses
-    'description'       => 'Description',
-    'amount'            => 'Amount',
-    'expense_date'      => 'Date',
-    'category_name'     => 'Category',
+    'description'    => 'Description',
+    'amount'         => 'Amount',
+    'expense_date'   => 'Date',
+    'category_name'  => 'Category',
 
     // Incomes
-    'photo'             => 'Photo',
-    'income_date'       => 'Date',
-    'total'             => 'Total',
-    'customer_name'     => 'Customer',
-    'category'          => 'Category',
+    'photo'          => 'Photo',
+    'income_date'    => 'Date',
+    'total'          => 'Total',
+    'customer_name'  => 'Customer',
 
     // Other Assets
-    'value'             => 'Value',
-    'acquisition_date'  => 'Acquisition Date',
+    'value'           => 'Value',
+    'acquisition_date'=> 'Acquisition Date',
 
     // Purchases
-    'purchase_model'        => 'Model',
-    'purchase_supplier'     => 'Supplier',
-    'purchase_date'         => 'Purchase Date',
-    'purchase_total_price'  => 'Total Price',
+    'purchase_model'       => 'Model',
+    'purchase_supplier'    => 'Supplier',
+    'purchase_date'        => 'Purchase Date',
+    'purchase_total_price' => 'Total Price',
 
     // Requests
-    'status'            => 'Status',
-    'hold'              => 'Hold',
-    'available'         => 'Available',
-    'in_repair'         => 'In Repair',
-    'sold'              => 'Sold',
-    'converted'         => 'Converted',
-    'rejected'          => 'Rejected',
-    'number'      => '#',
-    'note'              => 'Note',
-    'plate'             => 'Plate',
+    'status'       => 'Status',
+    'hold'         => 'Hold',
+    'available'    => 'Available',
+    'in_repair'    => 'In Repair',
+    'sold'         => 'Sold',
+    'converted'    => 'Converted',
+    'rejected'     => 'Rejected',
+    'note'         => 'Note',
+    'plate'        => 'Plate',
 
     // Sales
-    'sale_date'         => 'Sale Date',
-    'sale_price'        => 'Sale Price',
-    'payment_method'    => 'Payment Method',
-
-      'no_requests' => 'No Requests',
-    'no_requests_description' => 'There are no request records available yet.',
-    // Suppliers
-    'supplier_name'     => 'Supplier',
-    'password'  => 'Password',
-
-    // Types
-
-    'address' => 'address',  // ID
-    'type_name'         => 'Type Name',
+    'sale_date'       => 'Sale Date',
+    'sale_price'      => 'Sale Price',
+    'payment_method'  => 'Payment Method',
+    'dp'              => 'Down Payment',
+    'total_price'     => 'Total Price',
+    'otr'             => 'OTR',
+    'dp_po'           => 'DP PO',
+    'dp_real'         => 'DP Real',
+    'piutang'         => 'Receivable',
+    'total_penjualan' => 'Total Sales',
+    'net_profit'      => 'Net Profit',
+    'ket'             => 'Note',
+    'cmo'             => 'CMO',
+    'fee_cmo'         => 'CMO Fee',
+    'order_source'    => 'Order Source',
+    'ex'              => 'Ex',
+    'branch'          => 'Branch',
 
     // Users
-    'email'             => 'Email Address',
-    'email_verified_at' => 'Email Verified At',
-    'role'              => 'Role',
-
-    // Vehicle Models
-    'name'              => 'Name',
+    'no_requests'            => 'No Requests',
+    'no_requests_description'=> 'No request data available.',
+    'email'                  => 'Email Address',
+    'email_verified_at'      => 'Email Verified',
+    'role'                   => 'Role',
+    'password'               => 'Password',
 
     // Vehicles
-    'vin'               => 'VIN',
-    'engine_number'     => 'Engine Number',
-    'license_plate'     => 'License Plate',
-    'bpkb_number'       => 'BPKB Number',
-    'purchase_price'    => 'Purchase Price',
-    'sale_price'        => 'Sale Price',
-    'odometer'          => 'Odometer',
-    'dp_percentage'     => 'DP (%)',
-    'status'            => 'Status',
-    'engine_specification' => 'Engine Specification',
-    'location'          => 'Location',
-    'notes'             => 'Notes',
-    'description_vehicle'=> 'Description',
-    'photos'            => 'Photos',
-    'image'             => 'Image',
-    'caption'           => 'Caption',
+    'vin'                    => 'VIN',
+    'engine_number'          => 'Engine Number',
+    'license_plate'          => 'License Plate',
+    'bpkb_number'            => 'BPKB Number',
+    'purchase_price'         => 'Purchase Price',
+    'sale_price'             => 'Sale Price',
+    'odometer'               => 'Odometer',
+    'dp_percentage'          => 'DP (%)',
+    'engine_specification'   => 'Engine Specification',
+    'location'               => 'Location',
+    'description_vehicle'    => 'Description',
+    'photos'                 => 'Photos',
+    'image'                  => 'Image',
+    'caption'                => 'Caption',
 
     // Years
-    'year'              => 'Year',
+    'year' => 'Year',
 ];

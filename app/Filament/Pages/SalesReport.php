@@ -50,7 +50,6 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
         $user = Auth::user();
         return $user && $user->role === 'owner';
     }
-    
 
     public static function getNavigationGroup(): ?string
     {
@@ -80,17 +79,17 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
                 Section::make()
                     ->schema([
                         DatePicker::make('startDate')
-                            ->label('Start Date')
+                            ->label(__('navigation.start_date'))
                             ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
 
                         DatePicker::make('endDate')
-                            ->label('End Date')
+                            ->label(__('navigation.end_date'))
                             ->minDate(fn (Get $get) => $get('startDate') ?: now())
                             ->maxDate(now()),
 
                         TextInput::make('search')
-                            ->label('Search')
-                            ->placeholder('Search invoice / customer / VIN...'),
+                            ->label(__('navigation.search'))
+                            ->placeholder(__('navigation.search')),
                     ])
                     ->columns(3)
                     ->columnSpanFull(),
@@ -105,66 +104,66 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
         return Excel::download(new SalesReportExport($query), 'sales-report.xlsx');
     }
 
-   public function table(Table $table): Table
-{
-    $start  = data_get($this->filters, 'startDate');
-    $end    = data_get($this->filters, 'endDate');
-    $search = data_get($this->filters, 'search');
+    public function table(Table $table): Table
+    {
+        $start  = data_get($this->filters, 'startDate');
+        $end    = data_get($this->filters, 'endDate');
+        $search = data_get($this->filters, 'search');
 
-    return $table
-        ->query(
-            Sale::query()
-                ->with(['vehicle.vehicleModel.brand', 'vehicle.type', 'vehicle.color', 'vehicle.year', 'customer'])
-                ->when($start, fn ($q) => $q->whereDate('sale_date', '>=', Carbon::parse($start)))
-                ->when($end, fn ($q) => $q->whereDate('sale_date', '<=', Carbon::parse($end)))
-                ->when($search, fn ($q, $s) =>
-                    $q->where(function ($sub) use ($s) {
-                        $sub->where('id', 'like', "%{$s}%")
-                            ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$s}%"))
-                            ->orWhereHas('vehicle', fn ($v) =>
-                                $v->where('vin', 'like', "%{$s}%")
-                                  ->orWhere('license_plate', 'like', "%{$s}%")
-                            );
-                    })
-                )
-        )
-        ->columns([
-            TextColumn::make('id')->label('Invoice Number')->sortable(),
-            TextColumn::make('sale_date')->label('Date')->date('F d, Y'),
-            TextColumn::make('customer.name')->label('Customer'),
-            TextColumn::make('customer.phone')->label('Phone'),
-            TextColumn::make('customer.address')->label('Location'),
-            TextColumn::make('vehicle.vehicleModel.brand.name')->label('Brand'),
-            TextColumn::make('vehicle.type.name')->label('Type'),
-            TextColumn::make('vehicle.vehicleModel.name')->label('Model'),
-            TextColumn::make('vehicle.color.name')->label('Color'),
-            TextColumn::make('vehicle.year.year')->label('Year'),
-            TextColumn::make('vehicle.vin')->label('VIN'),
-            TextColumn::make('vehicle.license_plate')->label('License Plate'),
-            TextColumn::make('sale_price')->money('IDR')->label('Sale Price'),
-            TextColumn::make('payment_method')->label('Payment Method'),
+        return $table
+            ->query(
+                Sale::query()
+                    ->with(['vehicle.vehicleModel.brand', 'vehicle.type', 'vehicle.color', 'vehicle.year', 'customer'])
+                    ->when($start, fn ($q) => $q->whereDate('sale_date', '>=', Carbon::parse($start)))
+                    ->when($end, fn ($q) => $q->whereDate('sale_date', '<=', Carbon::parse($end)))
+                    ->when($search, fn ($q, $s) =>
+                        $q->where(function ($sub) use ($s) {
+                            $sub->where('id', 'like', "%{$s}%")
+                                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$s}%"))
+                                ->orWhereHas('vehicle', fn ($v) =>
+                                    $v->where('vin', 'like', "%{$s}%")
+                                      ->orWhere('license_plate', 'like', "%{$s}%")
+                                );
+                        })
+                    )
+            )
+            ->columns([
+                TextColumn::make('id')->label(__('tables.number'))->sortable(),
+                TextColumn::make('sale_date')->label(__('navigation.date'))->date('F d, Y'),
+                TextColumn::make('customer.name')->label(__('navigation.customer')),
+                TextColumn::make('customer.phone')->label(__('tables.phone')),
+                TextColumn::make('customer.address')->label(__('tables.location')),
+                TextColumn::make('vehicle.vehicleModel.brand.name')->label(__('tables.brand')),
+                TextColumn::make('vehicle.type.name')->label(__('tables.type')),
+                TextColumn::make('vehicle.vehicleModel.name')->label(__('tables.model')),
+                TextColumn::make('vehicle.color.name')->label(__('tables.color')),
+                TextColumn::make('vehicle.year.year')->label(__('tables.year')),
+                TextColumn::make('vehicle.vin')->label(__('tables.vin')),
+                TextColumn::make('vehicle.license_plate')->label(__('tables.license_plate')),
+                TextColumn::make('sale_price')->money('IDR')->label(__('tables.sale_price')),
+                TextColumn::make('payment_method')->label(__('tables.payment_method')),
 
-            // Tambahan kolom kosong
-            TextColumn::make('total_price')->label('Total Price')->getStateUsing(fn() => ''),
-            TextColumn::make('otr')->label('OTR')->getStateUsing(fn() => ''),
-            TextColumn::make('dp_po')->label('DP PO')->getStateUsing(fn() => ''),
-            TextColumn::make('dp_real')->label('DP Real')->getStateUsing(fn() => ''),
-            TextColumn::make('piutang')->label('Piutang')->getStateUsing(fn() => ''),
-            TextColumn::make('total_penjualan')->label('Total Penjualan')->getStateUsing(fn() => ''),
-            TextColumn::make('laba_bersih')->label('Net Profit')->getStateUsing(fn() => ''),
-            TextColumn::make('ket')->label('Ket')->getStateUsing(fn() => ''),
-            TextColumn::make('cmo')->label('CMO')->getStateUsing(fn() => ''),
-            TextColumn::make('fee_cmo')->label('Fee CMO')->getStateUsing(fn() => ''),
-            TextColumn::make('sumber_order')->label('Order Source')->getStateUsing(fn() => ''),
-            TextColumn::make('ex')->label('Ex')->getStateUsing(fn() => ''),
-            TextColumn::make('cabang')->label('Branch')->getStateUsing(fn() => ''),
-        ])
-        ->paginated(false);
-}
+                // Tambahan kolom kosong
+                TextColumn::make('total_price')->label(__('tables.total_price'))->getStateUsing(fn() => ''),
+                TextColumn::make('otr')->label(__('tables.otr'))->getStateUsing(fn() => ''),
+                TextColumn::make('dp_po')->label(__('tables.dp_po'))->getStateUsing(fn() => ''),
+                TextColumn::make('dp_real')->label(__('tables.dp_real'))->getStateUsing(fn() => ''),
+                TextColumn::make('piutang')->label(__('tables.piutang'))->getStateUsing(fn() => ''),
+                TextColumn::make('total_penjualan')->label(__('tables.total_penjualan'))->getStateUsing(fn() => ''),
+                TextColumn::make('laba_bersih')->label(__('tables.net_profit'))->getStateUsing(fn() => ''),
+                TextColumn::make('ket')->label(__('tables.ket'))->getStateUsing(fn() => ''),
+                TextColumn::make('cmo')->label(__('tables.cmo'))->getStateUsing(fn() => ''),
+                TextColumn::make('fee_cmo')->label(__('tables.fee_cmo'))->getStateUsing(fn() => ''),
+                TextColumn::make('sumber_order')->label(__('tables.order_source'))->getStateUsing(fn() => ''),
+                TextColumn::make('ex')->label(__('tables.ex'))->getStateUsing(fn() => ''),
+                TextColumn::make('cabang')->label(__('tables.branch'))->getStateUsing(fn() => ''),
+            ])
+            ->paginated(false);
+    }
 
-public function applyFilters(): void
-{
-    // Tidak perlu isi apa-apa,
-    // karena filter otomatis dipakai oleh query().
-}
+    public function applyFilters(): void
+    {
+        // Tidak perlu isi apa-apa,
+        // karena filter otomatis dipakai oleh query().
+    }
 }

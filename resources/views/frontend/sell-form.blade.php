@@ -11,6 +11,7 @@ $fieldClass = "mt-1 block w-full rounded-md
                dark:bg-white dark:text-black dark:placeholder-black/60 dark:border-black/30";
 @endphp
 
+{{-- input --}}
 @section('title', 'Jual Motor - Lampegan Motor')
 
 @section('content')

@@ -17,7 +17,7 @@ class SaleForm
             ->components([
                 // Dropdown Vehicle
                 Select::make('vehicle_id')
-                    ->label('Vehicle')
+                    ->label(__('tables.purchase_model')) // Bisa pakai label model juga
                     ->options(
                         Vehicle::with(['vehicleModel', 'color'])
                             ->get()
@@ -35,25 +35,19 @@ class SaleForm
 
                 // Dropdown Customer
                 Select::make('customer_id')
-                    ->label('Customer')
-                    ->options(
-                        Customer::all()->pluck('name', 'id')
-                    )
+                    ->label(__('tables.customer'))
+                    ->options(Customer::all()->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
-
-                // Tanggal Penjualan
                 DatePicker::make('sale_date')
+                    ->label(__('tables.sale_date'))
                     ->required(),
-
-                // Harga Jual
                 TextInput::make('sale_price')
-                    ->required()
-                    ->numeric(),
-
-                // Metode Pembayaran
+                    ->label(__('tables.sale_price'))
+                    ->numeric()
+                    ->required(),
                 Select::make('payment_method')
-                    ->label('Payment Method')
+                    ->label(__('tables.payment_method'))
                     ->options([
                         'cash'        => 'Cash',
                         'credit'      => 'Credit',
@@ -62,7 +56,6 @@ class SaleForm
                     ])
                     ->default('cash')
                     ->required(),
-
                 // Sisa Pembayaran (hanya muncul saat cash tempo)
                 TextInput::make('remaining_payment')
                     ->label('Sisa Pembayaran')
@@ -73,9 +66,8 @@ class SaleForm
                 DatePicker::make('due_date')
                     ->label('Tanggal Jatuh Tempo')
                     ->visible(fn ($get) => $get('payment_method') === 'cash_tempo'),
-
-                // Catatan
                 Textarea::make('notes')
+                    ->label(__('tables.note'))
                     ->columnSpanFull(),
             ]);
     }

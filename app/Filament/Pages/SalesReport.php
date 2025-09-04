@@ -4,30 +4,31 @@ namespace App\Filament\Pages;
 
 use App\Models\Sale;
 use Filament\Pages\Page;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
-use UnitEnum;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\SalesReportExport;
+use UnitEnum;
 
-class SalesReport extends Page implements HasSchemas, HasTable
+class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
 {
     use InteractsWithSchemas;
-    use InteractsWithTable;
+    use Tables\Concerns\InteractsWithTable;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Report & Audit';
-    protected static ?string $navigationLabel = 'Sales Report';
-    protected static ?string $title = 'Sales Report';
+    protected static string|UnitEnum|null $navigationGroup = 'navigation.report_audit';
+    protected static ?string $navigationLabel = 'navigation.sales_report';
+    protected static ?string $title = 'navigation.sales_report_title';
+    protected static ?int $navigationSort = 5;
 
     protected string $view = 'filament.pages.sales-report';
 
@@ -36,15 +37,39 @@ class SalesReport extends Page implements HasSchemas, HasTable
         'endDate'   => null,
         'search'    => null,
     ];
-    
+
+    // Role only owner
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __(static::$navigationGroup);
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __(static::$navigationLabel);
+    }
+
+    public function getTitle(): string
+    {
+        return __(static::$title);
+    }
 
     public function mount(): void
     {
-        $this->form->fill([
-            'startDate' => now()->startOfMonth()->toDateString(),
-            'endDate'   => now()->endOfMonth()->toDateString(),
-            'search'    => null,
-        ]);
+        $this->filters['startDate'] = now()->startOfMonth()->toDateString();
+        $this->filters['endDate'] = now()->endOfMonth()->toDateString();
     }
 
     public function form(Schema $schema): Schema
@@ -72,20 +97,12 @@ class SalesReport extends Page implements HasSchemas, HasTable
             ->statePath('filters');
     }
 
-    public function applyFilters(): void
-    {
-        // trigger re-render
-    }
-
     public function exportExcel()
-{
-    $query = $this->table($this->makeTable())->getQuery();
+    {
+        $query = $this->table($this->makeTable())->getQuery();
 
-    return \Maatwebsite\Excel\Facades\Excel::download(
-        new \App\Exports\SalesReportExport($query),
-        'sales-report.xlsx'
-    );
-}
+        return Excel::download(new SalesReportExport($query), 'sales-report.xlsx');
+    }
 
     public function table(Table $table): Table
     {
@@ -99,16 +116,16 @@ class SalesReport extends Page implements HasSchemas, HasTable
                     ->with(['vehicle.vehicleModel.brand', 'vehicle.type', 'vehicle.color', 'vehicle.year', 'customer'])
                     ->when($start, fn ($q) => $q->whereDate('sale_date', '>=', Carbon::parse($start)))
                     ->when($end, fn ($q) => $q->whereDate('sale_date', '<=', Carbon::parse($end)))
-                    ->when($search, function ($q, $search) {
-                        $q->where(function ($sub) use ($search) {
-                            $sub->where('id', 'like', "%{$search}%")
-                                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$search}%"))
+                    ->when($search, fn ($q, $s) =>
+                        $q->where(function ($sub) use ($s) {
+                            $sub->where('id', 'like', "%{$s}%")
+                                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$s}%"))
                                 ->orWhereHas('vehicle', fn ($v) =>
-                                    $v->where('vin', 'like', "%{$search}%")
-                                      ->orWhere('license_plate', 'like', "%{$search}%")
+                                    $v->where('vin', 'like', "%{$s}%")
+                                      ->orWhere('license_plate', 'like', "%{$s}%")
                                 );
-                        });
-                    })
+                        })
+                    )
             )
             ->columns([
                 TextColumn::make('id')->label('Invoice Number')->sortable(),
@@ -128,9 +145,4 @@ class SalesReport extends Page implements HasSchemas, HasTable
             ])
             ->paginated(false);
     }
-
-    
-
-
-    
 }

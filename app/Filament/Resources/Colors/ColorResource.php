@@ -8,22 +8,39 @@ use App\Filament\Resources\Colors\Pages\ListColors;
 use App\Filament\Resources\Colors\Schemas\ColorForm;
 use App\Filament\Resources\Colors\Tables\ColorsTable;
 use App\Models\Color;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class ColorResource extends Resource
 {
     protected static ?string $model = Color::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Master Data';
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    /** 🔹 Group Navigasi (multi-bahasa) */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.master_data');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.colors');
+    }
+
+    /** 🔹 Label Jamak (List, Index) */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.colors');
+    }
+
+    /** 🔹 Label Tunggal (Create, Edit) */
+    public static function getLabel(): string
+    {
+        return __('navigation.color');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -37,9 +54,7 @@ class ColorResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

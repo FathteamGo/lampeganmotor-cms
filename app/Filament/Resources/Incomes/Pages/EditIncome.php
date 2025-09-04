@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Incomes\Pages;
 use App\Filament\Resources\Incomes\IncomeResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditIncome extends EditRecord
@@ -15,7 +16,8 @@ class EditIncome extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+             DeleteAction::make()
+                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

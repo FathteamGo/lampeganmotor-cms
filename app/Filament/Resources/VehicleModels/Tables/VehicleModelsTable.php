@@ -14,17 +14,23 @@ class VehicleModelsTable
     {
         return $table
             ->columns([
-                TextColumn::make('brand.name') // Menggunakan relasi untuk menampilkan nama brand
-                    ->label('Brand') // Label kolom
-                    ->sortable() // Membuat kolom dapat diurutkan
-                    ->searchable(), // Membuat kolom dapat dicari
-                TextColumn::make('name')
+                TextColumn::make('brand.name')
+                    ->label(__('tables.brand'))
+                    ->sortable()
                     ->searchable(),
+
+                TextColumn::make('name')
+                    ->label(__('tables.name'))
+                    ->searchable(),
+
                 TextColumn::make('created_at')
+                    ->label(__('tables.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
+                    ->label(__('tables.updated_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -33,11 +39,11 @@ class VehicleModelsTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->label(__('tables.delete')),
                 ]),
             ]);
     }

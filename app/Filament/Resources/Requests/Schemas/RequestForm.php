@@ -19,14 +19,14 @@ class RequestForm
 
             // Supplier
             Select::make('supplier_id')
-                ->label('Supplier')
+                ->label(__('tables.purchase_supplier'))
                 ->options(Supplier::orderBy('name')->pluck('name', 'id'))
                 ->searchable()
                 ->required(),
 
             // Brand
             Select::make('brand_id')
-                ->label('Brand')
+                ->label(__('tables.brand'))
                 ->options(Brand::orderBy('name')->pluck('name', 'id'))
                 ->searchable()
                 ->required()
@@ -34,7 +34,7 @@ class RequestForm
 
             // Vehicle Model (filtered by brand)
             Select::make('vehicle_model_id')
-                ->label('Model')
+                ->label(__('tables.model'))
                 ->options(fn ($get) =>
                     $get('brand_id')
                         ? VehicleModel::where('brand_id', $get('brand_id'))->orderBy('name')->pluck('name', 'id')
@@ -45,26 +45,26 @@ class RequestForm
 
             // Year
             Select::make('year_id')
-                ->label('Year')
+                ->label(__('tables.year'))
                 ->options(Year::orderBy('year', 'desc')->pluck('year', 'id'))
                 ->searchable()
                 ->required(),
 
             // License Plate
             TextInput::make('license_plate')
-                ->label('Plat Nomor')
+                ->label(__('tables.plate'))
                 ->maxLength(20)
                 ->required(),
 
             // Odometer
             TextInput::make('odometer')
-                ->label('Odometer (KM)')
+                ->label(__('tables.odometer'))
                 ->numeric()
                 ->minValue(0),
 
             // Status (default hold)
             Select::make('status')
-                ->label('Status')
+                ->label(__('tables.status'))
                 ->options([
                     'hold'      => 'Hold',
                     'available' => 'Available',
@@ -76,7 +76,7 @@ class RequestForm
 
             // Type (default sell)
             Select::make('type')
-                ->label('Type')
+                ->label(__('tables.type'))
                 ->options([
                     'sell' => 'Sell',
                     'buy'  => 'Buy',
@@ -86,7 +86,7 @@ class RequestForm
 
             // Notes
             Textarea::make('notes')
-                ->label('Notes')
+                ->label(__('tables.note'))
                 ->columnSpanFull(),
         ]);
     }

@@ -16,32 +16,44 @@ class OtherAssetsTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('tables.name'))
                     ->searchable(),
+
                 TextColumn::make('value')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->label(__('tables.value')),
+
                 TextColumn::make('acquisition_date')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->label(__('tables.acquisition_date')),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label(__('tables.created_at')),
+
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label(__('tables.updated_at')),
             ])
             ->filters([
                 //
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()
+                    ->label(__('tables.view')),
+                EditAction::make()
+                    ->label(__('tables.edit')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label(__('tables.delete')),
                 ]),
             ]);
     }

@@ -10,22 +10,39 @@ use App\Filament\Resources\Expenses\Schemas\ExpenseForm;
 use App\Filament\Resources\Expenses\Schemas\ExpenseInfolist;
 use App\Filament\Resources\Expenses\Tables\ExpensesTable;
 use App\Models\Expense;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class ExpenseResource extends Resource
 {
     protected static ?string $model = Expense::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Financial';
-
     protected static ?string $recordTitleAttribute = 'description';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.financial');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.expenses');
+    }
+
+    /** 🔹 Label Jamak (List, Index) */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.expenses');
+    }
+
+    /** 🔹 Label Tunggal (Create, Edit, View) */
+    public static function getLabel(): string
+    {
+        return __('navigation.expenses');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -44,9 +61,7 @@ class ExpenseResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

@@ -12,14 +12,18 @@ class VehicleModelForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
-            ->components([
+            ->columns(2) // Bisa diubah ke 2 jika mau layout 2 kolom
+            ->schema([
                 Select::make('brand_id')
-                    ->label('Brand') // Label untuk dropdown
-                    ->options(Brand::all()->pluck('name', 'id')) // Mengambil data dari model Brand
-                    ->searchable() // Menambahkan fitur pencarian
-                    ->required(), // Menjadikan field ini wajib diisi
-                TextInput::make('name')
+                    ->label(__('tables.brand')) // Multi-bahasa
+                    ->options(Brand::orderBy('name')->pluck('name', 'id')) // Ambil data Brand
+                    ->searchable()
                     ->required(),
+
+                TextInput::make('name')
+                    ->label(__('tables.name')) // Multi-bahasa
+                    ->required()
+                    ->maxLength(255),
             ]);
     }
 }

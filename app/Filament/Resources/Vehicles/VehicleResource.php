@@ -10,22 +10,39 @@ use App\Filament\Resources\Vehicles\Schemas\VehicleForm;
 use App\Filament\Resources\Vehicles\Schemas\VehicleInfolist;
 use App\Filament\Resources\Vehicles\Tables\VehiclesTable;
 use App\Models\Vehicle;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class VehicleResource extends Resource
 {
     protected static ?string $model = Vehicle::class;
 
-    // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static string | UnitEnum | null $navigationGroup = 'Master Data';
-
     protected static ?string $recordTitleAttribute = 'license_plate';
+
+    /** 🔹 Group Navigasi */
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.master_data');
+    }
+
+    /** 🔹 Label di Sidebar */
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.vehicles');
+    }
+
+    /** 🔹 Label Jamak */
+    public static function getPluralLabel(): string
+    {
+        return __('navigation.vehicles');
+    }
+
+    /** 🔹 Label Tunggal */
+    public static function getLabel(): string
+    {
+        return __('navigation.vehicles');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -44,18 +61,16 @@ class VehicleResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListVehicles::route('/'),
+            'index'  => ListVehicles::route('/'),
             'create' => CreateVehicle::route('/create'),
-            'view' => ViewVehicle::route('/{record}'),
-            'edit' => EditVehicle::route('/{record}/edit'),
+            'view'   => ViewVehicle::route('/{record}'),
+            'edit'   => EditVehicle::route('/{record}/edit'),
         ];
     }
 }

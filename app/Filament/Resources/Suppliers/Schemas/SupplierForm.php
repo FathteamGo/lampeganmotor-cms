@@ -13,13 +13,17 @@ class SupplierForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label(__('tables.supplier_name')) // ambil dari lang
+                    ->label(__('navigation.supplier')) 
+                    ->required(),
+
+                TextInput::make('dealer')
+                    ->label(__('tables.dealer'))
                     ->required(),
 
                 TextInput::make('phone')
                     ->label(__('tables.phone'))
                     ->tel(),
-
+                
                 Textarea::make('address')
                     ->label(__('tables.address')) 
                     ->columnSpanFull(),

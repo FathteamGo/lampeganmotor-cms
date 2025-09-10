@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use App\Models\Vehicle;
 use App\Models\Brand;
 use App\Models\Type;
@@ -12,20 +13,20 @@ use App\Models\Supplier;
 use App\Models\Year;
 use App\Models\Request as VehicleRequest;
 use App\Models\VehiclePhoto;
+use App\Models\HeroSlide;
 use App\Services\WhatsAppService;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
 
 class LandingController extends Controller
 {
     /**
-     * Display the homepage with a list of available vehicles.
+     * Halaman utama (Landing Page)
      */
     public function index(Request $request)
     {
         $vehicleQuery = Vehicle::whereIn('status', ['available'])
             ->with(['vehicleModel.brand', 'photos', 'type', 'year']);
 
+        // filter kendaraan
         if ($request->filled('brand')) {
             $vehicleQuery->whereHas('vehicleModel.brand', function ($q) use ($request) {
                 $q->where('id', $request->brand);
@@ -50,6 +51,25 @@ class LandingController extends Controller
         $types  = Type::orderBy('name')->get();
         $years  = Year::orderBy('year', 'desc')->get();
 
+        // --- amanin kolom order ---
+        $heroSlides = HeroSlide::orderBy('order_column', 'asc')->get();
+
+        // fallback kalau kosong → kasih dummy data
+        if ($heroSlides->isEmpty()) {
+            $heroSlides = collect([
+                [
+                    'image'    => "https://via.placeholder.com/1200x600?text=Slide+1",
+                    'title'    => 'Performa & Adrenalin',
+                    'subtitle' => 'Temukan Koleksi Motor Sport Terbaik Kami',
+                ],
+                [
+                    'image'    => "https://via.placeholder.com/1200x600?text=Slide+2",
+                    'title'    => 'Kenyamanan & Gaya',
+                    'subtitle' => 'Jelajahi Pilihan Skuter Matik Modern',
+                ],
+            ]);
+        }
+
         $heroSlides = [
             [
                 'imageUrl' => "https://fathforce.com/motor.jpg",
@@ -67,7 +87,7 @@ class LandingController extends Controller
     }
 
     /**
-     * Display detail page of single vehicle.
+     * Halaman detail kendaraan
      */
     public function show(Vehicle $vehicle)
     {
@@ -76,13 +96,15 @@ class LandingController extends Controller
     }
 
     /**
-     * Form jual motor (dropdown dari tabel).
+     * Form jual motor
      */
     public function sellForm()
     {
         $brands = Brand::orderBy('name')->select('id', 'name')->get();
         $types  = Type::orderBy('name')->select('id', 'name')->get();
         $years  = Year::orderBy('year', 'desc')->select('id', 'year')->get();
+
+        $heroSlides = HeroSlide::orderBy('order_column', 'asc')->get();
 
         $heroSlides = [
             [
@@ -101,8 +123,7 @@ class LandingController extends Controller
     }
 
     /**
-     * Proses submit form jual motor → masuk ke suppliers, requests, vehicle_photos.
-     * Versi ini memakai brand_id, vehicle_model_id, year_id dari dropdown.
+     * Submit form jual motor
      */
     public function sellSubmit(Request $request)
     {
@@ -120,13 +141,13 @@ class LandingController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $validated) {
-            // 1) Supplier (penjual)
+            // Supplier
             $supplier = Supplier::firstOrCreate(
                 ['phone' => $validated['phone']],
                 ['name'  => $validated['name']]
             );
 
-            // 2) Simpan LEAD (request)
+            // Request jual motor
             $lead = VehicleRequest::create([
                 'supplier_id'      => $supplier->id,
                 'brand_id'         => $validated['brand_id'],
@@ -139,23 +160,22 @@ class LandingController extends Controller
                 'status'           => 'hold',
             ]);
 
-            // 3) Foto (simpan path relatif di disk public)
+            // Foto
             if ($request->hasFile('photos')) {
                 foreach ($request->file('photos') as $i => $file) {
                     if (!$file) continue;
                     $path = $file->store("requests/{$lead->id}", 'public');
                     VehiclePhoto::create([
                         'request_id'  => $lead->id,
-                        'path'        => $path,       // simpan "requests/{id}/file.jpg"
+                        'path'        => $path,
                         'photo_order' => $i,
                     ]);
                 }
             }
 
-            // 4) Notifikasi WhatsApp (best-effort)
+            // Notifikasi WA (opsional)
             try {
                 $wa = app(WhatsAppService::class);
-
                 $brand = Brand::find($validated['brand_id']);
                 $model = VehicleModel::find($validated['vehicle_model_id']);
                 $year  = Year::find($validated['year_id']);
@@ -166,7 +186,6 @@ class LandingController extends Controller
                     ? number_format((int)$validated['odometer'], 0, ',', '.') . ' km'
                     : '-';
 
-                // Ke penjual (supplier)
                 $msgSupplier =
                     "Halo {$supplier->name}, terima kasih sudah mengajukan Jual Motor ke Lampegan Motor.\n\n" .
                     "Detail unit:\n" .
@@ -177,7 +196,6 @@ class LandingController extends Controller
                     "Tim kami akan menghubungi Anda via WhatsApp untuk proses selanjutnya 🙏";
                 $wa->sendText($supplier->phone, $msgSupplier);
 
-                // Ke owner (admin)
                 $owner = config('services.wa_gateway.owner');
                 if ($owner) {
                     $msgOwner =
@@ -192,8 +210,7 @@ class LandingController extends Controller
                     $wa->sendText($owner, $msgOwner);
                 }
             } catch (\Throwable $e) {
-                // optional log
-                // \Log::warning('WA notify failed: '.$e->getMessage());
+                // log optional
             }
         });
 
@@ -203,7 +220,7 @@ class LandingController extends Controller
     }
 
     /**
-     * Ajax ambil model by brand (JSON)
+     * Ajax ambil model by brand
      */
     public function modelsByBrand(Brand $brand)
     {

@@ -38,10 +38,32 @@ class Purchase extends Model
         return $this->belongsTo(Vehicle::class);
     }
 
+        public function additionalCosts()
+    {
+        return $this->hasMany(PurchaseAdditionalCost::class);
+    }
+
+    public function getGrandTotalAttribute()
+    {
+        $extra = $this->additionalCosts->sum('price');
+        return $this->total_price + $extra;
+    }
+
+
     // Relasi ke Supplier
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
     }
+
+  protected static function booted()
+    {
+        static::saved(function ($purchase) {
+            if ($purchase->vehicle && $purchase->vehicle->status === 'hold') {
+                $purchase->vehicle->update(['status' => 'available']); // atau 'active'
+            }
+        });
+    }
 }
+
     

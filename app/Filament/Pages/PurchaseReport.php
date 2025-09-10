@@ -137,42 +137,60 @@ class PurchaseReport extends Page implements HasSchemas, Tables\Contracts\HasTab
     }
 
     public function table(Table $table): Table
-    {
-        return $table
-            ->query(fn () => $this->buildQuery())
-            ->columns([
-                TextColumn::make('id')->label(__('tables.number'))->sortable(),
-                TextColumn::make('purchase_date')->label(__('navigation.date'))->date('F d, Y'),
+{
+    return $table
+        ->query(fn () => $this->buildQuery())
+        ->columns([
+            TextColumn::make('id')
+                ->label(__('tables.number'))
+                ->sortable(),
 
-                // Supplier
-                TextColumn::make('supplier.name')->label(__('navigation.supplier')),
-                TextColumn::make('supplier.phone')->label(__('tables.phone')),
-                TextColumn::make('supplier.address')->label(__('navigation.address')),
+            TextColumn::make('purchase_date')
+                ->label(__('navigation.date'))
+                ->date('F d, Y'),
 
-                // Vehicle
-                TextColumn::make('vehicle.vehicleModel.brand.name')->label(__('tables.brand')),
-                TextColumn::make('vehicle.type.name')->label(__('tables.type')),
-                TextColumn::make('vehicle.vehicleModel.name')->label(__('tables.model')),
-                TextColumn::make('vehicle.color.name')->label(__('tables.color')),
-                TextColumn::make('vehicle.year.year')->label(__('tables.year')),
-                TextColumn::make('vehicle.vin')->label(__('tables.vin')),
-                TextColumn::make('vehicle.license_plate')->label(__('tables.license_plate')),
-                TextColumn::make('vehicle.status')->label(__('tables.status')),
+            // Supplier
+            TextColumn::make('supplier.name')->label(__('navigation.supplier')),
+            TextColumn::make('supplier.phone')->label(__('tables.phone')),
+            TextColumn::make('supplier.address')->label(__('navigation.address')),
 
-                // Purchase info
-                TextColumn::make('total_price')->money('IDR')->label(__('tables.total_price')),
-                TextColumn::make('payment_method')->label(__('tables.payment_method')),
+            // Vehicle
+            TextColumn::make('vehicle.vehicleModel.brand.name')->label(__('tables.brand')),
+            TextColumn::make('vehicle.type.name')->label(__('tables.type')),
+            TextColumn::make('vehicle.vehicleModel.name')->label(__('tables.model')),
+            TextColumn::make('vehicle.color.name')->label(__('tables.color')),
+            TextColumn::make('vehicle.year.year')->label(__('tables.year')),
+            TextColumn::make('vehicle.vin')->label(__('tables.vin')),
+            TextColumn::make('vehicle.license_plate')->label(__('tables.license_plate')),
+            TextColumn::make('vehicle.status')->label(__('tables.status')),
 
-                // Tambahan kolom manual
-                TextColumn::make('otr')->label(__('tables.otr'))->getStateUsing(fn () => ''),
-                TextColumn::make('additional_fee')->label(__('tables.additional_fee'))->getStateUsing(fn () => ''),
-                TextColumn::make('dp')->label(__('tables.dp'))->getStateUsing(fn () => ''),
-                TextColumn::make('remaining_debt')->label(__('tables.remaining_debt'))->getStateUsing(fn () => ''),
-                TextColumn::make('branch')->label(__('tables.branch'))->getStateUsing(fn () => ''),
-                TextColumn::make('notes')->label(__('tables.notes'))->getStateUsing(fn () => ''),
-            ])
-            ->paginated(false);
-    }
+            // Total harga (harga motor + biaya tambahan)
+            TextColumn::make('grand_total')
+                ->label(__('tables.total_price'))
+                ->getStateUsing(fn ($record) =>
+                    'Rp ' . number_format(
+                        ($record->total_price ?? 0) + ($record->additionalCosts->sum('price') ?? 0),
+                        0,
+                        ',',
+                        '.'
+                    )
+                )
+                ->sortable(),
+
+            TextColumn::make('payment_method')->label(__('tables.payment_method')),
+
+            // Ambil langsung dari field purchase
+            TextColumn::make('otr')->label(__('tables.otr')),
+            TextColumn::make('additional_fee')->label(__('tables.additional_fee')),
+            TextColumn::make('dp')->label(__('tables.dp')),
+            TextColumn::make('remaining_debt')->label(__('tables.remaining_debt')),
+            TextColumn::make('branch')->label(__('tables.branch')),
+            TextColumn::make('notes')->label(__('tables.notes')),
+        ])
+        ->paginated(false);
+}
+
+
 
     public function applyFilters(): void
     {

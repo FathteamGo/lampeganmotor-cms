@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\HeroSlide;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +22,5 @@ class AppServiceProvider extends ServiceProvider
     {
          app()->setLocale(session('locale', 'id'));
     }
-
     
 }

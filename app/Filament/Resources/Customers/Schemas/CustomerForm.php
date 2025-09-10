@@ -17,6 +17,7 @@ class CustomerForm
                     ->required(),
 
                 TextInput::make('nik')
+                    ->hidden()
                     ->label(__('tables.nik')),
 
                 TextInput::make('phone')
@@ -24,7 +25,19 @@ class CustomerForm
                     ->tel(),
 
                 Textarea::make('address')
-                    ->label(__('tables.address')) // jangan lupa tambahkan 'address' di lang
+                    ->label(__('tables.address'))
+                    ->columnSpanFull(),
+
+                // 👉 Tambahan input Instagram
+                TextInput::make('instagram')
+                    ->label('Instagram')
+                    ->placeholder('contoh: @username atau link')
+                    ->columnSpanFull(),
+
+                // 👉 Tambahan input TikTok
+                TextInput::make('tiktok')
+                    ->label('TikTok')
+                    ->placeholder('contoh: @username atau link')
                     ->columnSpanFull(),
             ]);
     }

@@ -50,7 +50,7 @@ class SaleForm
                 ->default(now()),
 
             TextInput::make('sale_price')
-                ->label(__('tables.sale_price'))
+                ->label('OTR')
                 ->numeric()
                 ->minValue(0)
                 ->prefix('Rp')
@@ -68,6 +68,20 @@ class SaleForm
                 ->required()
                 ->reactive(),
 
+            TextInput::make('dp_po')
+                ->label('DP PO')
+                ->numeric()
+                ->minValue(0)
+                ->prefix('Rp')
+                ->visible(fn ($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
+
+            TextInput::make('dp_real')
+                ->label('DP REAL')
+                ->numeric()
+                ->minValue(0)
+                ->prefix('Rp')
+                ->visible(fn ($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
+
             TextInput::make('remaining_payment')
                 ->label('Sisa Pembayaran')
                 ->numeric()
@@ -79,23 +93,18 @@ class SaleForm
                 ->label('Tanggal Jatuh Tempo')
                 ->visible(fn ($get) => $get('payment_method') === 'cash_tempo'),
 
-            TextInput::make('ig')
-                ->label('Instagram')
-                ->placeholder('@username')
-                ->maxLength(255),
-
-            TextInput::make('tiktok')
-                ->label('TikTok')
-                ->placeholder('@username')
-                ->maxLength(255),
-
             TextInput::make('cmo')
                 ->label('CMO / Mediator')
-                ->placeholder('Nama CMO')
                 ->maxLength(255),
 
             TextInput::make('cmo_fee')
                 ->label('Fee CMO')
+                ->numeric()
+                ->minValue(0)
+                ->prefix('Rp'),
+
+            TextInput::make('direct_commission')
+                ->label('Komisi Langsung')
                 ->numeric()
                 ->minValue(0)
                 ->prefix('Rp'),
@@ -113,16 +122,14 @@ class SaleForm
 
             TextInput::make('branch_name')
                 ->label('Cabang')
-                ->placeholder('Nama Cabang')
                 ->maxLength(255),
 
             Select::make('result')
                 ->label('Hasil')
                 ->options([
-                    'CASH' => 'CASH',
-                    'TT'   => 'TT',
-                    'ACC'  => 'ACC',
-                    'X'    => 'X',
+                    'ACC'    => 'ACC',
+                    'CASH'   => 'CASH',
+                    'CANCEL' => 'CANCEL',
                 ])
                 ->searchable(),
 

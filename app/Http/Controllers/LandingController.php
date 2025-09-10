@@ -106,18 +106,6 @@ class LandingController extends Controller
 
         $heroSlides = HeroSlide::orderBy('order_column', 'asc')->get();
 
-        $heroSlides = [
-            [
-                'imageUrl' => "https://fathforce.com/motor.jpg",
-                'title'    => 'Jual Motor Kamu',
-                'subtitle' => 'Isi form, kami hubungi segera',
-            ],
-            [
-                'imageUrl' => "https://fathforce.com/motor.jpg",
-                'title'    => 'Proses Mudah',
-                'subtitle' => 'Gratis inspeksi & penjemputan*',
-            ],
-        ];
 
         return view('frontend.sell-form', compact('brands', 'types', 'years', 'heroSlides'));
     }

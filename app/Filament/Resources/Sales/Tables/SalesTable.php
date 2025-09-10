@@ -62,7 +62,7 @@ class SalesTable
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('vehicle.sale_price')
+                TextColumn::make('sale_price')
                     ->label('OTR')
                     ->money('IDR', locale: 'id')
                     ->sortable()
@@ -70,20 +70,14 @@ class SalesTable
 
                 TextColumn::make('dp_po')
                     ->label('Dp Po')
-                    ->state(fn ($record) => optional($record->vehicle)->dp_percentage
-                        ? round((($record->vehicle->sale_price ?? $record->sale_price ?? 0) * ($record->vehicle->dp_percentage / 100)))
-                        : null
-                    )
                     ->money('IDR', locale: 'id')
+                    ->placeholder('-')
                     ->toggleable(),
 
                 TextColumn::make('dp_real')
                     ->label('Dp Real')
-                    ->state(fn ($record) => $record->payment_method === 'cash_tempo'
-                        ? max(0, (int) ($record->sale_price - (int) ($record->remaining_payment ?? 0)))
-                        : null
-                    )
                     ->money('IDR', locale: 'id')
+                    ->placeholder('-')
                     ->toggleable(),
 
                 TextColumn::make('pencairan')
@@ -92,11 +86,6 @@ class SalesTable
                     ->placeholder('-')
                     ->toggleable(),
 
-                TextColumn::make('sale_price')
-                    ->label('Total Penjualan')
-                    ->money('IDR', locale: 'id')
-                    ->sortable(),
-
                 TextColumn::make('laba_bersih')
                     ->label('Laba Bersih')
                     ->money('IDR', locale: 'id')
@@ -104,8 +93,9 @@ class SalesTable
                     ->toggleable(),
 
                 TextColumn::make('payment_method')
-                    ->label(__('tables.payment_method'))
-                    ->searchable(),
+                    ->label('Metode Pembayaran')
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('cmo')
                     ->label('CMO')
@@ -116,14 +106,14 @@ class SalesTable
                     ->money('IDR', locale: 'id')
                     ->toggleable(),
 
-                TextColumn::make('order_source')
-                    ->label(__('tables.order_source'))
-                    ->searchable(),
-
-                TextColumn::make('komisi_langsung')
-                    ->label('Komisi')
+                TextColumn::make('direct_commission')
+                    ->label('Komisi Langsung')
                     ->money('IDR', locale: 'id')
-                    ->placeholder('-')
+                    ->toggleable(),
+
+                TextColumn::make('order_source')
+                    ->label('Sumber Order')
+                    ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('user.name')
@@ -139,27 +129,13 @@ class SalesTable
 
                 TextColumn::make('result')
                     ->label('Hasil')
-                    ->formatStateUsing(fn ($s) => $s ?: '-')
-                    ->badge()
-                    ->color(fn ($s) => match ($s) {
-                        'CASH' => 'success',
-                        'TT'   => 'info',
-                        'ACC'  => 'primary',
-                        'X'    => 'gray',
-                        default => 'secondary',
-                    })
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('grand_total')
-                    ->label('Total')
-                    ->state(fn ($record) => $record->sale_price)
-                    ->money('IDR', locale: 'id')
+                    ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('status')
-                    ->label(__('tables.status'))
-                    ->searchable(),
+                    ->label('Status')
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('sale_date')
                     ->label('Tanggal')

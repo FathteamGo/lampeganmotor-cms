@@ -18,15 +18,16 @@ class Sale extends Model
         'payment_method',
         'remaining_payment',
         'due_date',
-        'ig',
-        'tiktok',
         'cmo',
         'cmo_fee',
+        'direct_commission',
         'order_source',
         'branch_name',
         'result',
         'status',
         'notes',
+        'dp_po',
+        'dp_real',
     ];
 
     protected $casts = [
@@ -35,14 +36,17 @@ class Sale extends Model
         'sale_price'        => 'decimal:2',
         'remaining_payment' => 'decimal:2',
         'cmo_fee'           => 'decimal:2',
+        'direct_commission' => 'decimal:2',
+        'dp_po'             => 'decimal:2',
+        'dp_real'           => 'decimal:2',
     ];
 
     protected $appends = [
-        'komisi_langsung',
         'pencairan',
         'laba_bersih',
     ];
 
+    // relasi
     public function customer()
     {
         return $this->belongsTo(Customer::class);
@@ -76,15 +80,6 @@ class Sale extends Model
             ->value('id');
     }
 
-    public function getKomisiLangsungAttribute()
-    {
-        $catId = $this->categoryId('komisi_langsung', 'expense');
-
-        return $catId
-            ? (float) $this->expenses()->where('category_id', $catId)->sum('amount')
-            : 0.0;
-    }
-
     public function getPencairanAttribute()
     {
         $catId = $this->categoryId('pencairan', 'income');
@@ -105,8 +100,15 @@ class Sale extends Model
     {
         $purchase = (float) optional($this->vehicle)->purchase_price;
         $cmo      = (float) ($this->cmo_fee ?? 0);
-        $komisi   = (float) $this->komisi_langsung;
+        $komisi   = (float) ($this->direct_commission ?? 0);
+        $dpPo     = (float) ($this->dp_po ?? 0);
+        $dpReal   = (float) ($this->dp_real ?? 0);
 
-        return (float) ($this->sale_price ?? 0) - $purchase - $cmo - $komisi;
+        return (float) ($this->vehicle->sale_price ?? $this->sale_price ?? 0)
+            - $dpPo
+            + $dpReal
+            - $purchase
+            - $cmo
+            - $komisi;
     }
 }

@@ -46,6 +46,7 @@ class Sale extends Model
         'laba_bersih',
     ];
 
+    // relasi
     public function customer()
     {
         return $this->belongsTo(Customer::class);

@@ -52,12 +52,12 @@ class LandingController extends Controller
 
         $heroSlides = [
             [
-                'imageUrl' => "https://gofath.com/motor.jpg",
+                'imageUrl' => "https://fathforce.com/motor.jpg",
                 'title'    => 'Performa & Adrenalin',
                 'subtitle' => 'Temukan Koleksi Motor Sport Terbaik Kami',
             ],
             [
-                'imageUrl' => "https://gofath.com/motor.jpg",
+                'imageUrl' => "https://fathforce.com/motor.jpg",
                 'title'    => 'Kenyamanan & Gaya',
                 'subtitle' => 'Jelajahi Pilihan Skuter Matik Modern',
             ],
@@ -80,18 +80,18 @@ class LandingController extends Controller
      */
     public function sellForm()
     {
-        $brands = Brand::orderBy('name')->select('id','name')->get();
-        $types  = Type::orderBy('name')->select('id','name')->get();
-        $years  = Year::orderBy('year', 'desc')->select('id','year')->get();
+        $brands = Brand::orderBy('name')->select('id', 'name')->get();
+        $types  = Type::orderBy('name')->select('id', 'name')->get();
+        $years  = Year::orderBy('year', 'desc')->select('id', 'year')->get();
 
         $heroSlides = [
             [
-                'imageUrl' => "https://gofath.com/motor.jpg",
+                'imageUrl' => "https://fathforce.com/motor.jpg",
                 'title'    => 'Jual Motor Kamu',
                 'subtitle' => 'Isi form, kami hubungi segera',
             ],
             [
-                'imageUrl' => "https://gofath.com/motor.jpg",
+                'imageUrl' => "https://fathforce.com/motor.jpg",
                 'title'    => 'Proses Mudah',
                 'subtitle' => 'Gratis inspeksi & penjemputan*',
             ],
@@ -107,16 +107,16 @@ class LandingController extends Controller
     public function sellSubmit(Request $request)
     {
         $validated = $request->validate([
-            'name'             => ['required','string','max:255'],
-            'phone'            => ['required','string','max:20'],
-            'brand_id'         => ['required', Rule::exists('brands','id')],
-            'vehicle_model_id' => ['required', Rule::exists('vehicle_models','id')],
-            'year_id'          => ['required', Rule::exists('years','id')],
-            'license_plate'    => ['required','string','max:15'],
-            'odometer'         => ['nullable','integer','min:0'],
-            'notes'            => ['nullable','string'],
-            'photos'           => ['nullable','array','max:5'],
-            'photos.*'         => ['file','image','mimes:jpg,jpeg,png,webp','max:4096'],
+            'name'             => ['required', 'string', 'max:255'],
+            'phone'            => ['required', 'string', 'max:20'],
+            'brand_id'         => ['required', Rule::exists('brands', 'id')],
+            'vehicle_model_id' => ['required', Rule::exists('vehicle_models', 'id')],
+            'year_id'          => ['required', Rule::exists('years', 'id')],
+            'license_plate'    => ['required', 'string', 'max:15'],
+            'odometer'         => ['nullable', 'integer', 'min:0'],
+            'notes'            => ['nullable', 'string'],
+            'photos'           => ['nullable', 'array', 'max:5'],
+            'photos.*'         => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
 
         DB::transaction(function () use ($request, $validated) {
@@ -168,12 +168,12 @@ class LandingController extends Controller
 
                 // Ke penjual (supplier)
                 $msgSupplier =
-                    "Halo {$supplier->name}, terima kasih sudah mengajukan Jual Motor ke Lampegan Motor.\n\n".
-                    "Detail unit:\n".
-                    "- Unit: {$title}\n".
-                    "- Plat: {$plate}\n".
-                    "- Odometer: {$odo}\n".
-                    "- Catatan: ".($validated['notes'] ?? '-')."\n\n".
+                    "Halo {$supplier->name}, terima kasih sudah mengajukan Jual Motor ke Lampegan Motor.\n\n" .
+                    "Detail unit:\n" .
+                    "- Unit: {$title}\n" .
+                    "- Plat: {$plate}\n" .
+                    "- Odometer: {$odo}\n" .
+                    "- Catatan: " . ($validated['notes'] ?? '-') . "\n\n" .
                     "Tim kami akan menghubungi Anda via WhatsApp untuk proses selanjutnya 🙏";
                 $wa->sendText($supplier->phone, $msgSupplier);
 
@@ -181,14 +181,14 @@ class LandingController extends Controller
                 $owner = config('services.wa_gateway.owner');
                 if ($owner) {
                     $msgOwner =
-                        "📥 *Request Jual Masuk*\n\n".
-                        "Nama: {$supplier->name}\n".
-                        "WA: {$supplier->phone}\n".
-                        "Unit: {$title}\n".
-                        "Plat: {$plate}\n".
-                        "Odometer: {$odo}\n".
-                        "Request ID: #{$lead->id}\n".
-                        "Catatan: ".($validated['notes'] ?? '-');
+                        "📥 *Request Jual Masuk*\n\n" .
+                        "Nama: {$supplier->name}\n" .
+                        "WA: {$supplier->phone}\n" .
+                        "Unit: {$title}\n" .
+                        "Plat: {$plate}\n" .
+                        "Odometer: {$odo}\n" .
+                        "Request ID: #{$lead->id}\n" .
+                        "Catatan: " . ($validated['notes'] ?? '-');
                     $wa->sendText($owner, $msgOwner);
                 }
             } catch (\Throwable $e) {
@@ -209,6 +209,6 @@ class LandingController extends Controller
     {
         return VehicleModel::where('brand_id', $brand->id)
             ->orderBy('name')
-            ->get(['id','name']);
+            ->get(['id', 'name']);
     }
 }

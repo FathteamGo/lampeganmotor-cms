@@ -7,19 +7,106 @@ use Illuminate\Database\Eloquent\Model;
 
 class Sale extends Model
 {
-    protected $fillable = ['customer_id', 'vehicle_id', 'sale_date', 'sale_price', 'marketing_user_id','notes']; // Agar bisa diisi massal
-    /** @use HasFactory<\Database\Factories\SaleFactory> */
     use HasFactory;
+
+    protected $fillable = [
+        'vehicle_id',
+        'customer_id',
+        'user_id',
+        'sale_date',
+        'sale_price',
+        'payment_method',
+        'remaining_payment',
+        'due_date',
+        'ig',
+        'tiktok',
+        'cmo',
+        'cmo_fee',
+        'order_source',
+        'branch_name',
+        'result',
+        'status',
+        'notes',
+    ];
+
+    protected $casts = [
+        'sale_date'         => 'date',
+        'due_date'          => 'date',
+        'sale_price'        => 'decimal:2',
+        'remaining_payment' => 'decimal:2',
+        'cmo_fee'           => 'decimal:2',
+    ];
+
+    protected $appends = [
+        'komisi_langsung',
+        'pencairan',
+        'laba_bersih',
+    ];
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);
     }
+
     public function vehicle()
     {
         return $this->belongsTo(Vehicle::class);
     }
-    public function marketingUser()
+
+    public function user()
     {
-        return $this->belongsTo(User::class, 'marketing_user_id');
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function incomes()
+    {
+        return $this->hasMany(Income::class, 'sale_id');
+    }
+
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class, 'sale_id');
+    }
+
+    protected function categoryId(string $slug, string $type): ?int
+    {
+        return \DB::table('categories')
+            ->where('name', $slug)
+            ->where('type', $type)
+            ->value('id');
+    }
+
+    public function getKomisiLangsungAttribute()
+    {
+        $catId = $this->categoryId('komisi_langsung', 'expense');
+
+        return $catId
+            ? (float) $this->expenses()->where('category_id', $catId)->sum('amount')
+            : 0.0;
+    }
+
+    public function getPencairanAttribute()
+    {
+        $catId = $this->categoryId('pencairan', 'income');
+
+        if ($catId) {
+            $sum = (float) $this->incomes()->where('category_id', $catId)->sum('amount');
+            if ($sum > 0) {
+                return $sum;
+            }
+        }
+
+        return $this->payment_method === 'cash_tempo'
+            ? (float) ($this->remaining_payment ?? 0)
+            : (float) ($this->sale_price ?? 0);
+    }
+
+    public function getLabaBersihAttribute()
+    {
+        $purchase = (float) optional($this->vehicle)->purchase_price;
+        $cmo      = (float) ($this->cmo_fee ?? 0);
+        $komisi   = (float) $this->komisi_langsung;
+
+        return (float) ($this->sale_price ?? 0) - $purchase - $cmo - $komisi;
     }
 }

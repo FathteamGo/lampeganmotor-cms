@@ -11,12 +11,16 @@ class HeroSlidesTable
     {
         return $table
             ->columns([
-                   Tables\Columns\ImageColumn::make('image')
+                Tables\Columns\ImageColumn::make('image')
                     ->label('Gambar')
-                    ->disk('public')
+                    ->getStateUsing(function ($record) {
+                        // pastikan $record->image ada
+                        return $record->image
+                            ? asset('storage/' . $record->image)
+                            : url('/images/no-image.png'); // fallback
+                    })
                     ->height(80)
-                    ->width(120)
-                    ->defaultImageUrl(url('/images/no-image.png')),
+                    ->width(120),
 
                 Tables\Columns\TextColumn::make('title')
                     ->label('Judul')
@@ -32,8 +36,6 @@ class HeroSlidesTable
                     ->dateTime('M d, Y H:i')
                     ->sortable(),
             ])
-            ->actions([
-                
-            ]);
+            ->actions([]);
     }
 }

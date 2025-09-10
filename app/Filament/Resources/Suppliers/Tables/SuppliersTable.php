@@ -18,6 +18,10 @@ class SuppliersTable
                     ->label(__('tables.name'))
                     ->searchable(),
 
+                TextColumn::make('dealer')
+                    ->label(__('tables.dealer'))
+                    ->searchable(),
+
                 TextColumn::make('phone')
                     ->label(__('tables.phone'))
                     ->searchable(),

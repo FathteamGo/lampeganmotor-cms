@@ -16,35 +16,42 @@ class PurchasesTable
         return $table
             ->columns([
                 TextColumn::make('vehicle.vehicleModel.name')
-                    ->label(__('tables.purchase_model'))
+                    ->label('Model')
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('supplier.name')
-                    ->label(__('tables.purchase_supplier'))
+                    ->label('Supplier')
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('purchase_date')
                     ->date()
-                    ->label(__('tables.purchase_date'))
+                    ->label('Tanggal Pembelian')
                     ->sortable(),
 
-                TextColumn::make('total_price')
-                    ->numeric()
-                    ->prefix('Rp')
-                    ->label(__('tables.purchase_total_price'))
+                // total harga = harga motor + biaya tambahan
+                TextColumn::make('grand_total')
+                    ->label('Total Harga')
+                    ->formatStateUsing(fn ($record) =>
+                        'Rp ' . number_format(
+                            ($record->total_price ?? 0) + ($record->additionalCosts->sum('price') ?? 0),
+                            0,
+                            ',',
+                            '.'
+                        )
+                    )
                     ->sortable(),
 
                 TextColumn::make('created_at')
                     ->dateTime()
-                    ->label(__('tables.created_at'))
+                    ->label('Dibuat')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('updated_at')
                     ->dateTime()
-                    ->label(__('tables.updated_at'))
+                    ->label('Diperbarui')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -52,15 +59,12 @@ class PurchasesTable
                 //
             ])
             ->recordActions([
-                ViewAction::make()
-                    ->label(__('tables.view')),
-                EditAction::make()
-                    ->label(__('tables.edit')),
+                ViewAction::make()->label('Lihat'),
+                EditAction::make()->label('Ubah'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->label(__('tables.delete')),
+                    DeleteBulkAction::make()->label('Hapus'),
                 ]),
             ]);
     }

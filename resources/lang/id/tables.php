@@ -56,7 +56,10 @@ return [
     'purchase_model'       => 'Model',
     'purchase_supplier'    => 'Pemasok',
     'purchase_date'        => 'Tanggal Pembelian',
-    'purchase_total_price' => 'Total Harga',
+    'purchase_total_price' => 'Total Harga Kendaraan',
+
+    'additional_fee' => 'Biaya Tambahan',
+    'remaining_debt' => 'Sisa Pembayaran',
 
     // Requests
     'status'       => 'Status',
@@ -114,8 +117,9 @@ return [
     'moving_units' => 'Unit Bergerak',
     // Years
     'year' => 'Tahun',
+    'dealer'     => 'Dealer',
 
-        'sale'       => 'Penjualan',
+    'sale'       => 'Penjualan',
     'income'     => 'Pendapatan',
     'expense'    => 'Pengeluaran',
     'total'      => 'Total',

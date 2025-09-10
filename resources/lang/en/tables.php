@@ -25,11 +25,16 @@ return [
     'category'   => 'Category',
     'categories' => 'Categories',
     'type'       => 'Type',
+    'dealer'     => 'Dealer',
 
     // Colors
     'color'      => 'Color',
     'moving_units' => 'Moving Unit',
     'colors'     => 'Colors',
+
+    'additional_fee' => 'Additional Fee',
+
+    'remaining_debt' => 'Remaining Debt',
 
     // Customers
     'customer'   => 'Customer',

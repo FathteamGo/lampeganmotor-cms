@@ -10,7 +10,6 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -34,6 +33,7 @@ class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping,
                 'vehicle.type',
                 'vehicle.color',
                 'vehicle.year',
+                'additionalCosts',
             ])
             ->get();
     }
@@ -67,9 +67,11 @@ class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping,
 
     public function map($purchase): array
     {
+        $grandTotal = ($purchase->total_price ?? 0) + ($purchase->additionalCosts->sum('price') ?? 0);
+
         return [
             $purchase->id,
-            Carbon::parse($purchase->purchase_date)->format('Y-m-d'),
+            Carbon::parse($purchase->purchase_date)->format('F d, Y'),
             $purchase->supplier?->name,
             $purchase->supplier?->phone,
             $purchase->supplier?->address,
@@ -81,7 +83,7 @@ class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping,
             $purchase->vehicle?->vin,
             $purchase->vehicle?->license_plate,
             $purchase->vehicle?->status,
-            $purchase->total_price,
+            $grandTotal,
             $purchase->payment_method ?? '',
             $purchase->otr ?? '',
             $purchase->additional_fee ?? '',
@@ -113,14 +115,12 @@ class PurchaseReportExport implements FromCollection, WithHeadings, WithMapping,
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function (AfterSheet $event) {
+            \Maatwebsite\Excel\Events\AfterSheet::class => function ($event) {
                 $sheet = $event->sheet->getDelegate();
-
                 $highestRow = $sheet->getHighestRow();
                 $highestColumn = $sheet->getHighestColumn();
                 $range = "A1:{$highestColumn}{$highestRow}";
 
-                // Border lebih jelas, tapi tetap simpel (medium)
                 $sheet->getStyle($range)->applyFromArray([
                     'borders' => [
                         'allBorders' => [

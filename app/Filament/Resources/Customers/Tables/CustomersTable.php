@@ -17,19 +17,38 @@ class CustomersTable
                 TextColumn::make('name')
                     ->label(__('tables.customers')) // multi-bahasa
                     ->searchable(),
+
                 TextColumn::make('nik')
-                    ->label(__('tables.nik')) // multi-bahasa
+                    ->label(__('tables.nik'))
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
+
                 TextColumn::make('phone')
-                    ->label(__('tables.phone')) // multi-bahasa
+                    ->label(__('tables.phone'))
                     ->searchable(),
+
+                TextColumn::make('address')
+                    ->label(__('alamat'))
+                    ->searchable(),
+
+                TextColumn::make('instagram')
+                    ->label('Instagram')
+                    ->formatStateUsing(fn ($record) => $record->instagram ? '@'.$record->instagram : null)
+                    ->url(fn ($record) => $record->instagram_url, shouldOpenInNewTab: true),
+
+                TextColumn::make('tiktok')
+                    ->label('TikTok')
+                    ->formatStateUsing(fn ($record) => $record->tiktok ? '@'.$record->tiktok : null)
+                    ->url(fn ($record) => $record->tiktok_url, shouldOpenInNewTab: true),
+
                 TextColumn::make('created_at')
-                    ->label(__('tables.created_at')) // multi-bahasa
+                    ->label(__('tables.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
-                    ->label(__('tables.updated_at')) // multi-bahasa
+                    ->label(__('tables.updated_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

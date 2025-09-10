@@ -56,19 +56,19 @@ class LandingController extends Controller
 
         // fallback kalau kosong → kasih dummy data
         if ($heroSlides->isEmpty()) {
-            $heroSlides = collect([
-                [
-                    'image'    => "https://via.placeholder.com/1200x600?text=Slide+1",
-                    'title'    => 'Performa & Adrenalin',
-                    'subtitle' => 'Temukan Koleksi Motor Sport Terbaik Kami',
-                ],
-                [
-                    'image'    => "https://via.placeholder.com/1200x600?text=Slide+2",
-                    'title'    => 'Kenyamanan & Gaya',
-                    'subtitle' => 'Jelajahi Pilihan Skuter Matik Modern',
-                ],
-            ]);
-        }
+        $heroSlides = collect([
+            (object)[
+                'image'    => "https://via.placeholder.com/1200x600?text=Slide+1",
+                'title'    => 'Performa & Adrenalin',
+                'subtitle' => 'Temukan Koleksi Motor Sport Terbaik Kami',
+            ],
+            (object)[
+                'image'    => "https://via.placeholder.com/1200x600?text=Slide+2",
+                'title'    => 'Kenyamanan & Gaya',
+                'subtitle' => 'Jelajahi Pilihan Skuter Matik Modern',
+            ],
+    ]);
+}
 
         return view('frontend.index', compact('vehicles', 'brands', 'types', 'years', 'heroSlides'));
     }

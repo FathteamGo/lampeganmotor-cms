@@ -68,13 +68,15 @@ class InventoryReport extends Page implements Tables\Contracts\HasTable
             )
             ->columns([
                 Split::make([
-                    ImageColumn::make('photo_thumb')
-                        ->getStateUsing(fn ($record) => $record->photos->first()?->path
-                            ? Storage::disk('public')->url($record->photos->first()?->path)
-                            : null
-                        )
-                        ->width(100)
-                        ->height(150),
+                ImageColumn::make('photos')
+                ->getStateUsing(fn($record) => $record->photos->map(fn($photo) => asset('storage/' . $photo->path))->toArray())
+                ->width(300)
+                ->height(300)
+                ->extraAttributes([
+                    'style' => 'object-fit:cover; margin-right:4px;',
+                ])
+                ->label('Foto'),
+
 
                     Grid::make(2)->schema([
                         TextColumn::make('displayName')

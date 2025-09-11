@@ -15,7 +15,6 @@ class EditColor extends EditRecord
     {
          return [
              DeleteAction::make()
-                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

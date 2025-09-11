@@ -37,16 +37,6 @@ class BrandsTable
             ->recordActions([
                 EditAction::make()
                     ->label(__('tables.edit')), 
-                ActionsDeleteAction::make()
-                    ->label(__('tables.delete'))
-                    ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->label(__('tables.delete'))
-                        ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
-                ]),
             ]);
     }
 }

@@ -15,6 +15,13 @@ return [
     'until'      => 'Until',
     'address'    => 'Address',
     'name'       => 'Name',
+    'reject'     => 'Reject',
+    'approve'    => 'Approve',
+    'actions'     => 'Action',
+    'contact_data' => 'Contact',
+    'vehicle_detail' => 'Vehicle Detail',
+    'send_whatsapp' => 'Send WhatsApp',
+   
 
     // Brands
     'brand'      => 'Brand',

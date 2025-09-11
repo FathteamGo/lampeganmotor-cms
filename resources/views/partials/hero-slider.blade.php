@@ -4,7 +4,7 @@
 
 @if($slides->isNotEmpty())
 <div id="hero-slider" 
-     class="relative w-full max-w-lg mx-auto h-[250px] overflow-hidden rounded-xl shadow-md">
+     class="relative w-full max-w-lg mx-auto h-[250px] overflow-hidden rounded-xl shadow-md my-4">
 
     @foreach ($slides as $slide)
         <div class="hero-slide {{ $loop->first ? 'slide-active' : 'slide-inactive' }} 

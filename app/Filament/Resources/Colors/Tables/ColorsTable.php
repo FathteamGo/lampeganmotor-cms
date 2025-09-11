@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Colors\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -34,8 +35,10 @@ class ColorsTable
             ->recordActions([
                 EditAction::make()
                     ->label(__('tables.edit')), // multi-bahasa
+                DeleteAction::make()
+                    ->label(__('tables.delete')),
             ])
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->label(__('tables.delete')), // multi-bahasa

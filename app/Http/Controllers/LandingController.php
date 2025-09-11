@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Models\Vehicle;
 use App\Models\Brand;
+use App\Models\HeaderSetting;
 use App\Models\Type;
 use App\Models\VehicleModel;
 use App\Models\Supplier;
@@ -15,6 +16,7 @@ use App\Models\Request as VehicleRequest;
 use App\Models\VehiclePhoto;
 use App\Models\HeroSlide;
 use App\Services\WhatsAppService;
+use GuzzleHttp\Psr7\Header;
 
 class LandingController extends Controller
 {
@@ -23,6 +25,14 @@ class LandingController extends Controller
      */
     public function index(Request $request)
     {
+
+          DB::table('visitors')->insert([
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'url'        => '/',
+            'visited_at' => now(),
+        ]);
+
         $vehicleQuery = Vehicle::whereIn('status', ['available'])
             ->with(['vehicleModel.brand', 'photos', 'type', 'year']);
 
@@ -67,10 +77,22 @@ class LandingController extends Controller
                 'title'    => 'Kenyamanan & Gaya',
                 'subtitle' => 'Jelajahi Pilihan Skuter Matik Modern',
             ],
-    ]);
-}
+         ]);
+    }
 
-        return view('frontend.index', compact('vehicles', 'brands', 'types', 'years', 'heroSlides'));
+    $header = HeaderSetting::first();
+
+    if (!$header) {
+        $header = (object) [
+            'site_name'     => 'Lampegan Motor',
+            'logo'          => null, // nanti fallback ke default.png di blade
+            'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
+            'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
+        ];
+    }
+
+
+        return view('frontend.index', compact('vehicles', 'brands', 'types', 'years', 'heroSlides','header'));
     }
 
     /**
@@ -91,9 +113,18 @@ class LandingController extends Controller
         $types  = Type::orderBy('name')->select('id','name')->get();
         $years  = Year::orderBy('year', 'desc')->select('id','year')->get();
 
+         $header = HeaderSetting::first();
+            if (! $header) {
+                $header = (object) [
+                    'site_name'     => 'Lampegan Motor',
+                    'logo'          => null,
+                    'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
+                    'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
+                ];
+            }
         $heroSlides = HeroSlide::orderBy('order_column', 'asc')->get();
 
-        return view('frontend.sell-form', compact('brands', 'types', 'years', 'heroSlides'));
+        return view('frontend.sell-form', compact('brands', 'types', 'years', 'heroSlides','header'));
     }
 
     /**

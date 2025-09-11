@@ -15,6 +15,13 @@ return [
     'until'      => 'Sampai',
     'address'    => 'Alamat',
     'name'       => 'Nama',
+     'reject'     => 'Tolak',
+    'approve'    => 'Terima',
+    'contact_data' => 'Kontak Data',
+    'actions'     => 'Aksi',
+    'vehicle_detail' => 'Detail Kendaraan',
+    'send_whatsapp' => 'Kirim Whatsapp',
+    'reject_request' => 'Permintaan Ditolak',
 
     // Brands
     'brand'      => 'Merk',

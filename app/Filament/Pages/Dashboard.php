@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -13,31 +13,33 @@ class Dashboard extends BaseDashboard
 {
     use BaseDashboard\Concerns\HasFiltersForm;
 
-    public function filtersForm(Schema $schema): Schema
-    {
-         return $schema
+  public function filtersForm(Schema $schema): Schema
+{
+     return $schema
         ->components([
             Section::make()
                 ->schema([
                     DatePicker::make('startDate')
                         ->label(fn () => __('dashboard.start_date'))
-                        ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
+                        ->default(Carbon::now()) // default ke hari ini
+                        ->maxDate(fn (Get $get) => $get('endDate') ?: Carbon::now()),
+
                     DatePicker::make('endDate')
                         ->label(fn () => __('dashboard.end_date'))
-                        ->minDate(fn (Get $get) => $get('startDate') ?: now())
-                        ->maxDate(now()),
+                        ->default(Carbon::now()) // default ke hari ini
+                        ->minDate(fn (Get $get) => $get('startDate') ?: Carbon::now())
+                        ->maxDate(Carbon::now()),
                 ])
                 ->columns(3)
                 ->columnSpanFull(),
         ]);
-    }
-
+}
 
     public function getWidgets(): array
     {
         return [
-            // \App\Filament\Widgets\DateFilterWidget::class,
             \App\Filament\Widgets\DashboardStats::class,
+            \App\Filament\Widgets\VisitorStats::class,
             \App\Filament\Widgets\RevenueChart::class,
             \App\Filament\Widgets\SalesChart::class,
         ];

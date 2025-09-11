@@ -27,7 +27,7 @@ class RequestInfolist
                     TextEntry::make('year.year')->label(__('tables.year')),
                     TextEntry::make('odometer')->label(__('tables.odometer')),
                     TextEntry::make('license_plate')->label(__('tables.license_plate')),
-                    TextEntry::make('status')->label(__('tables.status'))->badge(),
+                    // status dihapus
                 ]),
 
             Section::make(__('tables.notes'))

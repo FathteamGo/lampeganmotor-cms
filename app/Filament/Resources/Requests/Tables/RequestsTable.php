@@ -26,104 +26,109 @@ class RequestsTable
         return $table
             ->query(
                 VehicleRequest::query()
-                    // ->whereNull('vehicle_id') // DIHAPUS: supaya request tetap tampil setelah approve
                     ->with(['supplier', 'brand', 'vehicleModel', 'year', 'photos'])
                     ->latest()
             )
             ->columns([
-                TextColumn::make('year.year')->label(('year'))->sortable()->searchable(),
-                TextColumn::make('supplier.name')->label(('supplier_name'))->sortable()->searchable(),
-                TextColumn::make('supplier.phone')->label(('phone'))->sortable()->searchable(),
-                TextColumn::make('brand.name')->label(('brand'))->sortable()->searchable(),
-                TextColumn::make('vehicleModel.name')->label(('model'))->sortable()->searchable(),
-                TextColumn::make('odometer')->label(('odometer'))->sortable(),
+                TextColumn::make('year.year')
+                    ->label(__('tables.year'))
+                    ->sortable()
+                    ->searchable(),
 
-                // Foto: konversi path relatif -> URL publik
+                TextColumn::make('supplier.name')
+                    ->label(__('navigation.supplier'))
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('supplier.phone')
+                    ->label(__('tables.phone'))
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('brand.name')
+                    ->label(__('tables.brand'))
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('vehicleModel.name')
+                    ->label(__('tables.model'))
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('odometer')
+                    ->label(__('tables.odometer'))
+                    ->sortable(),
+
                 ImageColumn::make('photo_thumb')
-                    ->label(('photo'))
+                    ->label(__('tables.photo'))
                     ->getStateUsing(function (VehicleRequest $r) {
-                        $path = $r->photos->first()?->path; // "requests/{id}/file.png"
-                        return $path ? Storage::disk('public')->url($path) : null;
+                        $firstPhoto = $r->photos->first()?->path;
+                        return $firstPhoto
+                            ? asset('storage/' . $firstPhoto)
+                            : url('/images/no-image.png');
                     })
                     ->square()
                     ->height(48)
-                    ->width(64),
+                    ->width(64)
+                    ->extraAttributes([
+                        'style' => 'object-fit:cover;',
+                    ]),
 
-                TextColumn::make('license_plate')->label(('plate'))->toggleable()->searchable(),
+                TextColumn::make('license_plate')
+                    ->label(__('tables.plate'))
+                    ->toggleable()
+                    ->searchable(),
 
                 TextColumn::make('notes')
-                    ->label(('note'))
+                    ->label(__('tables.note'))
                     ->limit(40)
                     ->tooltip(fn ($state) => (string) $state),
-
-                // status request (hold / available / in_repair / sold / converted / rejected)
-                TextColumn::make('status')
-                    ->label(('status'))
-                    ->badge()
-                    ->colors([
-                        'warning'   => 'hold',
-                        'success'   => 'converted',
-                        'danger'    => 'rejected',
-                        'info'      => 'available',
-                        'gray'      => 'in_repair',
-                        'secondary' => 'sold',
-                    ]),
             ])
             ->filters([
-                SelectFilter::make('status')
-                    ->label(('status'))
-                    ->options([
-                        'hold'      => __('status_hold'),
-                        'available' => __('status_available'),
-                        'in_repair' => __('status_in_repair'),
-                        'sold'      => __('status_sold'),
-                        'converted' => __('status_converted'),
-                        'rejected'  => __('status_rejected'),
-                    ]),
                 SelectFilter::make('brand_id')
-                    ->label(('brand'))
+                    ->label(__('tables.brand'))
                     ->relationship('brand', 'name'),
+
                 SelectFilter::make('year_id')
-                    ->label(('year'))
+                    ->label(__('tables.year'))
                     ->relationship('year', 'year'),
             ])
             ->actions([
                 ViewAction::make()
-                    ->label(('view'))
+                    ->label(__('tables.view'))
                     ->icon('heroicon-o-eye'),
 
-                // ======== APPROVE ========
                 Action::make('approve')
-                    ->label(('approve'))
+                    ->label(__('tables.approve'))
                     ->color('success')
                     ->icon('heroicon-o-check')
                     ->requiresConfirmation()
-                    ->visible(fn (VehicleRequest $r) => ! in_array($r->status, ['converted', 'rejected']))
+                    ->visible(fn (VehicleRequest $r) => !in_array($r->status, ['converted', 'rejected']))
                     ->form([
                         Forms\Components\Select::make('type_id')
-                            ->label(('tables.type'))
+                            ->label(__('tables.type'))
                             ->options(fn () => Type::orderBy('name')->pluck('name','id'))
                             ->required(),
 
                         Forms\Components\Select::make('color_id')
-                            ->label(('tables.color'))
+                            ->label(__('tables.color'))
                             ->options(fn () => Color::orderBy('name')->pluck('name','id'))
                             ->required(),
 
                         Forms\Components\TextInput::make('vin')
-                            ->label(('tables.vin'))
+                            ->label(__('tables.vin'))
                             ->required()
                             ->maxLength(255)
                             ->rule(Rule::unique('vehicles','vin')),
 
                         Forms\Components\TextInput::make('engine_number')
-                            ->label(('tables.engine_number'))
+                            ->label(__('tables.engine_number'))
                             ->required()
                             ->maxLength(255)
                             ->rule(Rule::unique('vehicles','engine_number')),
 
                         Forms\Components\TextInput::make('license_plate')
-                            ->label(('tables.license_plate'))
+                            ->label(__('tables.license_plate'))
                             ->maxLength(255)
                             ->default(fn (VehicleRequest $r) => $r->license_plate)
                             ->placeholder(fn (VehicleRequest $r) => $r->license_plate)
@@ -134,7 +139,7 @@ class RequestsTable
                             ->nullable(),
 
                         Forms\Components\TextInput::make('bpkb_number')
-                            ->label(('tables.bpkb_number'))
+                            ->label(__('tables.bpkb_number'))
                             ->maxLength(255)
                             ->rule(
                                 Rule::unique('vehicles','bpkb_number')
@@ -142,69 +147,57 @@ class RequestsTable
                             ),
 
                         Forms\Components\TextInput::make('purchase_price')
-                            ->label(('tables.purchase_price'))
+                            ->label(__('tables.purchase_price'))
                             ->numeric()
                             ->minValue(0)
                             ->required(),
 
                         Forms\Components\TextInput::make('sale_price')
-                            ->label(('sale_price'))
+                            ->label(__('tables.sale_price'))
                             ->numeric()
                             ->minValue(0)
                             ->nullable(),
 
                         Forms\Components\TextInput::make('odometer')
-                            ->label(('odometer_km'))
+                            ->label(__('tables.odometer'))
                             ->numeric()
                             ->minValue(0)
-                            ->default(fn (VehicleRequest $r) => (int) $r->odometer),
-
-                        Forms\Components\Select::make('vehicle_status')
-                            ->label(('vehicle_status'))
-                            ->options([
-                                'hold'      => __('hold'),
-                                'available' => __('available'),
-                                'in_repair' => __('in_repair'),
-                                'sold'      => __('sold'),
-                            ])
-                            ->default('hold')
-                            ->required(),
+                            ->default(fn (VehicleRequest $r) => (int)$r->odometer),
 
                         Forms\Components\Textarea::make('description')
-                            ->label(('tables.description'))
+                            ->label(__('tables.description'))
                             ->rows(3)
                             ->nullable(),
 
                         Forms\Components\TextInput::make('dp_percentage')
-                            ->label(('tables.dp_percentage'))
+                            ->label(__('tables.dp_percentage'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
                             ->nullable(),
 
                         Forms\Components\Textarea::make('engine_specification')
-                            ->label(('tables.engine_specification'))
+                            ->label(__('tables.engine_specification'))
                             ->rows(2)
                             ->nullable(),
 
                         Forms\Components\Textarea::make('location')
-                            ->label(('tables.location'))
+                            ->label(__('tables.location'))
                             ->rows(2)
                             ->nullable(),
 
                         Forms\Components\Textarea::make('notes_vehicle')
-                            ->label(('tables.notes_vehicle'))
+                            ->label(__('tables.notes'))
                             ->rows(2)
                             ->default(fn (VehicleRequest $r) => $r->notes)
                             ->nullable(),
 
                         Forms\Components\Toggle::make('send_whatsapp')
-                            ->label(('send_whatsapp'))
+                            ->label(__('tables.send_whatsapp'))
                             ->default(true),
                     ])
                     ->action(function (array $data, VehicleRequest $record) {
                         DB::transaction(function () use ($data, $record) {
-                            // 1) buat vehicle baru
                             $vehicle = Vehicle::create([
                                 'vehicle_model_id'     => $record->vehicle_model_id,
                                 'type_id'              => $data['type_id'],
@@ -216,8 +209,7 @@ class RequestsTable
                                 'bpkb_number'          => $data['bpkb_number'] ?? null,
                                 'purchase_price'       => $data['purchase_price'],
                                 'sale_price'           => $data['sale_price'] ?? null,
-                                'odometer'             => isset($data['odometer']) ? (int) $data['odometer'] : ($record->odometer ?? null),
-                                'status'               => $data['vehicle_status'] ?? 'hold',
+                                'odometer'             => $data['odometer'] ?? ($record->odometer ?? null),
                                 'description'          => $data['description'] ?? null,
                                 'dp_percentage'        => $data['dp_percentage'] ?? null,
                                 'engine_specification' => $data['engine_specification'] ?? null,
@@ -225,7 +217,6 @@ class RequestsTable
                                 'notes'                => $data['notes_vehicle'] ?? ($record->notes ?? null),
                             ]);
 
-                            // 2) tautkan foto ke vehicle
                             foreach ($record->photos as $i => $photo) {
                                 $vehicle->photos()->create([
                                     'path'        => $photo->path,
@@ -233,18 +224,15 @@ class RequestsTable
                                 ]);
                             }
 
-                            // 3) update request (TIDAK dihapus)
                             $record->update([
-                                'status'     => 'converted', // tandai sudah diproses
+                                'status'     => 'converted',
                                 'vehicle_id' => $vehicle->id,
                             ]);
 
-                            // 4) kirim WA (opsional)
                             $waSent = false;
                             if (!empty($data['send_whatsapp'])) {
                                 $waSent = app(WhatsAppService::class)->sendText(
                                     $record->supplier->phone,
-                                    // gunakan string terjemahan dengan placeholder
                                     __('whatsapp_approve_message', [
                                         'name'   => $record->supplier->name,
                                         'brand'  => $record->brand->name,
@@ -256,12 +244,9 @@ class RequestsTable
                             }
 
                             Notification::make()
-                                ->title(('request_approved'))
+                                ->title(__('request_approved'))
                                 ->body(
-                                    __('vehicle_created_with_status', [
-                                        'id'     => $vehicle->id,
-                                        'status' => $vehicle->status,
-                                    ]) . ' ' .
+                                    __('vehicle_created', ['id' => $vehicle->id]) . ' ' .
                                     ($waSent ? __('tables.whatsapp_sent') : __('tables.whatsapp_not_sent'))
                                 )
                                 ->success()
@@ -269,63 +254,61 @@ class RequestsTable
                         });
                     }),
 
-            // ======== REJECT ========
-            Action::make('reject')
-                ->label(('reject'))
-                ->color('danger')
-                ->icon('heroicon-o-x-mark')
-                ->requiresConfirmation()
-                ->visible(fn (VehicleRequest $r) => ! in_array($r->status, ['converted', 'rejected']))
-                ->modalHeading(('reject_request'))
-                ->modalSubmitActionLabel(('tables.reject'))
-                ->form([
-                    Forms\Components\Textarea::make('reason')
-                        ->label(('reject_reason'))
-                        ->rows(3)
-                        ->required()
-                        ->minLength(5),
-                    Forms\Components\Toggle::make('send_whatsapp')
-                        ->label(('send_whatsapp'))
-                        ->default(true),
-                ])
-                ->action(function (array $data, VehicleRequest $record) {
-                    DB::transaction(function () use ($data, $record) {
-                        // 1) Kirim WA (opsional) pakai reason dari form — TIDAK disimpan ke kolom notes
-                        $waSent = false;
-                        if (!empty($data['send_whatsapp'])) {
+                Action::make('reject')
+                    ->label(__('tables.reject'))
+                    ->color('danger')
+                    ->icon('heroicon-o-x-mark')
+                    ->requiresConfirmation()
+                    ->visible(fn (VehicleRequest $r) => !in_array($r->status, ['converted', 'rejected']))
+                    ->modalHeading(__('reject.reject_request'))
+                    ->modalSubmitActionLabel(__('tables.reject'))
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label(__('reject.reject_reason'))
+                            ->rows(3)
+                            ->required()
+                            ->minLength(5),
+
+                        Forms\Components\Toggle::make('send_whatsapp')
+                            ->label(__('tables.send_whatsapp'))
+                            ->default(true),
+                    ])
+                    ->action(function (array $data, VehicleRequest $record) {
+                        DB::transaction(function () use ($data, $record) {
                             $waSent = false;
                             if (!empty($data['send_whatsapp'])) {
                                 $waSent = app(WhatsAppService::class)->sendText(
                                     $record->supplier->phone,
-                                    "Halo {$record->supplier->name},\n".
-                                    "Maaf, pengajuan motor Anda ({$record->brand->name} {$record->vehicleModel->name} {$record->year->year}, plat {$record->license_plate}) *DITOLAK*.\n".
-                                    "Alasan: {$data['reason']}\n\n".
-                                    "Terima kasih telah menghubungi Lampegan Motor."
+                                    __('whatsapp_reject_message', [
+                                        'name'   => $record->supplier->name,
+                                        'brand'  => $record->brand->name,
+                                        'model'  => $record->vehicleModel->name,
+                                        'year'   => $record->year->year,
+                                        'plate'  => $record->license_plate,
+                                        'reason' => $data['reason'],
+                                    ])
                                 );
                             }
-                        }
 
-                        // 2) Update status saja — JANGAN ubah kolom notes
-                        $record->update([
-                            'status' => 'rejected',
-                        ]);
+                            $record->update([
+                                'status' => 'rejected',
+                            ]);
 
-                        // 3) Notifikasi di panel admin
-                        Notification::make()
-                            ->title(('request_rejected'))
-                            ->body(
-                                ($waSent ? __('whatsapp_sent') : __('whatsapp_not_sent'))
-                                . "\n" . __('reject_reason_colom') . ' ' . $data['reason']
-                            )
-                            ->danger()
-                            ->send();
-                    });
-                }),
+                            Notification::make()
+                                ->title(__('request_rejected'))
+                                ->body(
+                                    ($waSent ? __('tables.whatsapp_sent') : __('tables.whatsapp_not_sent'))
+                                    . "\n" . __('reject_reason_colom') . ' ' . $data['reason']
+                                )
+                                ->danger()
+                                ->send();
+                        });
+                    }),
             ])
-            ->actionsColumnLabel(('actions'))
+            ->actionsColumnLabel(__('tables.actions'))
             ->actionsAlignment('start')
-            ->emptyStateHeading(('tables.no_requests'))
-            ->emptyStateDescription(('tables.no_requests_description'))
+            ->emptyStateHeading(__('tables.no_requests'))
+            ->emptyStateDescription(__('tables.no_requests_description'))
             ->striped();
     }
 }

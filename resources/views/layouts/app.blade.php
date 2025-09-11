@@ -20,6 +20,9 @@
         html { scroll-behavior:smooth; }
     </style>
 
+     @include('partials.favicon')
+
+
     @stack('styles')
 </head>
 <body class="bg-gray-50 font-sans">

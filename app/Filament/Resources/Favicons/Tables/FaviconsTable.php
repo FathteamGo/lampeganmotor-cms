@@ -2,39 +2,48 @@
 
 namespace App\Filament\Resources\Favicons\Tables;
 
-use Filament\Actions\DeleteAction as ActionsDeleteAction;
-use Filament\Actions\DeleteBulkAction as ActionsDeleteBulkAction;
-use Filament\Actions\EditAction as ActionsEditAction;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
-
+use Illuminate\Support\Facades\Storage;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 
 class FaviconsTable
 {
     public static function table(Table $table): Table
     {
-        
         return $table
             ->columns([
+              // Kolom gambar favicon
                 ImageColumn::make('path')
                     ->label('Favicon')
-                    ->disk('public')
-                    ->rounded(),
+                    ->disk('public') // ambil dari storage/app/public
+                    ->height(60)
+                    ->width(60)
+                    ->defaultImageUrl(url('/images/no-image.png')),
+
+                // Kolom tanggal dibuat
                 TextColumn::make('created_at')
-                    ->label('Uploaded At')
-                    ->dateTime(),
+                    ->label('Dibuat')
+                    ->dateTime('d M Y H:i'),
+
+                // Kolom tanggal update terakhir
+                TextColumn::make('updated_at')
+                    ->label('Update Terakhir')
+                    ->dateTime('d M Y H:i'),
             ])
             ->filters([
                 //
             ])
             ->actions([
-                ActionsEditAction::make(),
-                ActionsDeleteAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
             ])
             ->bulkActions([
-                ActionsDeleteBulkAction::make(),
+                DeleteBulkAction::make(),
             ]);
     }
 }

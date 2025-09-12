@@ -12,6 +12,7 @@ use App\Models\VehicleModel;
 use App\Models\Type;
 use App\Models\Color;
 use App\Models\Year;
+use Illuminate\Validation\Rule;
 
 class VehicleForm
 {
@@ -22,68 +23,84 @@ class VehicleForm
             ->schema([
                 // Vehicle Model Dropdown
                 Select::make('vehicle_model_id')
-                    ->label(__('navigation.vehicle_models'))
+                    ->label('Model Kendaraan')
                     ->options(VehicleModel::orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
                 // Type Dropdown
                 Select::make('type_id')
-                    ->label(__('tables.type'))
+                    ->label('Tipe')
                     ->options(Type::orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
                 // Color Dropdown
                 Select::make('color_id')
-                    ->label(__('tables.color'))
+                    ->label('Warna')
                     ->options(Color::orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
                 // Year Dropdown
                 Select::make('year_id')
-                    ->label(__('tables.year'))
+                    ->label('Tahun')
                     ->options(Year::orderBy('year')->pluck('year', 'id'))
                     ->searchable()
                     ->required(),
 
                 // VIN
                 TextInput::make('vin')
-                    ->label(__('tables.vin'))
+                    ->label('Nomor Rangka (VIN)')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->rule(fn ($record) => Rule::unique('vehicles', 'vin')->ignore($record))
+                    ->validationMessages([
+                        'unique' => 'Nomor Rangka (VIN) sudah terdaftar.',
+                    ]),
 
                 // Engine Number
                 TextInput::make('engine_number')
-                    ->label(__('tables.engine_number'))
+                    ->label('Nomor Mesin')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->rule(fn ($record) => Rule::unique('vehicles', 'engine_number')->ignore($record))
+                    ->validationMessages([
+                        'unique' => 'Nomor Mesin sudah terdaftar.',
+                    ]),
 
                 // License Plate
                 TextInput::make('license_plate')
-                    ->label(__('tables.license_plate'))
-                    ->maxLength(255),
+                    ->label('Plat Nomor')
+                    ->maxLength(255)
+                    ->rule(fn ($record) => Rule::unique('vehicles', 'license_plate')->ignore($record))
+                    ->validationMessages([
+                        'unique' => 'Plat Nomor sudah terdaftar.',
+                    ]),
 
                 // BPKB Number
                 TextInput::make('bpkb_number')
-                    ->label(__('tables.bpkb_number'))
-                    ->maxLength(255),
+                    ->label('Nomor BPKB')
+                    ->maxLength(255)
+                    ->rule(fn ($record) => Rule::unique('vehicles', 'bpkb_number')->ignore($record))
+                    ->validationMessages([
+                        'unique' => 'Nomor BPKB sudah terdaftar.',
+                    ]),
 
                 // Purchase Price
                 TextInput::make('purchase_price')
-                    ->label(__('tables.purchase_price'))
+                    ->label('Harga Beli')
                     ->required()
                     ->numeric(),
 
                 // Sale Price
                 TextInput::make('sale_price')
-                    ->label(__('tables.sale_price'))
+                    ->label('Harga Jual')
                     ->numeric(),
 
                 // DP Percentage
                 TextInput::make('dp_percentage')
-                    ->label(__('tables.dp_percentage'))
+                    ->label('Persentase DP')
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
@@ -91,54 +108,54 @@ class VehicleForm
 
                 // Odometer
                 TextInput::make('odometer')
-                    ->label(__('tables.odometer'))
+                    ->label('Odometer')
                     ->numeric()
                     ->minValue(0),
 
                 // Status Dropdown
                 Select::make('status')
-                    ->label(__('tables.status'))
+                    ->label('Status')
                     ->options([
-                        'available' => __('tables.available'),
-                        'sold' => __('tables.sold'),
-                        'in_repair' => __('tables.in_repair'),
-                        'hold' => __('tables.hold'),
+                        'available' => 'Tersedia',
+                        'sold' => 'Terjual',
+                        'in_repair' => 'Perbaikan',
+                        'hold' => 'Ditahan',
                     ])
                     ->default('hold')
                     ->required(),
 
                 // Engine Specification
                 TextInput::make('engine_specification')
-                    ->label(__('tables.engine_specification')),
+                    ->label('Spesifikasi Mesin'),
 
                 // Location
                 TextInput::make('location')
-                    ->label(__('tables.location')),
+                    ->label('Lokasi'),
 
                 // Notes
                 RichEditor::make('notes')
-                    ->label(__('tables.notes'))
+                    ->label('Catatan')
                     ->columnSpanFull(),
 
                 // Description
                 RichEditor::make('description')
-                    ->label(__('tables.description'))
+                    ->label('Deskripsi')
                     ->columnSpanFull(),
 
                 // Photos Repeater
                 Repeater::make('photos')
                     ->relationship()
-                    ->label(__('tables.photos'))
+                    ->label('Foto Kendaraan')
                     ->columnSpanFull()
                     ->schema([
                         FileUpload::make('path')
-                            ->label(__('tables.image'))
+                            ->label('Gambar')
                             ->image()
                             ->disk('public')
                             ->directory('vehicle-photos')
                             ->required(),
                         TextInput::make('caption')
-                            ->label(__('tables.caption')),
+                            ->label('Keterangan'),
                     ])->grid(2),
             ]);
     }

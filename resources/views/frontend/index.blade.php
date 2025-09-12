@@ -16,6 +16,8 @@ use Illuminate\Support\Number;
     {{-- Video Section --}}
     @include('partials.video')
 
+     @include('partials.blog_section', ['categories_blog' => $categories_blog, 'blogs' => $blogs])
+
     {{-- Filter Section --}}
     @include('partials.filter')
 

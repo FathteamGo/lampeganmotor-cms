@@ -6,8 +6,8 @@
                 $hartaTidakBergerak = \App\Models\OtherAsset::sum('value');
                 $stokUnitBergerak = \App\Models\Purchase::sum('total_price');
                 $piutangDiluar = 0; // sesuaikan kalau ada tabel piutang
-                $pencairanAdira = 108300000; // contoh hardcode dulu
-                $avalist = 157000000; // contoh hardcode dulu
+                $pencairanAdira = 0; // contoh hardcode dulu
+                $avalist = 0; // contoh hardcode dulu
                 $asetSaldo = 0; // sesuaikan
                 $total = $hartaTidakBergerak + $stokUnitBergerak + $piutangDiluar + $pencairanAdira + $avalist + $asetSaldo;
                 @endphp

@@ -109,6 +109,11 @@ class AdminPanelProvider extends PanelProvider
                 ->collapsed(),
 
             NavigationGroup::make()
+                ->label('Blog')
+                ->icon('heroicon-o-newspaper')
+                ->collapsed(),
+
+            NavigationGroup::make()
                 ->label(fn() => __('navigation.settings'))
                 ->icon('heroicon-o-cog-6-tooth')
                 ->collapsed(),

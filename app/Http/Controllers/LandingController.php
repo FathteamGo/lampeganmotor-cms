@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Models\Vehicle;
 use App\Models\Brand;
+use App\Models\CategoriesBlog;
 use App\Models\HeaderSetting;
 use App\Models\Type;
 use App\Models\VehicleModel;
@@ -15,8 +16,9 @@ use App\Models\Year;
 use App\Models\Request as VehicleRequest;
 use App\Models\VehiclePhoto;
 use App\Models\HeroSlide;
+use App\Models\PostBlog;
+use App\Models\VideoSetting;
 use App\Services\WhatsAppService;
-use GuzzleHttp\Psr7\Header;
 
 class LandingController extends Controller
 {
@@ -25,8 +27,7 @@ class LandingController extends Controller
      */
     public function index(Request $request)
     {
-
-          DB::table('visitors')->insert([
+        DB::table('visitors')->insert([
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'url'        => '/',
@@ -61,38 +62,42 @@ class LandingController extends Controller
         $types  = Type::orderBy('name')->get();
         $years  = Year::orderBy('year', 'desc')->get();
 
-        // --- amanin kolom order ---
         $heroSlides = HeroSlide::orderBy('order_column', 'asc')->get();
 
-        // fallback kalau kosong → kasih dummy data
         if ($heroSlides->isEmpty()) {
-        $heroSlides = collect([
-            (object)[
-                'image'    => "https://via.placeholder.com/1200x600?text=Slide+1",
-                'title'    => 'Performa & Adrenalin',
-                'subtitle' => 'Temukan Koleksi Motor Sport Terbaik Kami',
-            ],
-            (object)[
-                'image'    => "https://via.placeholder.com/1200x600?text=Slide+2",
-                'title'    => 'Kenyamanan & Gaya',
-                'subtitle' => 'Jelajahi Pilihan Skuter Matik Modern',
-            ],
-         ]);
-    }
+            $heroSlides = collect([
+                (object)[
+                    'image'    => "https://via.placeholder.com/1200x600?text=Slide+1",
+                    'title'    => 'Performa & Adrenalin',
+                    'subtitle' => 'Temukan Koleksi Motor Sport Terbaik Kami',
+                ],
+                (object)[
+                    'image'    => "https://via.placeholder.com/1200x600?text=Slide+2",
+                    'title'    => 'Kenyamanan & Gaya',
+                    'subtitle' => 'Jelajahi Pilihan Skuter Matik Modern',
+                ],
+            ]);
+        }
 
-    $header = HeaderSetting::first();
-
-    if (!$header) {
-        $header = (object) [
+        $header = HeaderSetting::first() ?? (object) [
             'site_name'     => 'Lampegan Motor',
-            'logo'          => null, // nanti fallback ke default.png di blade
+            'logo'          => null,
             'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
             'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
         ];
-    }
 
+        $video = VideoSetting::first();
+        $categories_blog = CategoriesBlog::all();
+        $blogs= PostBlog::with('category')
+                    ->where('is_published', true)
+                    ->latest()
+                    ->take(5)
+                    ->get();
 
-        return view('frontend.index', compact('vehicles', 'brands', 'types', 'years', 'heroSlides','header'));
+        return view('frontend.index', compact(
+            'vehicles', 'brands', 'types', 'years',
+            'heroSlides','header','video','categories_blog','blogs'
+        ));
     }
 
     /**
@@ -113,15 +118,13 @@ class LandingController extends Controller
         $types  = Type::orderBy('name')->select('id','name')->get();
         $years  = Year::orderBy('year', 'desc')->select('id','year')->get();
 
-         $header = HeaderSetting::first();
-            if (! $header) {
-                $header = (object) [
-                    'site_name'     => 'Lampegan Motor',
-                    'logo'          => null,
-                    'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
-                    'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
-                ];
-            }
+        $header = HeaderSetting::first() ?? (object) [
+            'site_name'     => 'Lampegan Motor',
+            'logo'          => null,
+            'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
+            'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
+        ];
+
         $heroSlides = HeroSlide::orderBy('order_column', 'asc')->get();
 
         return view('frontend.sell-form', compact('brands', 'types', 'years', 'heroSlides','header'));
@@ -138,11 +141,20 @@ class LandingController extends Controller
             'brand_id'         => ['required', Rule::exists('brands','id')],
             'vehicle_model_id' => ['required', Rule::exists('vehicle_models','id')],
             'year_id'          => ['required', Rule::exists('years','id')],
-            'license_plate'    => ['required','string','max:15'],
+            'license_plate'    => [
+                'required',
+                'string',
+                'max:15',
+                // ⬇️ Pastikan plat nomor unik di requests & vehicles
+                Rule::unique('requests', 'license_plate'),
+                Rule::unique('vehicles', 'license_plate'),
+            ],
             'odometer'         => ['nullable','integer','min:0'],
             'notes'            => ['nullable','string'],
             'photos'           => ['nullable','array','max:5'],
             'photos.*'         => ['file','image','mimes:jpg,jpeg,png,webp','max:4096'],
+        ], [
+            'license_plate.unique' => 'Plat nomor ini sudah terdaftar di sistem.',
         ]);
 
         DB::transaction(function () use ($request, $validated) {
@@ -178,7 +190,7 @@ class LandingController extends Controller
                 }
             }
 
-            // Notifikasi WA (opsional)
+            // Notifikasi WA
             try {
                 $wa = app(WhatsAppService::class);
                 $brand = Brand::find($validated['brand_id']);
@@ -191,6 +203,7 @@ class LandingController extends Controller
                     ? number_format((int)$validated['odometer'], 0, ',', '.') . ' km'
                     : '-';
 
+                // Notif ke supplier
                 $msgSupplier =
                     "Halo {$supplier->name}, terima kasih sudah mengajukan Jual Motor ke Lampegan Motor.\n\n".
                     "Detail unit:\n".
@@ -201,6 +214,7 @@ class LandingController extends Controller
                     "Tim kami akan menghubungi Anda via WhatsApp untuk proses selanjutnya 🙏";
                 $wa->sendText($supplier->phone, $msgSupplier);
 
+                // Notif ke owner
                 $owner = config('services.wa_gateway.owner');
                 if ($owner) {
                     $msgOwner =
@@ -215,7 +229,7 @@ class LandingController extends Controller
                     $wa->sendText($owner, $msgOwner);
                 }
             } catch (\Throwable $e) {
-                // log optional
+                // silent log
             }
         });
 

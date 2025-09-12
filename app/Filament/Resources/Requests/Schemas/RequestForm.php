@@ -3,13 +3,13 @@
 namespace App\Filament\Resources\Requests\Schemas;
 
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
 use App\Models\Supplier;
 use App\Models\Brand;
 use App\Models\VehicleModel;
 use App\Models\Year;
+use App\Models\Vehicle;
 
 class RequestForm
 {
@@ -37,7 +37,9 @@ class RequestForm
                 ->label(__('tables.model'))
                 ->options(fn ($get) =>
                     $get('brand_id')
-                        ? VehicleModel::where('brand_id', $get('brand_id'))->orderBy('name')->pluck('name', 'id')
+                        ? VehicleModel::where('brand_id', $get('brand_id'))
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
                         : []
                 )
                 ->searchable()
@@ -50,17 +52,25 @@ class RequestForm
                 ->searchable()
                 ->required(),
 
-            // License Plate
-            TextInput::make('license_plate')
-                ->label(__('tables.plate'))
-                ->maxLength(20)
+            // Vehicle (PILIH kendaraan yg sudah ada → no duplikat)
+            Select::make('vehicle_id')
+                ->label(__('tables.vehicle'))
+                ->options(
+                    Vehicle::query()
+                        ->where('status', '!=', 'sold') // contoh: hanya kendaraan yg belum terjual
+                        ->orderBy('license_plate')
+                        ->pluck('license_plate', 'id')
+                )
+                ->searchable()
                 ->required(),
 
             // Odometer
-            TextInput::make('odometer')
+            Select::make('odometer')
                 ->label(__('tables.odometer'))
-                ->numeric()
-                ->minValue(0),
+                ->options(
+                    Vehicle::pluck('odometer', 'odometer')->unique()
+                )
+                ->searchable(),
 
             // Status (default hold)
             Select::make('status')

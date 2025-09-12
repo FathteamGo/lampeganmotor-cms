@@ -6,8 +6,7 @@ use App\Exports\AssetReportExport;
 use App\Exports\VehiclesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Controllers\AssetReportController;
-
-
+use App\Http\Controllers\FrontPostBlogController;
 
 // Halaman welcome (default Laravel)
 Route::get('/', function () {
@@ -39,6 +38,11 @@ Route::get('/kontak', fn () => view('frontend.contact'))->name('landing.contact'
 Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
     ->whereNumber('brand')
     ->name('sell.models-by-brand');
+
+Route::get('/blog/{slug}', [FrontPostBlogController::class, 'show'])->name('blog.show');
+
+// Blog berdasarkan kategori
+Route::get('/blog/kategori/{id}', [FrontPostBlogController::class, 'category'])->name('blog.category');
 
 
 

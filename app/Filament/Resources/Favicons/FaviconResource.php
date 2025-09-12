@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Favicons;
 
 use App\Filament\Resources\Favicons\Pages;
 use App\Filament\Resources\Favicons\Schemas\FaviconForm;
+use App\Filament\Resources\Favicons\Tables\FaviconsTable;
 use App\Models\Favicon;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -13,8 +14,6 @@ class FaviconResource extends Resource
 {
     protected static ?string $model = Favicon::class;
 
-    // protected static ?string $navigationIcon = 'heroicon-o-photo';
-
     public static function getNavigationGroup(): ?string
     {
         return __('navigation.settings'); // masuk ke menu Settings
@@ -23,6 +22,12 @@ class FaviconResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return FaviconForm::configure($schema);
+    }
+
+    public static function table(Table $table): Table
+    {
+        // panggil konfigurasi table yang udah kamu bikin
+        return FaviconsTable::table($table);
     }
 
     public static function getRelations(): array

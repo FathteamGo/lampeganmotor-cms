@@ -12,6 +12,7 @@ return [
     'settings'         => 'Settings',
     'system'           => 'System',
     'help_support'     => 'Help & Support',
+    'stnk_renewals'    => 'STNK Renewals',
 
     // Master Data
     'brands'           => 'Brands',

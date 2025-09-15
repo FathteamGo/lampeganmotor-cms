@@ -10,7 +10,7 @@ return [
     'assets_management'=> 'Manajemen Aset',
     'report_audit'     => 'Laporan & Audit',
      'asset_report_heading'  => 'Harta Tidak Bergerak',
-
+    'stnk_renewals'    => 'Perpanjang STNK',
     'settings'         => 'Pengaturan',
     'system'           => 'Sistem',
     'number'      => '#',

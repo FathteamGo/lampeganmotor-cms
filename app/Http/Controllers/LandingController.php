@@ -88,11 +88,11 @@ class LandingController extends Controller
 
         $video = VideoSetting::first();
         $categories_blog = CategoriesBlog::all();
-        $blogs= PostBlog::with('category')
-                    ->where('is_published', true)
-                    ->latest()
-                    ->take(5)
-                    ->get();
+        $blogs = PostBlog::with('category')
+            ->where('is_published', true)
+            ->latest()
+            ->take(5)
+            ->get();
 
         return view('frontend.index', compact(
             'vehicles', 'brands', 'types', 'years',
@@ -106,7 +106,15 @@ class LandingController extends Controller
     public function show(Vehicle $vehicle)
     {
         $vehicle->load(['vehicleModel.brand', 'type', 'color', 'photos', 'year']);
-        return view('frontend.show', compact('vehicle'));
+
+        $header = HeaderSetting::first() ?? (object) [
+            'site_name'     => 'Lampegan Motor',
+            'logo'          => null,
+            'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
+            'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
+        ];
+
+        return view('frontend.show', compact('vehicle', 'header'));
     }
 
     /**
@@ -127,7 +135,9 @@ class LandingController extends Controller
 
         $heroSlides = HeroSlide::orderBy('order_column', 'asc')->get();
 
-        return view('frontend.sell-form', compact('brands', 'types', 'years', 'heroSlides','header'));
+        return view('frontend.sell-form', compact(
+            'brands', 'types', 'years', 'heroSlides','header'
+        ));
     }
 
     /**
@@ -145,7 +155,6 @@ class LandingController extends Controller
                 'required',
                 'string',
                 'max:15',
-                // ⬇️ Pastikan plat nomor unik di requests & vehicles
                 Rule::unique('requests', 'license_plate'),
                 Rule::unique('vehicles', 'license_plate'),
             ],

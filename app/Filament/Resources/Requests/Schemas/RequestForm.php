@@ -20,14 +20,22 @@ class RequestForm
             // Supplier
             Select::make('supplier_id')
                 ->label(__('tables.purchase_supplier'))
-                ->options(Supplier::orderBy('name')->pluck('name', 'id'))
+                ->options(
+                    Supplier::orderBy('name')
+                        ->whereNotNull('name')
+                        ->pluck('name', 'id')
+                )
                 ->searchable()
                 ->required(),
 
             // Brand
             Select::make('brand_id')
                 ->label(__('tables.brand'))
-                ->options(Brand::orderBy('name')->pluck('name', 'id'))
+                ->options(
+                    Brand::orderBy('name')
+                        ->whereNotNull('name')
+                        ->pluck('name', 'id')
+                )
                 ->searchable()
                 ->required()
                 ->reactive(),
@@ -38,6 +46,7 @@ class RequestForm
                 ->options(fn ($get) =>
                     $get('brand_id')
                         ? VehicleModel::where('brand_id', $get('brand_id'))
+                            ->whereNotNull('name')
                             ->orderBy('name')
                             ->pluck('name', 'id')
                         : []
@@ -48,16 +57,21 @@ class RequestForm
             // Year
             Select::make('year_id')
                 ->label(__('tables.year'))
-                ->options(Year::orderBy('year', 'desc')->pluck('year', 'id'))
+                ->options(
+                    Year::whereNotNull('year')
+                        ->orderBy('year', 'desc')
+                        ->pluck('year', 'id')
+                )
                 ->searchable()
                 ->required(),
 
             // Vehicle (PILIH kendaraan yg sudah ada → no duplikat)
             Select::make('vehicle_id')
-                ->label(__('tables.vehicle'))
+                ->label('Kendaraan')
                 ->options(
                     Vehicle::query()
-                        ->where('status', '!=', 'sold') // contoh: hanya kendaraan yg belum terjual
+                        ->where('status', '!=', 'sold')
+                        ->whereNotNull('license_plate')
                         ->orderBy('license_plate')
                         ->pluck('license_plate', 'id')
                 )
@@ -68,7 +82,9 @@ class RequestForm
             Select::make('odometer')
                 ->label(__('tables.odometer'))
                 ->options(
-                    Vehicle::pluck('odometer', 'odometer')->unique()
+                    Vehicle::whereNotNull('odometer')
+                        ->pluck('odometer', 'odometer')
+                        ->unique()
                 )
                 ->searchable(),
 

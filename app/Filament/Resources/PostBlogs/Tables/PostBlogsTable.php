@@ -14,19 +14,58 @@ class PostBlogsTable
     {
         return $table
             ->columns([
-                TextColumn::make('id')->label('ID')->sortable(),
-                TextColumn::make('title')->label('Judul')->searchable(),
-                TextColumn::make('slug')->label('Slug')->searchable(),
-                ImageColumn::make('cover_image')->label('Cover'),
-                TextColumn::make('category.name')->label('Kategori'),
-                BooleanColumn::make('is_published')->label('Publikasi'),
-                TextColumn::make('created_at')->label('Dibuat')->dateTime('d M Y')->sortable(),
-                TextColumn::make('updated_at')->label('Diupdate')->dateTime('d M Y')->sortable(),
+                // ID
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
+
+                // Judul Blog
+                TextColumn::make('title')
+                    ->label('Judul')
+                    ->searchable()
+                    ->limit(40),
+
+                // Slug
+                TextColumn::make('slug')
+                    ->label('Slug')
+                    ->searchable()
+                    ->limit(50),
+
+                // Cover Image
+                ImageColumn::make('cover_image')
+                    ->label('Cover')
+                    ->disk('public') // ambil dari storage/app/public
+                    ->height(60)
+                    ->width(100)
+                    ->square(),
+
+                // Kategori (relasi)
+                TextColumn::make('category.name')
+                    ->label('Kategori')
+                    ->sortable()
+                    ->searchable(),
+
+                // Status publikasi
+                BooleanColumn::make('is_published')
+                    ->label('Publikasi'),
+
+                // Tanggal dibuat
+                TextColumn::make('created_at')
+                    ->label('Dibuat')
+                    ->dateTime('d M Y')
+                    ->sortable(),
+
+                // Tanggal diupdate
+                TextColumn::make('updated_at')
+                    ->label('Diupdate')
+                    ->dateTime('d M Y')
+                    ->sortable(),
             ])
             ->filters([
                 //
             ])
             ->actions([
+                // Tables\Actions\ViewAction::make(),
                 // Tables\Actions\EditAction::make(),
                 // Tables\Actions\DeleteAction::make(),
             ])

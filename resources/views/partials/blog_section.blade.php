@@ -1,6 +1,6 @@
-<div class="container mx-auto px-4 py-8">
-     <h2 class="text-2xl font-extrabold text-center text-black mb-6 inline-block border-b-4 border-yellow-400 px-2">
-      Blog Lampegan
+<div class="container mx-auto px-2 py-12">
+   <h2 class="text-2xl font-extrabold text-center text-black mb-6 inline-block border-b-4 border-yellow-400 px-2">
+      Blog Terbaru
     </h2>
 
     @forelse($blogs as $blog)
@@ -9,41 +9,38 @@
                 <div class="swiper-wrapper">
         @endif
 
-        <div class="swiper-slide">
-            <div class="bg-white rounded-lg shadow hover:shadow-xl overflow-hidden flex flex-col">
+        {{-- Card compact ala artikel terkait --}}
+        <div class="swiper-slide py-4">
+            <a href="{{ route('blog.show', $blog->slug) }}" 
+               class="bg-white rounded-xl shadow hover:shadow-lg overflow-hidden transition border border-gray-100 flex flex-col">
                 @if($blog->cover_image)
-                    <div class="relative overflow-hidden h-48">
-                        <img src="{{ asset('storage/'.$blog->cover_image) }}" 
-                             alt="{{ $blog->title }}" 
-                             class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300">
-                        @if(isset($blog->category->name))
-                            <span class="absolute top-2 left-2 bg-blue-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                                {{ $blog->category->name }}
-                            </span>
-                        @endif
-                    </div>
+                    <img src="{{ asset('storage/'.$blog->cover_image) }}" 
+                         alt="{{ $blog->title }}" 
+                         class="h-40 w-full object-cover">
                 @endif
-                <div class="p-4 flex flex-col justify-between flex-1">
-                    <h4 class="text-lg font-semibold mb-2 hover:text-blue-600 transition-colors duration-200">
+                <div class="p-4 flex flex-col flex-1">
+                    @if(isset($blog->category->name))
+                        <span class="inline-block bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow mb-3">
+                            {{ $blog->category->name }}
+                        </span>
+                    @endif
+                    <h4 class="font-semibold text-lg text-gray-800 mb-2 line-clamp-2">
                         {{ $blog->title }}
                     </h4>
-                    <p class="text-gray-600 text-sm">{{ Str::limit($blog->content, 120) }}</p>
-                    <div class="mt-4 flex justify-between items-center">
-                        <span class="text-gray-400 text-xs">{{ $blog->created_at->format('d M Y') }}</span>
-                        <a href="{{ route('blog.show', $blog->slug) }}" class="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-200">
-                            Lihat Detail
-                        </a>
-                    </div>
+                    <p class="text-sm text-gray-500 line-clamp-3 flex-1">
+                        {{ Str::limit(strip_tags($blog->content), 100) }}
+                    </p>
+                    <p class="mt-3 text-xs text-gray-400">{{ $blog->created_at->format('d M Y') }}</p>
                 </div>
-            </div>
+            </a>
         </div>
 
         @if ($loop->last)
-                </div> <!-- /.swiper-wrapper -->
+                </div>
                 <div class="swiper-button-next"></div>
                 <div class="swiper-button-prev"></div>
                 <div class="swiper-pagination"></div>
-            </div> <!-- /.swiper -->
+            </div>
         @endif
 
     @empty

@@ -15,12 +15,12 @@ class HeaderSettingForm
                 ->label('Nama Situs')
                 ->required(),
 
-           FileUpload::make('logo')
-            ->label('Logo')
-            ->image()
-            ->directory('logos')
-            ->disk('public'),
-
+            FileUpload::make('logo')
+                ->label('Logo')
+                ->image()
+                ->directory('logos')
+                ->disk('public')
+                ->visibility('public'),
 
             TextInput::make('instagram_url')
                 ->label('Instagram URL')

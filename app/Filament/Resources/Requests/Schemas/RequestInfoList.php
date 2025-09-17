@@ -7,7 +7,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ImageEntry;
 
-class RequestInfolist
+class RequestInfoList
 {
     public static function configure(Schema $schema): Schema
     {

@@ -27,11 +27,11 @@ Route::get('/ajax/models-by-brand/{brand}', [LandingController::class, 'modelsBy
 
 // API untuk ambil model by brand (AJAX)
 Route::get('/api/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
-    ->name('sell.models-by-brand');
+    ->name('sell.models-by-brand-ajax');
 
 // Halaman tambahan
-Route::get('/tentang', fn () => view('frontend.about'))->name('landing.about');
-Route::get('/kontak', fn () => view('frontend.contact'))->name('landing.contact');
+Route::get('/tentang', fn() => view('frontend.about'))->name('landing.about');
+Route::get('/kontak', fn() => view('frontend.contact'))->name('landing.contact');
 
 
 Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsByBrand'])
@@ -61,5 +61,3 @@ Route::get('/set-locale/{locale}', function ($locale) {
     }
     return redirect()->back();
 })->name('set-locale');
-
-

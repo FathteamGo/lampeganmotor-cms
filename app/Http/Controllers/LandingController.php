@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Banner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -56,7 +57,7 @@ class LandingController extends Controller
             }
         }
 
-        $vehicles = $vehicleQuery->latest()->paginate(9)->withQueryString();
+        $vehicles = $vehicleQuery->latest()->paginate(10)->withQueryString();
 
         $brands = Brand::orderBy('name')->get();
         $types  = Type::orderBy('name')->get();
@@ -88,16 +89,74 @@ class LandingController extends Controller
 
         $video = VideoSetting::first();
         $categories_blog = CategoriesBlog::all();
+        
+        // Ubah ini untuk hanya menampilkan 3 blog terbaru tanpa pagination
         $blogs = PostBlog::with('category')
             ->where('is_published', true)
             ->latest()
-            ->take(5)
+            ->limit(3)
             ->get();
+
+         $banners = Banner::currentlyActive()
+        ->orderBy('start_date','desc')
+        ->take(3)
+        ->get();
 
         return view('frontend.index', compact(
             'vehicles', 'brands', 'types', 'years',
-            'heroSlides','header','video','categories_blog','blogs'
+            'heroSlides','header','video','categories_blog','blogs','banners'
         ));
+    }
+
+    /**
+     * Halaman semua blog dengan pagination
+     */
+    public function allBlogs(Request $request)
+    {
+        $blogs = PostBlog::with('category')
+            ->where('is_published', true)
+            ->latest()
+            ->paginate(10);
+
+        $header = HeaderSetting::first() ?? (object) [
+            'site_name'     => 'Lampegan Motor',
+            'logo'          => null,
+            'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
+            'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
+        ];
+
+        $categories_blog = CategoriesBlog::all();
+
+        return view('frontend.blog.all', compact('blogs', 'header', 'categories_blog'));
+    }
+
+    /**
+     * Halaman detail blog
+     */
+    public function showBlog($slug)
+    {
+        $blog = PostBlog::with('category')
+            ->where('slug', $slug)
+            ->where('is_published', true)
+            ->firstOrFail();
+
+        $header = HeaderSetting::first() ?? (object) [
+            'site_name'     => 'Lampegan Motor',
+            'logo'          => null,
+            'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
+            'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
+        ];
+
+        // Blog terkait (dari kategori yang sama, exclude blog saat ini)
+        $relatedBlogs = PostBlog::with('category')
+            ->where('is_published', true)
+            ->where('category_id', $blog->category_id)
+            ->where('id', '!=', $blog->id)
+            ->latest()
+            ->limit(3)
+            ->get();
+
+        return view('frontend.blog.show', compact('blog', 'header', 'relatedBlogs'));
     }
 
     /**

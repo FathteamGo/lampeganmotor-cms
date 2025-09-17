@@ -16,6 +16,9 @@ use Illuminate\Support\Number;
     {{-- Video Section --}}
     @include('partials.video')
 
+    {{-- Banner Section --}}
+    @include('partials.banner')
+
      @include('partials.blog_section', ['categories_blog' => $categories_blog, 'blogs' => $blogs])
 
     {{-- Filter Section --}}
@@ -60,7 +63,7 @@ use Illuminate\Support\Number;
 
             {{-- Pagination --}}
             <div class="mt-6">
-                {{ $vehicles->links() }}
+                {{ $vehicles->links('vendor.pagination.tailwind') }}
             </div>
         @endif
     </div>

@@ -1,8 +1,8 @@
 <!-- Video Section (konsisten max-w-sm) -->
 <section class="bg-white py-8">
   <div class="mx-auto max-w-sm px-4">
-    <h2 class="text-2xl font-extrabold text-black dark:text-black mb-4 text-center">
-      Video Review
+    <h2 class="text-2xl font-extrabold text-center text-black mb-6 inline-block border-b-4 border-yellow-400">
+        Video Review
     </h2>
 
     <div class="w-full bg-white dark:bg-black rounded-lg shadow-xl overflow-hidden">

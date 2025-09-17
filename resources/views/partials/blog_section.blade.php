@@ -1,16 +1,10 @@
 <div class="container mx-auto px-2 py-12">
-   <h2 class="text-2xl font-extrabold text-center text-black mb-6 inline-block border-b-4 border-yellow-400 px-2">
-      Blog Terbaru
+    <h2 class="text-2xl font-extrabold text-center text-black mb-6 inline-block border-b-4 border-yellow-400 px-2">
+        Blog Terbaru
     </h2>
 
     @forelse($blogs as $blog)
-        @if ($loop->first)
-            <div class="swiper blog-swiper">
-                <div class="swiper-wrapper">
-        @endif
-
-        {{-- Card compact ala artikel terkait --}}
-        <div class="swiper-slide py-4">
+        <div class="py-4">
             <a href="{{ route('blog.show', $blog->slug) }}" 
                class="bg-white rounded-xl shadow hover:shadow-lg overflow-hidden transition border border-gray-100 flex flex-col">
                 @if($blog->cover_image)
@@ -34,16 +28,20 @@
                 </div>
             </a>
         </div>
-
-        @if ($loop->last)
-                </div>
-                <div class="swiper-button-next"></div>
-                <div class="swiper-button-prev"></div>
-                <div class="swiper-pagination"></div>
-            </div>
-        @endif
-
     @empty
         <p class="text-gray-500 text-center mt-6">Tidak ada blog untuk saat ini.</p>
     @endforelse
+
+    {{-- Lihat Semua Button - Only show if there are more than 3 blogs --}}
+    @if($blogs->count() >= 3)
+        <div class="mt-8 text-center">
+            <a href="{{ route('blog.all') }}" 
+               class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-600 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <span>Lihat Semua Blog</span>
+                <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                </svg>
+            </a>
+        </div>
+    @endif
 </div>

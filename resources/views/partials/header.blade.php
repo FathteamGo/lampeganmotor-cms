@@ -3,13 +3,14 @@
     <div class="flex items-center justify-between h-16">
 
       {{-- Logo kiri --}}
-      <a href="{{ route('landing.index') }}" class="flex items-center gap-2">
-        <img 
-          src="{{ $header->logo ? Storage::url($header->logo) : asset('images/no-image.png') }}" 
+      <img 
+          src="{{ $header->logo ? Storage::url($header->logo) : asset('Images/logo/lampeganmtrbdg.jpg') }}" 
           alt="{{ $header->site_name ?? 'Lampegan Motor' }}" 
-          class="h-10 w-auto object-contain rounded-lg mr-2 "
-        >
-      </a>
+          class="h-10 w-auto object-contain rounded-lg mr-2"
+          onerror="this.onerror=null;this.src='{{ asset('Images/logo/lampeganmtrbdg.jpg') }}';"
+      />
+
+
 
       {{-- Judul tengah --}}
       <a href="{{ route('landing.index') }}" class="text-lg md:text-xl font-extrabold tracking-wide text-gray-900 text-center flex-1">

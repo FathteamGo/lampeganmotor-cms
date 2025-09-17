@@ -38,7 +38,7 @@ Route::get('/sell/models-by-brand/{brand}', [LandingController::class, 'modelsBy
     ->whereNumber('brand')
     ->name('sell.models-by-brand');
 
-Route::get('/blog', [FrontPostBlogController::class, 'index'])->name('blog.index'); // optional
+Route::get('/blog', [LandingController::class, 'allBlogs'])->name('blog.all');
 Route::get('/blog/{slug}', [FrontPostBlogController::class, 'show'])->name('blog.show');
 Route::get('/blog/kategori/{id}', [FrontPostBlogController::class, 'category'])->name('blog.category');
 

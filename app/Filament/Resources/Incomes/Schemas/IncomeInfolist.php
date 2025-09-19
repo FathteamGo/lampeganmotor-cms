@@ -26,9 +26,9 @@ class IncomeInfolist
                     ->date()
                     ->label(__('tables.income_date')),
 
-                TextEntry::make('customer_id')
-                    ->numeric()
-                    ->label(__('tables.customer')),
+                // TextEntry::make('customer_id')
+                //     ->numeric()
+                //     ->label(__('tables.customer')),
 
                 TextEntry::make('created_at')
                     ->dateTime()

@@ -34,10 +34,10 @@ class IncomesTable
                     ->sortable()
                     ->label(__('tables.income_date')),
 
-                TextColumn::make('customer.name')
-                    ->label(__('tables.customer'))
-                    ->sortable()
-                    ->searchable(),
+                // TextColumn::make('customer.name')
+                //     ->label(__('tables.customer'))
+                //     ->sortable()
+                //     ->searchable(),
 
                 TextColumn::make('created_at')
                     ->label(__('tables.created_at'))

@@ -23,6 +23,7 @@ use App\Http\Middleware\SetLocale;
 use App\Filament\Widgets\DashboardStats;
 use App\Filament\Widgets\SalesChart;
 use App\Filament\Widgets\RevenueChart;
+use App\Filament\Widgets\WeeklyReportWidget;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -43,6 +44,7 @@ class AdminPanelProvider extends PanelProvider
                 DashboardStats::class,
                 SalesChart::class,
                 RevenueChart::class,
+                WeeklyReportWidget::class,
             ])
             ->navigationGroups($this->getNavigationGroups())
             ->renderHook(

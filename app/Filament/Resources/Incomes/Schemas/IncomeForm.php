@@ -37,11 +37,12 @@ class IncomeForm
                     ->label(__('tables.income_date'))
                     ->required(),
 
-                // Relasi ke Customer
-                Select::make('customer_id')
-                    ->label(__('tables.customer_name'))
-                    ->relationship('customer', 'name')
-                    ->searchable(),
+                // // Relasi ke Customer
+                // Select::make('customer_id')
+                //     ->label(__('tables.customer_name'))
+                //     ->relationship('customer', 'name')
+                //     ->nullable()
+                //     ->searchable(),
 
                 Textarea::make('notes')
                     ->label(__('tables.note'))

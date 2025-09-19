@@ -41,6 +41,21 @@ return [
     'sender'  => env('WA_GATEWAY_SENDER','6289635850446'),
     // 'owner'   => env('WA_GATEWAY_OWNER', '6281394510605'),
     'owner'   => env('WA_GATEWAY_OWNER'),
+
     ],
+
+    // di file config/services.php (tambah di array return)
+    'gemini' => [
+        'key'   => env('GEMINI_API_KEY', 'AIzaSyAPPtRju7KNXD30PJLJWdLMIHCOL0uJtN8'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+    ],
+
+    // 'wa_gateway' => [
+    //     'url'     => env('WA_GATEWAY_URL', 'http://wa4.fath.my.id/send-message'),
+    //     'api_key' => env('WA_GATEWAY_API_KEY'),
+    //     'sender'  => env('WA_GATEWAY_SENDER'),
+    //     'owner'   => env('WA_GATEWAY_OWNER'),
+    // ],
+
 
 ];

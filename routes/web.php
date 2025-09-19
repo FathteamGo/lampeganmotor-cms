@@ -7,6 +7,7 @@ use App\Exports\VehiclesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Controllers\AssetReportController;
 use App\Http\Controllers\FrontPostBlogController;
+use App\Http\Controllers\TesReportInsight;
 
 // Halaman welcome (default Laravel)
 Route::get('/', function () {
@@ -61,3 +62,6 @@ Route::get('/set-locale/{locale}', function ($locale) {
     }
     return redirect()->back();
 })->name('set-locale');
+
+Route::get('/test-report', [TesReportInsight::class, 'index']);
+

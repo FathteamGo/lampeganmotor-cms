@@ -52,7 +52,7 @@ class User extends Authenticatable
     }
     public function userCategory(): BelongsTo
     {
-        return $this->belongsTo(UserCategory::class);
+        return $this->belongsTo(userCategory::class);
     }
 
     public function canAccessPanel(Panel $panel): bool

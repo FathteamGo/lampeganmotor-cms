@@ -8,10 +8,10 @@ use App\Exports\ProfitAndLossExport;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Sale;
+use App\Models\StnkRenewal;
 use App\Services\WhatsAppService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Maatwebsite\Excel\Facades\Excel;
@@ -23,13 +23,9 @@ class ProfitAndLossReport extends Page
     protected static string | UnitEnum | null $navigationGroup = 'navigation.report_audit';
     protected static ?string $navigationLabel = 'navigation.profit_loss';
     protected static ?string $title = 'navigation.profit_loss'; 
-
-
-
     protected static ?int $navigationSort = 5;
 
     protected string $view = 'filament.pages.profit-and-loss-report';
-
 
     public static function getNavigationGroup(): ?string
     {
@@ -46,23 +42,19 @@ class ProfitAndLossReport extends Page
         return __(static::$title);
     }
 
-     public static function shouldRegisterNavigation(): bool
-{
-    $user = Auth::user();
-
-    return $user && $user->role === 'owner';
-}
-
-
- public static function canAccess(): bool
+    public static function shouldRegisterNavigation(): bool
     {
-    $user = Auth::user();
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
+    }
 
-    return $user && $user->role === 'owner';
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
     }
 
     // Filter tanggal (global)
-    // Header filter
     public ?string $dateStart = null;
     public ?string $dateEnd   = null;
     public ?string $search    = null;
@@ -71,13 +63,16 @@ class ProfitAndLossReport extends Page
     public float $totalSales = 0.0;
     public float $totalIncomes = 0.0;
     public float $totalExpenses = 0.0;
+    public float $totalStnkIncome = 0.0;
+    public float $totalStnkExpense = 0.0;
 
     // (opsional) modal manual WA
     public bool $waModalOpen = false;
     public array $wa = ['phone' => '', 'note' => ''];
 
     /** Nomor default auto-send */
-    protected string $waAutoNumber = '081394510605';
+    // protected string $waAutoNumber = '081394510605';
+    protected string $waAutoNumber = '083841806357';
 
     public function mount(): void
     {
@@ -101,8 +96,6 @@ class ProfitAndLossReport extends Page
             "profit-loss_{$this->dateStart}_{$this->dateEnd}.xlsx"
         );
     }
-
-
 
     /** Normalisasi 08xxxx -> 62xxxx */
     protected function normalizePhone(string $raw): string
@@ -218,11 +211,27 @@ class ProfitAndLossReport extends Page
             ->when($s, fn ($q) => $q->whereDate('expense_date', '>=', $s))
             ->when($e, fn ($q) => $q->whereDate('expense_date', '<=', $e))
             ->sum('amount');
+
+        // STNK income (margin_total)
+        $this->totalStnkIncome = (float) StnkRenewal::query()
+            ->when($s, fn ($q) => $q->whereDate('tgl', '>=', $s))
+            ->when($e, fn ($q) => $q->whereDate('tgl', '<=', $e))
+            ->sum('margin_total');
+
+        // STNK expense (pembayaran ke samsat)
+        $this->totalStnkExpense = (float) StnkRenewal::query()
+            ->when($s, fn ($q) => $q->whereDate('tgl', '>=', $s))
+            ->when($e, fn ($q) => $q->whereDate('tgl', '<=', $e))
+            ->sum('pembayaran_ke_samsat');
     }
 
     public function getProfitProperty(): float
     {
-        return $this->totalSales + $this->totalIncomes - $this->totalExpenses;
+        return $this->totalSales 
+             + $this->totalIncomes 
+             + $this->totalStnkIncome
+             - $this->totalExpenses 
+             - $this->totalStnkExpense;
     }
 
     public function formatIdr(null|int|float $v): string
@@ -230,7 +239,6 @@ class ProfitAndLossReport extends Page
         return 'Rp ' . number_format((float) ($v ?? 0), 0, ',', '.');
     }
 
-    /** Tambahan: formatter polos & bertanda untuk kebutuhan WA */
     public function formatIdrPlain(null|int|float $v): string
     {
         return number_format((float) ($v ?? 0), 0, ',', '.');
@@ -250,13 +258,14 @@ class ProfitAndLossReport extends Page
             'Laporan Profit & Loss',
             "Periode: {$this->dateStart} s/d {$this->dateEnd}",
             '--------------------------------',
-            'SALES   : ' . $this->formatIdr($this->totalSales),
-            'INCOME  : ' . $this->formatIdr($this->totalIncomes),
-            // EXPENSE TANPA MINUS
-            'EXPENSE : ' . $this->formatIdr($this->totalExpenses),
+            'SALES        : ' . $this->formatIdr($this->totalSales),
+            'INCOME       : ' . $this->formatIdr($this->totalIncomes),
+            'STNK INCOME  : ' . $this->formatIdr($this->totalStnkIncome),
             '--------------------------------',
-            // TOTAL: minus hanya jika loss
-            'TOTAL   : ' . $this->formatIdrSigned($profit) . ($profit >= 0 ? ' (Profit)' : ' (Loss)'),
+            'EXPENSE      : ' . $this->formatIdr($this->totalExpenses),
+            'STNK EXPENSE : ' . $this->formatIdr($this->totalStnkExpense),
+            '--------------------------------',
+            'TOTAL        : ' . $this->formatIdrSigned($profit) . ($profit >= 0 ? ' (Profit)' : ' (Loss)'),
         ];
 
         if ($extraNote && trim($extraNote) !== '') {

@@ -21,7 +21,7 @@ class TunggakanTable extends BaseWidget
 
     protected function getHeading(): ?string
     {
-        return __('tables.outstanding_payments'); // key di lang file
+        return __('tables.outstanding_payments'); 
     }
 
     public function table(Tables\Table $table): Tables\Table

@@ -17,7 +17,9 @@
                             />
                         </x-filament::input.wrapper>
                     </div>
+
                     <br>
+
                     {{-- TOMBOL kanan --}}
                     <div class="ml-auto flex items-center gap-2 whitespace-nowrap shrink-0">
                         <x-filament::button color="success" icon="heroicon-o-arrow-down-tray" wire:click="exportToExcel">
@@ -61,11 +63,22 @@
 
         <br>
 
-        {{-- ASSET: pakai widget summary table --}}
+        {{-- STNK RENEWALS --}}
+        <div class="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+            @livewire(\App\Filament\Widgets\StnkRenewalsTable::class,
+                ['dateStart' => $dateStart, 'dateEnd' => $dateEnd, 'search' => $search],
+                key('stnk-'.$dateStart.$dateEnd.'-'.$search))
+        </div>
+        
+        <br>
+
+        {{-- ASSET SUMMARY --}}
         @livewire(\App\Filament\Widgets\AssetSummaryTable::class, [
-            'totalSales'     => $totalSales,
-            'totalIncomes'   => $totalIncomes,
-            'totalExpenses'  => $totalExpenses,
+            'totalSales'      => $totalSales,
+            'totalIncomes'    => $totalIncomes,
+            'totalExpenses'   => $totalExpenses,
+            'totalStnkIncome' => $totalStnkIncome,
+            'totalStnkExpense'=> $totalStnkExpense,
         ], key('asset-'.$dateStart.$dateEnd))
     </div>
 </x-filament-panels::page>

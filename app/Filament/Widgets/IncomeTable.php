@@ -19,7 +19,7 @@ class IncomeTable extends BaseWidget
 
     protected function getHeading(): ?string
     {
-        return __('tables.income');
+        return __('tables.income_table');
     }
 
     public function table(Table $table): Table

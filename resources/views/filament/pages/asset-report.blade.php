@@ -23,5 +23,5 @@
     @livewire(\App\Filament\Widgets\AvailableUnitsTable::class)
     <hr class="my-6">
 
-    @livewire(\App\Filament\Widgets\AssetSummary::class)
+    @livewire(\App\Filament\Widgets\AssetTable::class)
 </x-filament-panels::page>

@@ -20,7 +20,7 @@ class AvailableUnitsTable extends BaseWidget
 
     protected function getHeading(): ?string
     {
-        return __('tables.available_units'); // key di lang file
+        return __('tables.available_units'); 
     }
 
     public function table(Tables\Table $table): Tables\Table

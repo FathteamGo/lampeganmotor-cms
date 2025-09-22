@@ -19,7 +19,7 @@ class ExpenseTable extends BaseWidget
 
     protected function getHeading(): ?string
     {
-        return __('tables.expense');
+        return __('tables.expense_table');
     }
 
     public function table(Table $table): Table

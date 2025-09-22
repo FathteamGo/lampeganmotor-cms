@@ -18,6 +18,11 @@ class PostBlog extends Model
         'is_published',
     ];
 
+    protected $casts = [
+    'views' => 'integer',
+];
+
+
     public function category()
     {
         return $this->belongsTo(CategoriesBlog::class, 'category_id');

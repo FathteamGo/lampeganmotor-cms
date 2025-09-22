@@ -38,11 +38,12 @@ use Illuminate\Support\Number;
                               transition-all duration-300 overflow-hidden group">
                         {{-- Gambar kotak --}}
                         <div class="aspect-w-1 aspect-h-1 w-full overflow-hidden">
-                            <img
-                                src="{{ $vehicle->photos->first() ? Storage::url($vehicle->photos->first()->path) : asset('assets/images/placeholder.jpg') }}"
+                          <img
+                                src="{{ $vehicle->photos->first() ? Storage::url($vehicle->photos->first()->path) : asset('/Images/logo/lampeganmtrbdg.jpg') }}"
                                 alt="{{ $vehicle->displayName }}"
                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            >
+                                onerror="this.onerror=null;this.src='{{ asset('Images/logo/lampeganmtrbdg.jpg') }}';"
+                            />
                         </div>
 
                         <div class="p-4">

@@ -21,6 +21,8 @@ return [
     'contact_data' => 'Contact',
     'vehicle_detail' => 'Vehicle Detail',
     'send_whatsapp' => 'Send WhatsApp',
+    'profit'        => 'Profit',
+    'loss'          => 'Loss',
    
 
     // Brands
@@ -59,12 +61,17 @@ return [
     'amount'         => 'Amount',
     'expense_date'   => 'Date',
     'category_name'  => 'Category',
+    'expense_table'        => 'Expense Table',
 
     // Incomes
     'photo'          => 'Photo',
     'income_date'    => 'Date',
     'total'          => 'Total',
     'customer_name'  => 'Customer',
+    'income_table'         => 'Income Table',
+    'stnk_income'    => 'Stnk Income',
+    'stnk_expense'    => 'Stnk Expense',
+    'stnk_margin'     => 'Stnk Margin',
 
     // Other Assets
     'value'           => 'Value',

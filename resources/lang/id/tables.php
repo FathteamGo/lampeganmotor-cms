@@ -22,6 +22,13 @@ return [
     'vehicle_detail' => 'Detail Kendaraan',
     'send_whatsapp' => 'Kirim Whatsapp',
     'reject_request' => 'Permintaan Ditolak',
+    'profit'        => 'Keuntungan',
+    'loss'          => 'Kerugian',
+    'income_table'        => 'Table Pemasukan',
+    'expense_table'        => 'Table Pengeluaran',
+    'stnk_income'    => 'Pemasukan STNK',
+    'stnk_expense'    => 'Pengeluaran STNK',
+    'stnk_margin'     => 'Total Margin STNK',
 
     // Brands
     'brand'      => 'Merk',

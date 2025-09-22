@@ -25,6 +25,8 @@ class FrontPostBlogController extends Controller
 
         $blog = PostBlog::with('category')->where('slug', $slug)->firstOrFail();
 
+        $blog->increment('views');
+
           $relatedBlogs = PostBlog::where('category_id', $blog->category_id)
                     ->where('id', '!=', $blog->id)
                     ->where('is_published', true)

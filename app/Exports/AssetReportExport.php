@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Exports;
 
 use App\Models\OtherAsset;
@@ -13,67 +14,71 @@ class AssetReportExport implements FromCollection, WithHeadings
     public function collection()
     {
         // Harta Tidak Bergerak
-        $otherAssets = OtherAsset::all()->map(function ($item) {
-            return [
-                'Jenis'      => 'Harta Tidak Bergerak',
-                'Nama'       => $item->name,
-                'Kategori'   => $item->category ?? '-',
-                'Tahun'      => $item->year ?? '-',
-                'Keterangan' => $item->description,
-                'Nominal'    => $item->value,
-            ];
-        });
+        $otherAssets = collect(
+            OtherAsset::all()->map(function ($item) {
+                return [
+                    'Jenis'      => 'Harta Tidak Bergerak',
+                    'Nama'       => $item->name,
+                    'Kategori'   => $item->category ?? '-',
+                    'Tahun'      => $item->year ?? '-',
+                    'Keterangan' => $item->description,
+                    'Nominal'    => $item->value,
+                ];
+            })->toArray()
+        );
 
         // Stok Unit Bergerak
-        $vehicles = Vehicle::with(['vehicleModel', 'year'])
-            ->where('status', 'available')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'Jenis'      => 'Stok Unit Bergerak',
-                    'Nama'       => $item->vehicleModel->name ?? '-',
-                    'Kategori'   => 'Kendaraan',
-                    'Tahun'      => $item->year->year ?? '-',
-                    'Keterangan' => $item->license_plate,
-                    'Nominal'    => $item->purchase_price,
-                ];
-            });
+        $vehicles = collect(
+            Vehicle::with(['vehicleModel', 'year'])
+                ->where('status', 'available')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'Jenis'      => 'Stok Unit Bergerak',
+                        'Nama'       => $item->vehicleModel->name ?? '-',
+                        'Kategori'   => 'Kendaraan',
+                        'Tahun'      => $item->year->year ?? '-',
+                        'Keterangan' => $item->license_plate,
+                        'Nominal'    => $item->purchase_price,
+                    ];
+                })->toArray()
+        );
 
         // Tunggakan
-        $tunggakan = Sale::with(['vehicle.vehicleModel', 'vehicle.year'])
-            ->whereNotIn('payment_method', ['cash', 'credit']) // ✅ perbaikan disini
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'Jenis'      => 'Tunggakan',
-                    'Nama'       => $item->vehicle->vehicleModel->name ?? '-',
-                    'Kategori'   => 'Kredit',
-                    'Tahun'      => $item->vehicle->year->year ?? '-',
-                    'Keterangan' => $item->notes ?? '-',
-                    'Nominal'    => $item->amount,
-                ];
-            });
+        $tunggakan = collect(
+            Sale::with(['vehicle.vehicleModel', 'vehicle.year'])
+                ->whereNotIn('payment_method', ['cash', 'credit'])
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'Jenis'      => 'Tunggakan',
+                        'Nama'       => $item->vehicle->vehicleModel->name ?? '-',
+                        'Kategori'   => 'Kredit',
+                        'Tahun'      => $item->vehicle->year->year ?? '-',
+                        'Keterangan' => $item->notes ?? '-',
+                        'Nominal'    => $item->amount,
+                    ];
+                })->toArray()
+        );
 
         // Summary total
-        $summary = collect([
-            [
-                'Jenis'      => 'RINGKASAN',
-                'Nama'       => 'Total Asset',
-                'Kategori'   => '-',
-                'Tahun'      => '-',
-                'Keterangan' => '-',
-                'Nominal'    =>
+        $summary = collect([[
+            'Jenis'      => 'RINGKASAN',
+            'Nama'       => 'Total Asset',
+            'Kategori'   => '-',
+            'Tahun'      => '-',
+            'Keterangan' => '-',
+            'Nominal'    =>
                 $otherAssets->sum('Nominal') +
                 $vehicles->sum('Nominal') +
                 $tunggakan->sum('Nominal'),
-            ],
-        ]);
+        ]]);
 
         // Gabung semua
         return $otherAssets
-            ->concat($vehicles)
-            ->concat($tunggakan)
-            ->concat($summary);
+            ->merge($vehicles)
+            ->merge($tunggakan)
+            ->merge($summary);
     }
 
     public function headings(): array

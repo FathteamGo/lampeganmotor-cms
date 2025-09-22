@@ -69,12 +69,12 @@ class StnkRenewalForm
                         $dp = $get('dp') ?? 0;
                         $bayar = $get('pembayaran_ke_samsat') ?? 0;
                         $set('sisa_pembayaran', $state - $dp);
-                        $set('margin_total', $state - $bayar);
+                        $set('margin_total',     $state - $bayar);
                     }),
 
                 // DP
                 TextInput::make('dp')
-                    ->label('DP')
+                    ->label('DP / Dibayar')
                     ->integer()
                     ->default(0)
                     ->reactive()

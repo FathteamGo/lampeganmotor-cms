@@ -6,6 +6,8 @@
                 {{ $this->form }}
             </div>
 
+            <br>
+
             {{-- Tombol Export --}}
             <x-filament::button wire:click="exportExcel" type="button" color="success">
                 Export Excel
@@ -17,6 +19,8 @@
             </x-filament::button>
         </div>
     </form>
+
+    
 
     <div class="mt-6">
         {{ $this->table }}

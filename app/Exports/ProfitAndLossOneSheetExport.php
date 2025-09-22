@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Models\Sale;
 use App\Models\Income;
 use App\Models\Expense;
+use App\Models\StnkRenewal;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -46,7 +47,10 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                 $row = $this->writeDetail($s, $col, $row, 'Income', $h, $r) + 2;
 
                 [$h, $r] = $this->dataExpenses();
-                $this->writeDetail($s, $col, $row, 'Expense', $h, $r);
+                $row = $this->writeDetail($s, $col, $row, 'Expense', $h, $r) + 2;
+
+                [$h, $r] = $this->dataStnk();
+                $this->writeDetail($s, $col, $row, 'STNK', $h, $r);
             },
         ];
     }
@@ -99,7 +103,6 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
 
     protected function dataIncomes(): array
     {
-        // ambil nama kategori lewat JOIN, bukan object
         $headers = ['TANGGAL','NAMA','KATEGORI','TAHUN','KETERANGAN','NOMINAL'];
 
         $q = Income::query()
@@ -150,38 +153,75 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
             ->orderBy('expense_date');
 
         if (filled($this->search)) {
-            // $s = '%'.trim($this->search).'%';
-            $q->where(function ($qq) {
-                $qq->where('expenses.description', 'like', )
-                ->orWhere('expenses.amount', 'like', )
-                ->orWhere('expenses.expense_date', 'like', )
-                ->orWhere('c.name', 'like', );
+            $s = '%'.trim($this->search).'%';
+            $q->where(function ($qq) use ($s) {
+                $qq->where('expenses.description','like',$s)
+                   ->orWhere('expenses.amount','like',$s)
+                   ->orWhere('expenses.expense_date','like',$s)
+                   ->orWhere('c.name','like',$s);
             });
         }
 
         $rows = [];
         foreach ($q->get() as $r) {
             $rows[] = [
-                \Illuminate\Support\Carbon::parse($r->expense_date)->toDateString(),
-                (string) ($r->description ?? ''),                                 
-                (string) ($r->category_name ?? ''),                             
-                (string) (\Illuminate\Support\Carbon::parse($r->expense_date)->year),
-                (float)  ($r->amount ?? 0),                                       
+                Carbon::parse($r->expense_date)->toDateString(),
+                (string) ($r->description ?? ''),
+                (string) ($r->category_name ?? ''),
+                (string) (Carbon::parse($r->expense_date)->year),
+                (float)  ($r->amount ?? 0),
             ];
         }
 
         return [$headers, $rows];
     }
 
+    protected function dataStnk(): array
+    {
+        $headers = ['TANGGAL','NO. POLISI','CUSTOMER','TOTAL BAYAR','KE SAMSAT','MARGIN'];
+
+        $q = StnkRenewal::query()
+            ->with('customer')
+            ->whereBetween('tgl', [$this->start, $this->end])
+            ->orderBy('tgl');
+
+        if (filled($this->search)) {
+            $s = '%'.trim($this->search).'%';
+            $q->where(function ($qq) use ($s) {
+                $qq->where('license_plate', 'like', $s)
+                   ->orWhereHas('customer', fn($w) => $w->where('name', 'like', $s));
+            });
+        }
+
+        $rows = [];
+        foreach ($q->get() as $r) {
+            $rows[] = [
+                Carbon::parse($r->tgl)->toDateString(),
+                (string) $r->license_plate,
+                (string) optional($r->customer)->name,
+                (float) $r->total_pajak_jasa,
+                (float) ($r->total_pajak_jasa - $r->margin_total), // expense (biaya ke samsat)
+                (float) $r->margin_total,                          // income (keuntungan)
+            ];
+        }
+
+        return [$headers, $rows];
+    }
 
     /* ================= WRITERS ================= */
 
     protected function writeSummary(Worksheet $sheet, string $startCol, int $startRow): int
     {
-        $sales    = (float) Sale::whereBetween('sale_date',    [$this->start, $this->end])->sum('sale_price');
+        $sales    = (float) Sale::whereBetween('sale_date', [$this->start, $this->end])->sum('sale_price');
         $incomes  = (float) Income::whereBetween('income_date',[$this->start, $this->end])->sum('amount');
         $expenses = (float) Expense::whereBetween('expense_date',[$this->start, $this->end])->sum('amount');
-        $profit   = $sales + $incomes - $expenses;
+
+        $stnkIncome  = (float) StnkRenewal::whereBetween('tgl', [$this->start, $this->end])->sum('margin_total');
+        $stnkExpense = (float) StnkRenewal::whereBetween('tgl', [$this->start, $this->end])
+            ->get()
+            ->sum(fn($r) => $r->total_pajak_jasa - $r->margin_total);
+
+        $profit   = $sales + $incomes + $stnkIncome - ($expenses + $stnkExpense);
 
         $idx  = Coordinate::columnIndexFromString($startCol);
         $c1   = Coordinate::stringFromColumnIndex($idx);
@@ -215,10 +255,12 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
 
         // Rows
         $rows = [
-            ['SALES',   $sales],
-            ['INCOME',  $incomes],
-            ['EXPENSE', $expenses],
-            ['TOTAL',   $profit],
+            ['SALES',      $sales],
+            ['INCOME',     $incomes],
+            ['STNK INCOME',$stnkIncome],
+            ['EXPENSE',    $expenses],
+            ['STNK EXPENSE',$stnkExpense],
+            ['TOTAL',      $profit],
         ];
 
         $r = $h + 1;
@@ -286,7 +328,6 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
             foreach ($row as $i => $val) {
                 $cell = Coordinate::stringFromColumnIndex($startIdx + $i) . $r;
 
-                // Tanggal = kolom pertama
                 if ($i === 0 && filled($val)) {
                     $sheet->setCellValueExplicit(
                         $cell,
@@ -296,24 +337,23 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                     continue;
                 }
 
-                // Nominal (cari kolom "NOMINAL")
-                if (strtoupper($headers[$i]) === 'NOMINAL') {
+                if (strtoupper($headers[$i]) === 'NOMINAL' ||
+                    strtoupper($headers[$i]) === 'TOTAL BAYAR' ||
+                    strtoupper($headers[$i]) === 'KE SAMSAT' ||
+                    strtoupper($headers[$i]) === 'MARGIN') {
                     $sheet->setCellValueExplicit($cell, (float)$val, DataType::TYPE_NUMERIC);
                     continue;
                 }
 
-                // Teks biasa
                 $sheet->setCellValueExplicit($cell, (string)$val, DataType::TYPE_STRING);
             }
             $r++;
         }
         $last = $r - 1;
 
-        // Border all
         $sheet->getStyle("{$cStart}{$hRow}:{$cEnd}{$last}")
               ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
-        // Zebra
         for ($zr = $hRow + 1; $zr <= $last; $zr++) {
             if ($zr % 2 === 0) {
                 $sheet->getStyle("{$cStart}{$zr}:{$cEnd}{$zr}")
@@ -321,41 +361,30 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
             }
         }
 
-        // Format tanggal & rupiah
         if ($last >= $hRow + 1) {
-            // Tanggal (kolom pertama)
             $dateRange = $sheet->getCellByColumnAndRow($startIdx, $hRow+1)->getCoordinate() . ':' .
                          $sheet->getCellByColumnAndRow($startIdx, $last)->getCoordinate();
             $sheet->getStyle($dateRange)->getNumberFormat()->setFormatCode('dd/mm/yyyy');
             $sheet->getStyle($dateRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 
-            // Nominal
-            $nomIdx = array_search('NOMINAL', array_map('strtoupper', $headers), true);
-            if ($nomIdx !== false) {
-                $nomColIdx = $startIdx + $nomIdx;
-                $nomRange  = $sheet->getCellByColumnAndRow($nomColIdx, $hRow+1)->getCoordinate() . ':' .
-                             $sheet->getCellByColumnAndRow($nomColIdx, $last)->getCoordinate();
-                $sheet->getStyle($nomRange)->getNumberFormat()->setFormatCode("\"Rp\" #,##0;-" . "\"Rp\" #,##0");
-                $sheet->getStyle($nomRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            foreach (['NOMINAL','TOTAL BAYAR','KE SAMSAT','MARGIN'] as $field) {
+                $nomIdx = array_search($field, array_map('strtoupper', $headers), true);
+                if ($nomIdx !== false) {
+                    $nomColIdx = $startIdx + $nomIdx;
+                    $nomRange  = $sheet->getCellByColumnAndRow($nomColIdx, $hRow+1)->getCoordinate() . ':' .
+                                 $sheet->getCellByColumnAndRow($nomColIdx, $last)->getCoordinate();
+                    $sheet->getStyle($nomRange)->getNumberFormat()->setFormatCode("\"Rp\" #,##0;-"."\"Rp\" #,##0");
+                    $sheet->getStyle($nomRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                }
             }
         }
 
-        // Lebarkan kolom teks + wrap agar tidak kepotong
-        $wrapCols = ['NAMA','KATEGORI','KETERANGAN','MODEL','WARNA'];
-        foreach ($headers as $i => $h) {
-            $colLtr = Coordinate::stringFromColumnIndex($startIdx + $i);
-            if (in_array(strtoupper($h), $wrapCols, true)) {
-                $sheet->getColumnDimension($colLtr)->setAutoSize(false);
-                $sheet->getColumnDimension($colLtr)->setWidth(28); // cukup lebar
-                $sheet->getStyle("{$colLtr}".($hRow+1).":{$colLtr}{$last}")
-                      ->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
-            } else {
-                $sheet->getColumnDimension($colLtr)->setAutoSize(true);
-            }
+        foreach ($headers as $i => $_) {
+            $col = Coordinate::stringFromColumnIndex($startIdx + $i);
+            $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        // AutoFilter + Freeze
-        $sheet->setAutoFilter("{$cStart}{$hRow}:{$cEnd}{$last}");
+        $sheet->getStyle("{$cStart}{$hRow}:{$cEnd}{$last}")->getAlignment()->setWrapText(true);
 
         return $last;
     }

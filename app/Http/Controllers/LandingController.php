@@ -90,17 +90,17 @@ class LandingController extends Controller
         $video = VideoSetting::first();
         $categories_blog = CategoriesBlog::all();
         
-        // Ubah ini untuk hanya menampilkan 3 blog terbaru tanpa pagination
+        // hanya 3 blog terbaru
         $blogs = PostBlog::with('category')
             ->where('is_published', true)
             ->latest()
             ->limit(3)
             ->get();
 
-         $banners = Banner::currentlyActive()
-        ->orderBy('start_date','desc')
-        ->take(3)
-        ->get();
+        $banners = Banner::currentlyActive()
+            ->orderBy('start_date','desc')
+            ->take(3)
+            ->get();
 
         return view('frontend.index', compact(
             'vehicles', 'brands', 'types', 'years',
@@ -140,6 +140,9 @@ class LandingController extends Controller
             ->where('is_published', true)
             ->firstOrFail();
 
+        // ✅ increment views artikel
+        $blog->increment('views');
+
         $header = HeaderSetting::first() ?? (object) [
             'site_name'     => 'Lampegan Motor',
             'logo'          => null,
@@ -147,7 +150,6 @@ class LandingController extends Controller
             'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
         ];
 
-        // Blog terkait (dari kategori yang sama, exclude blog saat ini)
         $relatedBlogs = PostBlog::with('category')
             ->where('is_published', true)
             ->where('category_id', $blog->category_id)
@@ -165,6 +167,9 @@ class LandingController extends Controller
     public function show(Vehicle $vehicle)
     {
         $vehicle->load(['vehicleModel.brand', 'type', 'color', 'photos', 'year']);
+
+        // ✅ increment views kendaraan
+        $vehicle->increment('views');
 
         $header = HeaderSetting::first() ?? (object) [
             'site_name'     => 'Lampegan Motor',

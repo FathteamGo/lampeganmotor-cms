@@ -88,7 +88,7 @@ return [
     'payment_method'     => 'Metode Pembayaran',
 
     // Profit & Loss
-    'profit_loss'        => 'Laba Rugi',
+    'profit_loss'        => 'Laba & Rugi',
     'profit_loss_title'  => 'Laporan Laba Rugi',
     'total_sales'        => 'Total Penjualan',
     'total_incomes'      => 'Total Pemasukan',

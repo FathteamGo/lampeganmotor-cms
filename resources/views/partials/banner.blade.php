@@ -1,12 +1,7 @@
 @if($banners->isNotEmpty())
-<div id="banner-slider" 
-     class="relative w-full max-w-3xl mx-auto h-[250px] overflow-hidden rounded-xl shadow-md my-4"
-     x-data="{ index: 0 }"
-     x-init="setInterval(() => { index = (index + 1) % {{ $banners->count() }} }, 5000)">
-    
-    @foreach ($banners as $i => $banner)
-        <div class="absolute inset-0 transition-opacity duration-1000 ease-in-out"
-             :class="index === {{ $i }} ? 'opacity-100 z-10' : 'opacity-0 z-0'">
+<div class="grid grid-cols-1 gap-4 max-w-3xl mx-auto my-4">
+    @foreach ($banners->take(3) as $banner)
+        <div class="relative w-full h-[250px] rounded-xl overflow-hidden shadow-md">
             <img src="{{ asset('storage/' . $banner->image) }}" 
                  alt="{{ $banner->title ?? 'Banner' }}" 
                  class="w-full h-full object-cover rounded-xl">
@@ -28,16 +23,6 @@
             @endif
         </div>
     @endforeach
-
-    {{-- Tombol navigasi --}}
-    <button @click="index = (index - 1 + {{ $banners->count() }}) % {{ $banners->count() }}" 
-            class="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 p-2 rounded-full text-white transition">
-        &lt;
-    </button>
-    <button @click="index = (index + 1) % {{ $banners->count() }}" 
-            class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 p-2 rounded-full text-white transition">
-        &gt;
-    </button>
 </div>
 @else
 {{-- fallback --}}

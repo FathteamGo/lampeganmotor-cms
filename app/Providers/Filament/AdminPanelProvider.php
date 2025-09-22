@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\AdminModalWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -21,8 +22,11 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Middleware\SetLocale;
 
 use App\Filament\Widgets\DashboardStats;
+use App\Filament\Widgets\PopularBlogWidget;
+use App\Filament\Widgets\PopularVehicleWidget;
 use App\Filament\Widgets\SalesChart;
 use App\Filament\Widgets\RevenueChart;
+use App\Filament\Widgets\VisitorChart;
 use App\Filament\Widgets\WeeklyReportWidget;
 
 class AdminPanelProvider extends PanelProvider
@@ -43,8 +47,11 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 DashboardStats::class,
                 SalesChart::class,
+                VisitorChart::class,
                 RevenueChart::class,
                 WeeklyReportWidget::class,
+                PopularBlogWidget::class,
+                PopularVehicleWidget::class,
             ])
             ->navigationGroups($this->getNavigationGroups())
             ->renderHook(

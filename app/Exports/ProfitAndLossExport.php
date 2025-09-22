@@ -6,6 +6,7 @@ use App\Exports\Sheets\SummarySheet;
 use App\Exports\Sheets\SalesSheet;
 use App\Exports\Sheets\IncomesSheet;
 use App\Exports\Sheets\ExpensesSheet;
+use App\Exports\Sheets\StnkSheet;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 class ProfitAndLossExport implements WithMultipleSheets
@@ -23,6 +24,7 @@ class ProfitAndLossExport implements WithMultipleSheets
             new SalesSheet  ($this->startDate, $this->endDate, $this->search),
             new IncomesSheet($this->startDate, $this->endDate, $this->search),
             new ExpensesSheet($this->startDate, $this->endDate, $this->search),
+            new StnkSheet($this->startDate, $this->endDate, $this->search),
         ];
     }
 }

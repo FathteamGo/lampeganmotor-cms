@@ -27,7 +27,7 @@ class StnkRenewalsTable
                 TextColumn::make('customer.name')->label('Customer'),
                 TextColumn::make('customer.phone')->label('Nomor Telepon'),
                 TextColumn::make('total_pajak_jasa')->label('Total Pajak + Jasa')->money('idr', true),
-                TextColumn::make('dp')->label('DP')->money('idr', true),
+                TextColumn::make('dp')->label('DP / Dibayar')->money('idr', true),
                 TextColumn::make('sisa_pembayaran')->label('Sisa Pembayaran')->money('idr', true),
                 TextColumn::make('margin_total')->label('Margin')->money('idr', true),
                 TextColumn::make('diambil_tgl')->label('Tanggal Diambil')->date(),

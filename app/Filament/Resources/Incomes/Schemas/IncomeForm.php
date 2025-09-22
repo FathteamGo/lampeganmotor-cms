@@ -23,7 +23,7 @@ class IncomeForm
                 // Relasi ke Category
                 Select::make('category_id')
                     ->label(__('tables.category_name'))
-                    ->options(Category::all()->pluck('name', 'id'))
+                    ->options(Category::whereType('income')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
@@ -35,14 +35,15 @@ class IncomeForm
 
                 DatePicker::make('income_date')
                     ->label(__('tables.income_date'))
-                    ->required(),
+                    ->required()
+                    ->default(now()),
 
                 // // Relasi ke Customer
-                // Select::make('customer_id')
-                //     ->label(__('tables.customer_name'))
-                //     ->relationship('customer', 'name')
-                //     ->nullable()
-                //     ->searchable(),
+                Select::make('customer_id')
+                    ->label(__('tables.customer_name'))
+                    ->relationship('customer', 'name')
+                    ->nullable()
+                    ->searchable(),
 
                 Textarea::make('notes')
                     ->label(__('tables.note'))

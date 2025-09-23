@@ -10,7 +10,7 @@ class WhatsAppNumber extends Model
     use HasFactory;
 
     protected $table = 'whatsapp_numbers'; // pastikan ini sesuai
-    protected $fillable = ['name', 'number', 'is_active'];
+    protected $fillable = ['name', 'number', 'is_active', 'user_id'];
 
     protected $casts = ['is_active' => 'boolean'];
 
@@ -18,4 +18,10 @@ class WhatsAppNumber extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function user()
+{
+    return $this->belongsTo(User::class);
+}
+
 }

@@ -49,7 +49,6 @@ class AdminPanelProvider extends PanelProvider
                 SalesChart::class,
                 VisitorChart::class,
                 RevenueChart::class,
-                WeeklyReportWidget::class,
                 PopularBlogWidget::class,
                 PopularVehicleWidget::class,
             ])
@@ -66,6 +65,13 @@ class AdminPanelProvider extends PanelProvider
                     .fi-topbar-end { gap: 0rem !important; }
                 </style>'
             )
+            //  ->renderHook(
+            //     \Filament\View\PanelsRenderHook::BODY_END,
+            //     fn(): string => view('components.admin-modal-global')->render(),
+            // )
+
+
+
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

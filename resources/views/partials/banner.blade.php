@@ -6,21 +6,23 @@
                  alt="{{ $banner->title ?? 'Banner' }}" 
                  class="w-full h-full object-cover rounded-xl">
 
-            {{-- Overlay teks --}}
-            @if(!empty($banner->title))
-            <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <div class="text-center text-white p-4">
-                    <h1 class="text-xl md:text-2xl font-bold mb-1 drop-shadow-lg">
+            {{-- Overlay full blur tipis + teks kecil di pojok kiri --}}
+            <div class="absolute inset-0 bg-black/30"></div>
+
+            {{-- @if(!empty($banner->title))
+            <div class="absolute bottom-2 left-2">
+                <div class="px-2 py-1">
+                    <h1 class="text-xs md:text-sm font-semibold text-white drop-shadow ">
                         {{ $banner->title }}
                     </h1>
                     @if(!empty($banner->subtitle))
-                    <p class="text-sm md:text-base drop-shadow-md">
+                    <p class="text-[10px] md:text-xs text-gray-200">
                         {{ $banner->subtitle }}
                     </p>
                     @endif
                 </div>
             </div>
-            @endif
+            @endif --}}
         </div>
     @endforeach
 </div>

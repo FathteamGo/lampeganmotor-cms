@@ -12,47 +12,45 @@ class AdminModal extends Component
     public $show = false;
     public $report;
 
-    protected $listeners = ['showWeeklyReportModal' => 'showModal'];
-
     public function mount()
     {
         $this->loadReport();
     }
 
-    public function render()
+    public function loadReport()
     {
-        return view('livewire.admin-modal');
-    }
+        $report = WeeklyReport::where('read', 0)->latest()->first();
 
-    protected function loadReport()
-    {
-        $dismissed = UserModalDismiss::where('user_id', Auth::id())
-            ->where('modal_key', 'weekly_report_reminder')
-            ->exists();
-
-        if (!$dismissed) {
-            $this->report = WeeklyReport::where('read', 0)->latest()->first();
-            $this->show = $this->report ? true : false;
+        if ($report && !UserModalDismiss::where('user_id', Auth::id())
+                ->where('modal_key', 'weekly_report_'.$report->id)
+                ->exists()) 
+        {
+            $this->report = $report;
+            $this->show = true;
         }
     }
 
-    public function showModal()
+    public function markAsRead()
     {
-        $this->loadReport();
-        $this->show = $this->report ? true : false;
-    }
-
-    public function oke()
-    {
+        if ($this->report) {
+            $this->report->update(['read' => 1]);
+        }
         $this->show = false;
     }
 
     public function janganTampilLagi()
     {
-        UserModalDismiss::create([
-            'user_id' => Auth::id(),
-            'modal_key' => 'weekly_report_reminder',
-        ]);
+        if ($this->report) {
+            UserModalDismiss::create([
+                'user_id' => Auth::id(),
+                'modal_key' => 'weekly_report_'.$this->report->id,
+            ]);
+        }
         $this->show = false;
+    }
+
+    public function render()
+    {
+        return view('livewire.admin-modal');
     }
 }

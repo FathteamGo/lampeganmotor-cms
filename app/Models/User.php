@@ -130,4 +130,10 @@ class User extends Authenticatable
             ? Storage::url($this->image)   // misal storage/app/public/photos
             : null; // fallback ke avatar default (initial)
     }
+
+    public function whatsAppNumbers()
+{
+    return $this->hasMany(WhatsAppNumber::class);
+}
+
 }

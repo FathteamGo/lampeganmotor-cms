@@ -68,14 +68,20 @@ class InventoryReport extends Page implements Tables\Contracts\HasTable
             )
             ->columns([
                 Split::make([
-                ImageColumn::make('photos')
-                ->getStateUsing(fn($record) => $record->photos->map(fn($photo) => asset('storage/' . $photo->path))->toArray())
-                ->width(300)
-                ->height(300)
-                ->extraAttributes([
-                    'style' => 'object-fit:cover; margin-right:4px;',
-                ])
-                ->label('Foto'),
+                        ImageColumn::make('photos')
+                            ->getStateUsing(fn($record) => 
+                                $record->photos->isNotEmpty() 
+                                    ? $record->photos->map(fn($photo) => asset('storage/' . $photo->path))->toArray() 
+                                    : [asset('Images/logo/lampegan.png')] // fallback jika kosong
+                            )
+                            ->width(300)
+                            ->height(300)
+                            ->extraAttributes([
+                                'style' => 'object-fit:cover; margin-right:4px;',
+                                'onerror' => "this.onerror=null;this.src='".asset('Images/logo/lampegan.png')."';" // fallback jika file hilang/corrupt
+                            ])
+                            ->label('Foto'),
+
 
 
                     Grid::make(2)->schema([

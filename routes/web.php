@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Controllers\AssetReportController;
 use App\Http\Controllers\FrontPostBlogController;
 use App\Http\Controllers\TesReportInsight;
+use App\Http\Controllers\WeeklyReportController;
 
 // Halaman welcome (default Laravel)
 Route::get('/', function () {
@@ -64,4 +65,10 @@ Route::get('/set-locale/{locale}', function ($locale) {
 })->name('set-locale');
 
 Route::get('/test-report', [TesReportInsight::class, 'index']);
+
+
+Route::post('/weekly-report/{report}/dismiss', [WeeklyReportController::class, 'dismiss'])
+    ->name('weekly-report.dismiss')
+    ->middleware('auth');
+
 

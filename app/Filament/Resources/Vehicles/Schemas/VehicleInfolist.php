@@ -50,7 +50,7 @@ class VehicleInfolist
                 TextEntry::make('description')
                     ->label(__('tables.description'))
                     ->columnSpanFull(),
-                RepeatableEntry::make('photos')
+               RepeatableEntry::make('photos')
                     ->label(__('tables.photos'))
                     ->columnSpanFull()
                     ->grid(3)
@@ -59,9 +59,16 @@ class VehicleInfolist
                             ->label('')
                             ->disk('public')
                             ->height(150)
-                            ->extraImgAttributes(['loading' => 'lazy']),
+                            ->extraImgAttributes([
+                                'loading' => 'lazy',
+                                'onerror' => "this.onerror=null;this.src='" . asset('Images/logo/lampegan.png') . "';", 
+                            ])
+                            ->getStateUsing(function ($state) {
+                                return $state ?: 'Images/logo/lampegan.png'; // jika state kosong
+                            }),
                         TextEntry::make('caption')->label(__('tables.caption')),
                     ]),
+
                 TextEntry::make('created_at')
                     ->label(__('tables.created_at'))
                     ->dateTime(),

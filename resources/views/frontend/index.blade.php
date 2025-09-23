@@ -39,10 +39,10 @@ use Illuminate\Support\Number;
                         {{-- Gambar kotak --}}
                         <div class="aspect-w-1 aspect-h-1 w-full overflow-hidden">
                           <img
-                                src="{{ $vehicle->photos->first() ? Storage::url($vehicle->photos->first()->path) : asset('/Images/logo/lampeganmtrbdg.jpg') }}"
+                                src="{{ $vehicle->photos->first() ? Storage::url($vehicle->photos->first()->path) : asset('/Images/logo/lampegan.png') }}"
                                 alt="{{ $vehicle->displayName }}"
                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                onerror="this.onerror=null;this.src='{{ asset('Images/logo/lampeganmtrbdg.jpg') }}';"
+                                onerror="this.onerror=null;this.src='{{ asset('Images/logo/lampegan.png') }}';"
                             />
                         </div>
 

@@ -20,7 +20,7 @@ class ExpenseForm
 
                 Select::make('category_id')
                     ->label(__('tables.category_name'))
-                    ->options(Category::all()->pluck('name', 'id'))
+                    ->options(Category::whereType('expense')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
 
@@ -31,7 +31,8 @@ class ExpenseForm
 
                 DatePicker::make('expense_date')
                     ->label(__('tables.expense_date'))
-                    ->required(),
+                    ->required()
+                    ->default(now()),
             ]);
     }
 }

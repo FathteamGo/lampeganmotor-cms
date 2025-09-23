@@ -82,6 +82,14 @@ class InventoryReport extends Page implements Tables\Contracts\HasTable
                             ])
                             ->label('Foto'),
 
+                    // ImageColumn::make('photos')
+                    //     ->getStateUsing(fn($record) => $record->photos->take(2)->map(fn($photo) => asset('storage/' . $photo->path))->toArray())
+                    //     ->width(300)
+                    //     ->height(300)
+                    //     ->extraAttributes([
+                    //         'style' => 'object-fit:cover; margin-right:4px;',
+                    //     ])
+                    //     ->label('Foto'),
 
 
                     Grid::make(2)->schema([
@@ -94,13 +102,15 @@ class InventoryReport extends Page implements Tables\Contracts\HasTable
 
                         TextColumn::make('vehicleModel.brand.name')
                             ->formatStateUsing(fn($state) => __('tables.brand') . ": {$state}")
-                            ->searchable(query: fn(Builder $query, string $search) => 
+                            ->searchable(
+                                query: fn(Builder $query, string $search) =>
                                 $query->whereHas('vehicleModel.brand', fn(Builder $q) => $q->where('name', 'like', "%{$search}%"))
                             ),
 
                         TextColumn::make('vehicleModel.name')
                             ->formatStateUsing(fn($state) => __('tables.model') . ": {$state}")
-                            ->searchable(query: fn(Builder $query, string $search) =>
+                            ->searchable(
+                                query: fn(Builder $query, string $search) =>
                                 $query->whereHas('vehicleModel', fn(Builder $q) => $q->where('name', 'like', "%{$search}%"))
                             ),
 
@@ -142,9 +152,9 @@ class InventoryReport extends Page implements Tables\Contracts\HasTable
                             ->formatStateUsing(fn($state) => __('tables.location') . ": {$state}"),
                     ]),
                 ])
-                ->extraAttributes([
-                    'style' => 'border:1px solid #d1d5db; border-radius:4px; padding:10px; margin-bottom:10px;',
-                ]),
+                    ->extraAttributes([
+                        'style' => 'border:1px solid #d1d5db; border-radius:4px; padding:10px; margin-bottom:10px;',
+                    ]),
             ])
             ->filters([])
             ->headerActions([

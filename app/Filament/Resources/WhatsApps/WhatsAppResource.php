@@ -19,9 +19,26 @@ class WhatsAppResource extends Resource
 {
     protected static ?string $model = WhatsAppNumber::class;
 
+    
+
     public static function getNavigationGroup(): ?string
     {
         return __('navigation.settings'); // biar sama kayak yang lain
+    }
+
+      public static function getModelLabel(): string
+    {
+        return 'WhatsApp Number';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'WhatsApp Numbers';
+    }
+
+    public static function getSlug(?\Filament\Panel $panel = null): string
+    {
+        return 'whatsapp-numbers';
     }
     
     public static function form(Schema $schema): Schema

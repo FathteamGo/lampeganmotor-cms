@@ -6,34 +6,58 @@ use Illuminate\Console\Command;
 use App\Services\ReportService;
 use App\Services\GeminiService;
 use App\Services\WaService;
-use App\Models\Sale;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
+use App\Models\WhatsAppNumber;
+use App\Models\WeeklyReport;
 
 class SendWeeklyReport extends Command
 {
     protected $signature = 'report:weekly';
-    protected $description = 'Kirim laporan mingguan ke Owner via WhatsApp';
+    protected $description = 'Kirim laporan mingguan ke WhatsApp gateway';
 
     public function handle(
         ReportService $reportService,
         GeminiService $gemini,
         WaService $wa
     ) {
-        // 1️⃣ Simpan laporan minggu ini (termasuk insight dari AI)
+        // Simpan laporan minggu ini (dengan insight AI)
         $report = $reportService->saveWeeklyReport($gemini);
 
-        // 2️⃣ Motor terlaris 5 besar (dari DB)
-        $topMotors = collect($report->top_motors)->map(fn($m) => "• {$m['name']} → {$m['unit']} unit")->implode("\n");
-        if (trim($topMotors) === '') {
-            $topMotors = " Belum ada penjualan minggu ini";
+        // Cari laporan minggu lalu
+        $lastWeek = WeeklyReport::where('end_date', '<', $report->start_date)
+            ->latest('end_date')
+            ->first();
+
+        // Motor terlaris
+        $topMotors = collect($report->top_motors)
+            ->map(fn($m) => "• {$m['name']} → {$m['unit']} unit")
+            ->implode("\n") ?: "Belum ada penjualan minggu ini";
+
+        // Perbandingan
+        if ($lastWeek) {
+            $salesDiff = $report->sales_count - $lastWeek->sales_count;
+            $salesPercent = $lastWeek->sales_count > 0
+                ? round(($salesDiff / $lastWeek->sales_count) * 100, 1)
+                : 0;
+
+            $incomeDiff = $report->total_income - $lastWeek->total_income;
+            $incomePercent = $lastWeek->total_income > 0
+                ? round(($incomeDiff / $lastWeek->total_income) * 100, 1)
+                : 0;
+
+            $comparison =
+                "📊 Perbandingan dengan minggu lalu:\n" .
+                "• Penjualan: {$report->sales_count} unit (" .
+                ($salesDiff >= 0 ? "naik" : "turun") . " {$salesPercent}%)\n" .
+                "• Pemasukan: " . Number::currency($report->total_income, 'IDR', 'id', 0) .
+                " (" . ($incomeDiff >= 0 ? "naik" : "turun") . " {$incomePercent}%)\n";
+        } else {
+            $comparison = "📊 Belum ada data minggu lalu untuk perbandingan.";
         }
 
-        // Insight sudah tersimpan di DB
-        $insight = $report->insight ?? 'Belum ada insight';
-
-        // Format pesan WA bersih
+        // 5️⃣ Susun pesan
         $message =
+            "🤖 Halo, saya Royal Zero, asisten AI Anda.\n\n" .
             "📆 Laporan Mingguan Lampegan\n" .
             "{$report->start_date} - {$report->end_date}\n\n" .
             "1. Pengunjung: {$report->visitors}\n" .
@@ -43,15 +67,27 @@ class SendWeeklyReport extends Command
             "5. Stok tersedia: {$report->stock}\n" .
             "6. Perpanjangan STNK: {$report->stnk_renewal}\n\n" .
             "🏆 Motor Terlaris:\n{$topMotors}\n\n" .
-            "💡 Insight:\n{$insight}";
+            "💡 Insight:\n{$report->insight}\n\n" .
+            $comparison . "\n\n" .
+            "⚠️ Disclaimer: Laporan ini dibuat otomatis oleh sistem AI. Periksa kembali sebelum digunakan untuk keputusan bisnis.";
 
-        // Kirim WA ke owner
-        $owner = config('services.wa_gateway.owner');
+        // Cari nomor WA gateway
+        $number = WhatsAppNumber::where('is_active', true)
+            ->where('is_report_gateway', true)
+            ->value('number');
 
-        if ($wa->sendText($owner, $message)) {
-            $this->info("✅ Laporan terkirim ke Owner ($owner).");
-        } else {
-            $this->error("❌ Gagal mengirim laporan ke Owner.");
+        if (!$number) {
+            $this->error("❌ Nomor WhatsApp gateway belum diatur.");
+            return Command::FAILURE;
         }
+
+        // Kirim WA
+        if ($wa->sendText($number, $message)) {
+            $this->info("✅ Laporan terkirim ke nomor gateway ($number).");
+            return Command::SUCCESS;
+        }
+
+        $this->error("❌ Gagal mengirim laporan ke WhatsApp.");
+        return Command::FAILURE;
     }
 }

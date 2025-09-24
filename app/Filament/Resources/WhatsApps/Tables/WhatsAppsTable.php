@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\WhatsApps\Tables;
 
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
@@ -37,6 +38,11 @@ class WhatsAppsTable
 
     ToggleColumn::make('is_active')
         ->label('Aktif'),
+
+    IconColumn::make('is_report_gateway')
+    ->boolean()
+    ->label('Report Gateway'),
+
 ])
             ->filters([
                 //

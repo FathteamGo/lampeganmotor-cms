@@ -31,6 +31,18 @@ class WhatsAppForm
         ->label('Aktif')
         ->default(true),
 
+    Forms\Components\Toggle::make('is_report_gateway')
+        ->label('Gunakan untuk Report Gateway')
+        ->reactive()
+        ->afterStateUpdated(function ($state, $record) {
+            if ($state) {
+                // Reset semua record lain jadi false
+                \App\Models\WhatsAppNumber::where('id', '!=', $record->id)
+                    ->update(['is_report_gateway' => false]);
+            }
+        }),
+
+
 
             ]);
     }

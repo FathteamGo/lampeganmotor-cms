@@ -28,6 +28,7 @@ use App\Filament\Widgets\SalesChart;
 use App\Filament\Widgets\RevenueChart;
 use App\Filament\Widgets\VisitorChart;
 use App\Filament\Widgets\WeeklyReportWidget;
+use Illuminate\Support\Facades\Blade;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -51,6 +52,7 @@ class AdminPanelProvider extends PanelProvider
                 RevenueChart::class,
                 PopularBlogWidget::class,
                 PopularVehicleWidget::class,
+                
             ])
             ->navigationGroups($this->getNavigationGroups())
             ->renderHook(
@@ -65,11 +67,7 @@ class AdminPanelProvider extends PanelProvider
                     .fi-topbar-end { gap: 0rem !important; }
                 </style>'
             )
-            //  ->renderHook(
-            //     \Filament\View\PanelsRenderHook::BODY_END,
-            //     fn(): string => view('components.admin-modal-global')->render(),
-            // )
-
+            
 
 
             ->middleware([

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\WhatsAppNumber;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -12,48 +13,49 @@ class WaService
      */
     public function sendText(string $phone, string $text): bool
     {
-        $phone  = $this->normalize($phone);
+     
         $url    = config('services.wa_gateway.url');
         $apiKey = config('services.wa_gateway.api_key');
         $sender = config('services.wa_gateway.sender');
+        // Ambil nomor sender dari DB dulu, fallback ke .env
+        $phone = WhatsAppNumber::where('is_active', true)
+                    ->where('is_report_gateway', true)
+                    ->value('number') ?? config('services.wa_gateway.sender');
 
         if (! $url || ! $apiKey || ! $sender || ! $phone || trim($text) === '') {
-            \Log::warning("WA Service: Konfigurasi tidak lengkap atau data kosong.", [
+            $msg = "WA Service: Konfigurasi tidak lengkap atau data kosong.";
+            \Log::warning($msg, [
                 'url'    => $url,
                 'apiKey' => $apiKey ? 'SET' : 'EMPTY',
-                'sender' => $sender,
+                'sender' => $sender ?: 'EMPTY',
                 'phone'  => $phone,
             ]);
+            echo $msg . "\n";
             return false;
         }
 
         $payload = [
             'api_key' => $apiKey,
-            'sender'  => $sender,
+            'sender'  => $this->normalize($sender),
             'number'  => $phone,
             'message' => $text,
         ];
 
+        // Kirim request
         $res = Http::asForm()->post($url, $payload);
 
-        // Log selalu simpan response asli
-        \Log::info('WA Gateway Response', [
-            'phone'    => $phone,
-            'payload'  => $payload,
-            'status'   => $res->status(),
-            'body'     => $res->body(),
-        ]);
+        // Debug: log & echo payload + response
+        \Log::info('WA Payload Debug', $payload);
+        \Log::info('WA Response Debug', ['status' => $res->status(), 'body' => $res->body()]);
+        echo "Payload: " . json_encode($payload, JSON_UNESCAPED_UNICODE) . "\n";
+        echo "Response: " . $res->body() . "\n";
 
         if ($res->successful()) {
             $body = $res->body();
-
-            // coba decode JSON
             $json = json_decode($body, true);
 
             if (is_array($json)) {
                 $status = strtolower((string)($json['status'] ?? ''));
-
-                // anggap sukses kalau ada salah satu keyword
                 if (in_array($status, ['success', 'ok', 'sent', 'true'])) {
                     return true;
                 }
@@ -65,13 +67,16 @@ class WaService
             }
         }
 
+        echo "❌ Gagal mengirim WA\n";
+        \Log::error('WA Service: gagal mengirim', ['payload' => $payload, 'response' => $res->body()]);
+
         return false;
     }
 
     /**
      * Normalisasi: 08xxxx -> 62xxxx, buang non-digit
      */
-    private function normalize(string $raw): string
+    private function normalize(?string $raw): string
     {
         $raw = preg_replace('/\D+/', '', $raw ?? '');
         if ($raw === '') return '';

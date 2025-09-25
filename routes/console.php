@@ -28,7 +28,7 @@ Artisan::command('inspire', function () {
 // Scheduler laporan mingguan
 Schedule::command('report:weekly')
         ->weeklyOn(0, '3:00') 
-        // ->everyMinute()
+        // ->everySecond()
         ->before(function () {
         // cek apakah nomor WA gateway ada
         $number = WhatsAppNumber::where('is_active', true)

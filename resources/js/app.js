@@ -10,6 +10,13 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination'; // <-- Jangan lupa tambahkan CSS untuk pagination 
 
+import Alpine from 'alpinejs'
+
+window.Alpine = Alpine
+
+Alpine.start()
+
+
 const swiper = new Swiper('.swiper', { // Ganti '.swiper' dengan selector Anda
   // Daftarkan module yang sudah di-import
   modules: [Navigation, Pagination],

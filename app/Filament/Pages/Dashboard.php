@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\WeeklyReportModal;
 use App\Models\WeeklyReport;
 use App\Models\WhatsAppNumber;
 use App\Services\WaService;
@@ -45,6 +46,7 @@ class Dashboard extends BaseDashboard
             \App\Filament\Widgets\PopularVehicleWidget::class,
             \App\Filament\Widgets\PopularBlogWidget::class,
             \App\Filament\Widgets\RevenueChart::class,
+            \App\Filament\Widgets\WeeklyReportModal::class,
         ];
     }
 
@@ -60,7 +62,7 @@ class Dashboard extends BaseDashboard
 
         // Modal Notifikasi WeeklyReport terbaru
         Action::make('weeklyReportNotif')
-            ->label('Insight Baru')
+            ->label('Ada Insight Terbaru')
             ->modalHeading('Insight Baru')
             ->modalSubheading('Ada laporan mingguan baru yang belum dibaca.')
             ->modalContent(view('filament.components.weekly-report-notif')) // Blade modal

@@ -23,15 +23,15 @@ class Dashboard extends BaseDashboard
     {
         return $schema->components([
             Section::make()->schema([
-            DatePicker::make('startDate')
-                ->label('Tanggal Mulai')
-                ->default(Carbon::now())
-                ->maxDate(fn(Get $get) => $get('endDate') ?: Carbon::now()),
-            DatePicker::make('endDate')
-                ->label('Tanggal Selesai')
-                ->default(Carbon::now())
-                ->minDate(fn(Get $get) => $get('startDate') ?: Carbon::now())
-                ->maxDate(Carbon::now()),
+                DatePicker::make('startDate')
+                    ->label('Tanggal Mulai')
+                    ->default(Carbon::now())
+                    ->maxDate(fn(Get $get) => $get('endDate') ?: Carbon::now()),
+                DatePicker::make('endDate')
+                    ->label('Tanggal Selesai')
+                    ->default(Carbon::now())
+                    ->minDate(fn(Get $get) => $get('startDate') ?: Carbon::now())
+                    ->maxDate(Carbon::now()),
             ])->columns(2)->columnSpanFull(),
         ]);
     }
@@ -50,34 +50,32 @@ class Dashboard extends BaseDashboard
         ];
     }
 
-   protected function getHeaderActions(): array
-{
-    return [
-        // Run Report via AI
-        Action::make('runSample')
-            ->label('Run Report AI Agent')
-            ->icon('heroicon-o-bolt')
-            ->color('success')
-            ->action(fn() => $this->runSample()),
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('runSample')
+                ->label('Run Report AI Agent')
+                ->icon('heroicon-o-bolt')
+                ->color('success')
+                ->action(fn() => $this->runSample()),
 
-        // Modal Notifikasi WeeklyReport terbaru
-        Action::make('weeklyReportNotif')
-            ->label('Ada Insight Terbaru')
-            ->modalHeading('Insight Baru')
-            ->modalSubheading('Ada laporan mingguan baru yang belum dibaca.')
-            ->modalContent(view('filament.components.weekly-report-notif')) // Blade modal
-            ->modalButton('Tandai Sudah Dibaca')
-            ->modalWidth('lg')
-            ->hidden(fn () => ! \App\Models\WeeklyReport::where('read', 0)->exists())
-            ->action(function () {
-                \App\Models\WeeklyReport::where('read', 0)->update(['read' => 1]);
-                Notification::make()
-                    ->title('Laporan ditandai sudah dibaca')
-                    ->success()
-                    ->send();
-            }),
-    ];
-}
+            Action::make('weeklyReportNotif')
+                ->label('Ada Insight Terbaru')
+                ->modalHeading('Insight Baru')
+                ->modalSubheading('Ada laporan mingguan baru yang belum dibaca.')
+                ->modalContent(view('filament.components.weekly-report-notif'))
+                ->modalButton('Tandai Sudah Dibaca')
+                ->modalWidth('lg')
+                ->hidden(fn () => !WeeklyReport::where('read', 0)->exists())
+                ->action(function () {
+                    WeeklyReport::where('read', 0)->update(['read' => 1]);
+                    Notification::make()
+                        ->title('Laporan ditandai sudah dibaca')
+                        ->success()
+                        ->send();
+                }),
+        ];
+    }
 
     protected function runSample(): void
     {
@@ -123,10 +121,14 @@ class Dashboard extends BaseDashboard
                 ->map(fn($m) => "• {$m['name']} → {$m['unit']} unit")
                 ->implode("\n") ?: "Belum ada penjualan minggu ini";
 
+            // Tanggal bersih tanpa jam
+            $startDate = Carbon::parse($report->start_date)->format('d M Y');
+            $endDate   = Carbon::parse($report->end_date)->format('d M Y');
+
             $message =
                 "🤖 Halo, saya Royal Zero, asisten AI Anda.\n\n" .
                 "📆 Report Lampegan Motor Periode \n" .
-                "{$report->start_date} - {$report->end_date}\n\n" .
+                "{$startDate} - {$endDate}\n\n" .
                 "1. Pengunjung: {$report->visitors}\n" .
                 "2. Penjualan: {$report->sales_count} unit (Rp " . number_format($report->sales_total, 0, ',', '.') . ")\n" .
                 "3. Pemasukan: Rp " . number_format($report->total_income, 0, ',', '.') . "\n" .

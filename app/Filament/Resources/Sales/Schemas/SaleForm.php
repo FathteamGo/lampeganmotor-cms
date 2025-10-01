@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources\Sales\Schemas;
 
 use App\Models\User;
@@ -22,30 +23,30 @@ class SaleForm
                 ->required(),
 
             Select::make('vehicle_id')
-                ->label(__('tables.purchase_model'))
+                ->label('Motor')
                 ->options(
-                    Vehicle::with(['vehicleModel', 'color'])
+                    Vehicle::with(['vehicleModel','color'])
+                        ->where('status','available')
+                        ->whereDoesntHave('sale')
                         ->get()
-                        ->mapWithKeys(fn ($v) => [
-                            $v->id => sprintf(
-                                '%s | %s | %s',
-                                $v->vehicleModel->name ?? 'Unknown Model',
-                                $v->color->name ?? 'Unknown Color',
-                                $v->license_plate ?? 'No Plate'
-                            ),
-                        ])
+                        ->mapWithKeys(fn($v)=>[$v->id => sprintf('%s | %s | %s',
+                            $v->vehicleModel->name ?? 'Unknown',
+                            $v->color->name ?? 'Unknown',
+                            $v->license_plate ?? 'No Plate'
+                        )])
                 )
                 ->searchable()
-                ->required(),
+                ->required()
+                ->unique('sales','vehicle_id'),
 
             Select::make('customer_id')
-                ->label(__('tables.customer'))
+                ->label('Customer')
                 ->options(Customer::query()->orderBy('name')->pluck('name', 'id'))
                 ->searchable()
                 ->required(),
 
             DatePicker::make('sale_date')
-                ->label(__('tables.sale_date'))
+                ->label('Tanggal')
                 ->required()
                 ->default(now()),
 
@@ -57,7 +58,7 @@ class SaleForm
                 ->required(),
 
             Select::make('payment_method')
-                ->label(__('tables.payment_method'))
+                ->label('Metode Pembayaran')
                 ->options([
                     'cash'        => 'Cash',
                     'credit'      => 'Credit',
@@ -87,11 +88,11 @@ class SaleForm
                 ->numeric()
                 ->minValue(0)
                 ->prefix('Rp')
-                ->visible(fn ($get) => $get('payment_method') === 'cash_tempo'),
+                ->visible(fn ($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
             DatePicker::make('due_date')
-                ->label('Tanggal Jatuh Tempo')
-                ->visible(fn ($get) => $get('payment_method') === 'cash_tempo'),
+                ->label('Jatuh Tempo')
+                ->visible(fn ($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
             TextInput::make('cmo')
                 ->label('CMO / Mediator')
@@ -144,7 +145,7 @@ class SaleForm
                 ->required(),
 
             Textarea::make('notes')
-                ->label(__('tables.note'))
+                ->label('Note')
                 ->columnSpanFull(),
         ]);
     }

@@ -19,6 +19,7 @@ class WeeklyReportModal extends Widget
         $report = WeeklyReport::latest()->first();
 
         if (! $report) {
+            // Tidak ada laporan
             $this->open = false;
             return;
         }
@@ -31,10 +32,10 @@ class WeeklyReportModal extends Widget
 
     protected function formatDateRange(WeeklyReport $report): string
     {
-        $start = $report->start_date ? $report->start_date->format('d M Y') : null;
-        $end = $report->end_date ? $report->end_date->format('d M Y') : null;
+        $start = $report->start_date?->format('d M Y');
+        $end = $report->end_date?->format('d M Y');
         if ($start && $end) return "{$start} - {$end}";
-        return $report->created_at ? $report->created_at->format('d M Y') : '';
+        return $report->created_at?->format('d M Y') ?? '';
     }
 
     protected function formatReport(WeeklyReport $report): string
@@ -56,7 +57,7 @@ class WeeklyReportModal extends Widget
                 : 0;
 
             $comparison =
-                "📊 Perbandingan dengan minggu lalu:\n" .
+                "📊 Perbandingan minggu lalu:\n" .
                 "• Penjualan: {$report->sales_count} unit (" .
                 ($salesDiff >= 0 ? "naik" : "turun") . " {$salesPercent}%)\n" .
                 "• Pemasukan: Rp " . number_format($report->total_income, 0, ',', '.') .

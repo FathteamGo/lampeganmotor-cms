@@ -46,7 +46,9 @@ class Sale extends Model
         'laba_bersih',
     ];
 
-    // relasi
+    // =======================
+    // RELASI
+    // =======================
     public function customer()
     {
         return $this->belongsTo(Customer::class);
@@ -80,6 +82,9 @@ class Sale extends Model
             ->value('id');
     }
 
+    // =======================
+    // APPEND ATTRIBUTES
+    // =======================
     public function getPencairanAttribute()
     {
         $catId = $this->categoryId('pencairan', 'income');
@@ -110,5 +115,25 @@ class Sale extends Model
             - $purchase
             - $cmo
             - $komisi;
+    }
+
+    // =======================
+    // MODEL EVENTS UNTUK AUTO UPDATE STATUS MOTOR
+    // =======================
+    protected static function booted()
+    {
+        // Saat sale dibuat, ubah status motor jadi 'sold'
+        static::created(function ($sale) {
+            if ($sale->vehicle && $sale->vehicle->status !== 'sold') {
+                $sale->vehicle->update(['status' => 'sold']);
+            }
+        });
+
+        // Opsional: jika sale dihapus, rollback status motor ke 'available'
+        static::deleted(function ($sale) {
+            if ($sale->vehicle && $sale->vehicle->status === 'sold') {
+                $sale->vehicle->update(['status' => 'available']);
+            }
+        });
     }
 }

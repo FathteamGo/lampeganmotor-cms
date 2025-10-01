@@ -7,6 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class VehiclesTable
@@ -56,13 +57,13 @@ class VehiclesTable
                     ->label(__('tables.purchase_price'))
                     ->numeric()
                     ->sortable()
-                    ->money('IDR'),
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.')),
 
                 TextColumn::make('sale_price')
                     ->label(__('tables.sale_price'))
                     ->numeric()
                     ->sortable()
-                    ->money('IDR'),
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.')),
 
                 TextColumn::make('odometer')
                     ->label(__('tables.odometer'))
@@ -95,7 +96,14 @@ class VehiclesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options([
+                        'available' => 'Available',
+                        'sold'      => 'Sold',
+                        'in_repair' => 'In Repair',
+                        'hold'      => 'Hold',
+                    ]),
             ])
             ->recordActions([
                 ViewAction::make()->label(__('tables.view')),

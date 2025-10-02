@@ -11,30 +11,47 @@ class SaleInfolist
     {
         return $schema->components([
             // Customer
-            TextEntry::make('customer.name')->label('Nama')->toggleable(),
-            TextEntry::make('customer.address')->label('Alamat')->toggleable(),
-            TextEntry::make('customer.phone')->label('No Telepon')->toggleable(),
+            TextEntry::make('customer.name')->label('Nama'),
+            TextEntry::make('customer.address')->label('Alamat'),
+            TextEntry::make('customer.phone')->label('No Telepon'),
 
             // Kendaraan
-            TextEntry::make('vehicle.vehicleModel.name')->label('Jenis Motor')->toggleable(),
-            TextEntry::make('vehicle.type.name')->label('Type')->toggleable(),
-            TextEntry::make('vehicle.year.year')->label('Tahun')->toggleable(),
-            TextEntry::make('vehicle.color.name')->label('Warna')->toggleable(),
-            TextEntry::make('vehicle.license_plate')->label('No Pol')->toggleable(),
+            TextEntry::make('vehicle.vehicleModel.name')->label('Jenis Motor'),
+            TextEntry::make('vehicle.type.name')->label('Type'),
+            TextEntry::make('vehicle.year.year')->label('Tahun'),
+            TextEntry::make('vehicle.color.name')->label('Warna'),
+            TextEntry::make('vehicle.license_plate')->label('No Pol'),
 
             // Harga
-            TextEntry::make('vehicle.purchase_price')->label('H-Total Pembelian')->money('IDR', locale: 'id')->toggleable(),
-            TextEntry::make('sale_price')->label('OTR')->money('IDR', locale: 'id')->toggleable(),
-            TextEntry::make('dp_po')->label('Dp Po')->money('IDR', locale: 'id')->toggleable(),
-            TextEntry::make('dp_real')->label('Dp Real')->money('IDR', locale: 'id')->toggleable(),
-            TextEntry::make('pencairan')->label('Pencairan')->money('IDR', locale: 'id')->toggleable(),
+            TextEntry::make('vehicle.purchase_price')
+                ->label('H-Total Pembelian')
+                ->money('IDR', locale: 'id'),
+
+            TextEntry::make('sale_price')
+                ->label('OTR')
+                ->money('IDR', locale: 'id'),
+
+            TextEntry::make('dp_po')
+                ->label('Dp Po')
+                ->money('IDR', locale: 'id'),
+
+            TextEntry::make('dp_real')
+                ->label('Dp Real')
+                ->money('IDR', locale: 'id'),
+
+            TextEntry::make('pencairan')
+                ->label('Pencairan')
+                ->money('IDR', locale: 'id'),
+
             TextEntry::make('laba_bersih')
                 ->label('Laba Bersih')
                 ->money('IDR', locale: 'id')
-                ->toggleable()
                 ->state(fn($record) => max(
-                    ($record->pencairan ?? $record->sale_price ?? 0) + ($record->dp_real ?? 0)
-                    - ($record->vehicle->purchase_price ?? 0)
+                    // logic: pencairan (atau sale_price jika pencairan kosong) + dp_real
+                    // dikurangi purchase_price, cmo_fee, direct_commission
+                    ($record->pencairan ?? $record->sale_price ?? 0)
+                    + ($record->dp_real ?? 0)
+                    - ($record->vehicle?->purchase_price ?? 0)
                     - ($record->cmo_fee ?? 0)
                     - ($record->direct_commission ?? 0),
                     0
@@ -43,8 +60,7 @@ class SaleInfolist
             // Pembayaran
             TextEntry::make('payment_method')
                 ->label('Metode Pembayaran')
-                ->toggleable()
-                ->formatStateUsing(fn($s) => match($s){
+                ->formatStateUsing(fn($s) => match ($s) {
                     'cash' => 'Cash',
                     'credit' => 'Credit',
                     'tukartambah' => 'Tukar Tambah',
@@ -55,8 +71,7 @@ class SaleInfolist
             TextEntry::make('remaining_payment')
                 ->label('Sisa Pembayaran')
                 ->money('IDR', locale: 'id')
-                ->toggleable()
-                ->state(fn($record) => match($record->payment_method){
+                ->state(fn($record) => match ($record->payment_method) {
                     'credit', 'cash_tempo' => max(0, ($record->sale_price ?? 0) - ($record->dp_real ?? 0)),
                     default => null,
                 }),
@@ -64,29 +79,28 @@ class SaleInfolist
             TextEntry::make('due_date')
                 ->label('Jatuh Tempo')
                 ->date()
-                ->toggleable()
-                ->state(fn($record) => match($record->payment_method){
-                    'credit', 'cash_tempo' => optional($record->created_at)->addDays(30),
+                ->state(fn($record) => match ($record->payment_method) {
+                    'credit', 'cash_tempo' => ($record->created_at ? $record->created_at->copy()->addDays(30) : null),
                     default => null,
                 }),
 
             // CMO & Komisi
-            TextEntry::make('cmo')->label('CMO')->toggleable(),
-            TextEntry::make('cmo_fee')->label('FEE CMO')->money('IDR', locale: 'id')->toggleable(),
-            TextEntry::make('direct_commission')->label('Komisi Langsung')->money('IDR', locale: 'id')->toggleable(),
+            TextEntry::make('cmo')->label('CMO'),
+            TextEntry::make('cmo_fee')->label('FEE CMO')->money('IDR', locale: 'id'),
+            TextEntry::make('direct_commission')->label('Komisi Langsung')->money('IDR', locale: 'id'),
 
             // Lainnya
-            TextEntry::make('order_source')->label('Sumber Order')->toggleable(),
-            TextEntry::make('user.name')->label('Ex')->toggleable(),
-            TextEntry::make('branch_name')->label('Cabang')->toggleable(),
-            TextEntry::make('result')->label('Hasil')->toggleable(),
-            TextEntry::make('status')->label('Status')->toggleable(),
-            TextEntry::make('notes')->label('Note')->toggleable(),
+            TextEntry::make('order_source')->label('Sumber Order'),
+            TextEntry::make('user.name')->label('Ex'),
+            TextEntry::make('branch_name')->label('Cabang'),
+            TextEntry::make('result')->label('Hasil'),
+            TextEntry::make('status')->label('Status'),
+            TextEntry::make('notes')->label('Note'),
 
             // Timestamps
-            TextEntry::make('sale_date')->label('Tanggal')->date()->toggleable(),
-            TextEntry::make('created_at')->label('Dibuat')->dateTime()->toggleable(),
-            TextEntry::make('updated_at')->label('Diubah')->dateTime()->toggleable(),
+            TextEntry::make('sale_date')->label('Tanggal')->date(),
+            TextEntry::make('created_at')->label('Dibuat')->dateTime(),
+            TextEntry::make('updated_at')->label('Diubah')->dateTime(),
         ]);
     }
 }

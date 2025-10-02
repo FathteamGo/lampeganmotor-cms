@@ -1,167 +1,275 @@
 <?php
 
-namespace App\Exports;
+namespace App\Filament\Pages;
 
 use App\Models\Sale;
+use Filament\Pages\Page;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
-use Maatwebsite\Excel\Concerns\{
-    FromCollection,
-    WithHeadings,
-    WithMapping,
-    WithStyles,
-    ShouldAutoSize,
-    WithColumnFormatting,
-    WithEvents
-};
-use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
-use PhpOffice\PhpSpreadsheet\Style\Border;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\SalesReportExport;
+use UnitEnum;
 
-class SalesReportExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithColumnFormatting, WithEvents
+class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
 {
-    protected $query;
+    use InteractsWithSchemas;
+    use Tables\Concerns\InteractsWithTable;
 
-    public function __construct($query = null)
+    protected static string|UnitEnum|null $navigationGroup = 'navigation.report_audit';
+    protected static ?string $navigationLabel = 'navigation.sales_report';
+    protected static ?string $title = 'navigation.sales_report_title';
+    protected static ?int $navigationSort = 5;
+
+    protected string $view = 'filament.pages.sales-report';
+
+    public ?array $filters = [
+        'startDate' => null,
+        'endDate'   => null,
+        'search'    => null,
+    ];
+
+    // Role only owner
+    public static function shouldRegisterNavigation(): bool
     {
-        $this->query = $query;
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
     }
 
-    public function collection()
+    public static function canAccess(): bool
     {
-        return ($this->query ?? Sale::query())
-            ->with([
-                'customer',
-                'vehicle.vehicleModel.brand',
-                'vehicle.type',
-                'vehicle.color',
-                'vehicle.year',
-                'user'
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __(static::$navigationGroup);
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __(static::$navigationLabel);
+    }
+
+    public function getTitle(): string
+    {
+        return __(static::$title);
+    }
+
+    public function mount(): void
+    {
+        $this->filters['startDate'] = now()->startOfMonth()->toDateString();
+        $this->filters['endDate'] = now()->endOfMonth()->toDateString();
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make()
+                    ->schema([
+                        DatePicker::make('startDate')
+                            ->label(__('navigation.start_date'))
+                            ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
+
+                        DatePicker::make('endDate')
+                            ->label(__('navigation.end_date'))
+                            ->minDate(fn (Get $get) => $get('startDate') ?: now())
+                            ->maxDate(now()),
+
+                        TextInput::make('search')
+                            ->label(__('navigation.search'))
+                            ->placeholder(__('navigation.search')),
+                    ])
+                    ->columns(3)
+                    ->columnSpanFull(),
             ])
-            ->get();
+            ->statePath('filters');
     }
 
-    public function headings(): array
+    public function exportExcel()
     {
-        return [
-            'No', 'Tanggal', 'Pelanggan', 'Telepon', 'Lokasi',
-            'Merk', 'Tipe', 'Model', 'Warna', 'Tahun',
-            'VIN', 'Plat Nomor', 'H TOTAL PEMBELIAN', 'OTR',
-            'DP PO', 'DP REAL', 'PENCARIAAN', 'TOTAL PENJUALAN', 'LABA BERSIH',
-            'Metode Pembayaran', 'Sisa Pembayaran', 'Jatuh Tempo',
-            'CMO / Mediator', 'Fee CMO', 'Komisi Langsung',
-            'Ex', 'Cabang', 'Hasil', 'Sumber Order', 'Status', 'Catatan'
-        ];
+        $query = $this->table($this->makeTable())->getQuery();
+        return Excel::download(new SalesReportExport($query), 'sales-report.xlsx');
     }
 
-    public function map($sale): array
+    public function table(Table $table): Table
     {
-        $purchasePrice = $sale->vehicle?->purchase_price ?? 0;
-        $salePrice = $sale->sale_price ?? 0;
-        $dpPo = $sale->dp_po ?? 0;
-        $dpReal = $sale->dp_real ?? 0;
-        $cmoFee = $sale->cmo_fee ?? 0;
-        $directCommission = $sale->direct_commission ?? 0;
+        $start  = data_get($this->filters, 'startDate');
+        $end    = data_get($this->filters, 'endDate');
+        $search = data_get($this->filters, 'search');
 
-        // Hitung Pencairan
-        $pencairan = match($sale->payment_method) {
-            'cash', 'tukartambah' => $salePrice,
-            'credit', 'cash_tempo' => $dpReal + ($sale->remaining_payment ?? 0),
-            default => $salePrice
-        };
+        return $table
+            ->query(
+                Sale::query()
+                    ->with(['vehicle.vehicleModel.brand', 'vehicle.type', 'vehicle.color', 'vehicle.year', 'customer', 'user'])
+                    ->when($start, fn ($q) => $q->whereDate('sale_date', '>=', Carbon::parse($start)))
+                    ->when($end, fn ($q) => $q->whereDate('sale_date', '<=', Carbon::parse($end)))
+                    ->when($search, fn ($q, $s) =>
+                        $q->where(function ($sub) use ($s) {
+                            $sub->where('id', 'like', "%{$s}%")
+                                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$s}%"))
+                                ->orWhereHas('vehicle', fn ($v) =>
+                                    $v->where('vin', 'like', "%{$s}%")
+                                      ->orWhere('license_plate', 'like', "%{$s}%")
+                                );
+                        })
+                    )
+            )
+            ->columns([
+                TextColumn::make('id')->label(__('tables.number'))->sortable(),
+                TextColumn::make('sale_date')->label(__('navigation.date'))->date('F d, Y')->sortable(),
+                TextColumn::make('customer.name')->label(__('navigation.customer'))->searchable(),
+                TextColumn::make('customer.phone')->label(__('tables.phone')),
+                TextColumn::make('customer.address')->label(__('tables.location')),
+                TextColumn::make('vehicle.vehicleModel.brand.name')->label(__('tables.brand')),
+                TextColumn::make('vehicle.type.name')->label(__('tables.type')),
+                TextColumn::make('vehicle.vehicleModel.name')->label(__('tables.model')),
+                TextColumn::make('vehicle.color.name')->label(__('tables.color')),
+                TextColumn::make('vehicle.year.year')->label(__('tables.year')),
+                TextColumn::make('vehicle.vin')->label(__('tables.vin')),
+                TextColumn::make('vehicle.license_plate')->label(__('tables.license_plate')),
+                
+                // Financial columns
+                TextColumn::make('vehicle.purchase_price')
+                    ->label(__('tables.purchase_price'))
+                    ->money('IDR'),
+                
+                TextColumn::make('sale_price')
+                    ->label(__('tables.sale_price'))
+                    ->money('IDR'),
+                
+                TextColumn::make('total_price')
+                    ->label(__('tables.total_price'))
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => $record->sale_price ?? 0),
+                
+                TextColumn::make('otr')
+                    ->label(__('tables.otr'))
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => $record->sale_price ?? 0),
+                
+               TextColumn::make('payment_method')->label(__('tables.payment_method')),
+                
+                TextColumn::make('dp_po')
+                    ->label(__('tables.dp_po'))
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => $record->dp_po ?? 0),
+                
+                TextColumn::make('dp_real')
+                    ->label(__('tables.dp_real'))
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => $record->dp_real ?? 0),
+                
+                TextColumn::make('remaining_payment')
+                    ->label('Sisa Pembayaran')
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => $record->remaining_payment ?? 0),
+                
+                TextColumn::make('due_date')
+                    ->label('Tanggal Jatuh Tempo')
+                    ->date('F d, Y')
+                    ->placeholder('-'),
+                
+                TextColumn::make('pencairan')
+                    ->label('Pencairan')
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => match($record->payment_method) {
+                        'cash', 'tukartambah' => $record->sale_price ?? 0,
+                        'credit', 'cash_tempo' => ($record->dp_real ?? 0) + ($record->remaining_payment ?? 0),
+                        default => $record->sale_price ?? 0
+                    }),
+                
+                TextColumn::make('piutang')
+                    ->label('Piutang')
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => ($record->sale_price ?? 0) - ($record->dp_real ?? 0)),
+                
+                TextColumn::make('total_penjualan')
+                    ->label(__('tables.total_penjualan'))
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => $record->sale_price ?? 0),
+                
+                TextColumn::make('laba_bersih')
+                    ->label('Laba Bersih')
+                    ->money('IDR', locale: 'id')
+                    ->state(fn($record) => max(
+                        // Pencairan sudah mencakup dp_real + sisa pembayaran (kalau kredit/cash_tempo)
+                        ($record->pencairan ?? $record->sale_price ?? 0)
+                        - ($record->vehicle?->purchase_price ?? 0)
+                        - ($record->cmo_fee ?? 0)
+                        - ($record->direct_commission ?? 0),
+                        0
+                    )),
 
-        // Hitung Laba Bersih
-        $labaBersih = $pencairan - $purchasePrice - $dpReal - $cmoFee - $directCommission;
-
-        return [
-            $sale->id,
-            $sale->sale_date ? Carbon::parse($sale->sale_date)->format('d F Y') : '-',
-            $sale->customer?->name ?? '-',
-            $sale->customer?->phone ?? '-',
-            $sale->customer?->address ?? '-',
-            $sale->vehicle?->vehicleModel?->brand?->name ?? '-',
-            $sale->vehicle?->type?->name ?? '-',
-            $sale->vehicle?->vehicleModel?->name ?? '-',
-            $sale->vehicle?->color?->name ?? '-',
-            $sale->vehicle?->year?->year ?? '-',
-            $sale->vehicle?->vin ?? '-',
-            $sale->vehicle?->license_plate ?? '-',
-            $purchasePrice,
-            $salePrice,
-            $dpPo,
-            $dpReal,
-            $pencairan,
-            $salePrice, // Total Penjualan bisa disesuaikan
-            $labaBersih,
-            match($sale->payment_method) {
-                'cash' => 'Cash',
-                'credit' => 'Credit',
-                'tukartambah' => 'Tukar Tambah',
-                'cash_tempo' => 'Cash Tempo',
-                default => $sale->payment_method ?? '-'
-            },
-            $sale->remaining_payment ?? 0,
-            $sale->due_date ? Carbon::parse($sale->due_date)->format('d F Y') : '-',
-            $sale->cmo ?? '-',
-            $cmoFee,
-            $directCommission,
-            $sale->user?->name ?? '-',
-            $sale->branch_name ?? '-',
-            $sale->result ?? '-',
-            match($sale->order_source) {
-                'fb' => 'Facebook',
-                'ig' => 'Instagram',
-                'tiktok' => 'TikTok',
-                'walk_in' => 'Walk In',
-                default => '-'
-            },
-            match($sale->status) {
-                'proses' => 'Proses',
-                'kirim' => 'Kirim',
-                'selesai' => 'Selesai',
-                default => '-'
-            },
-            $sale->notes ?? '-'
-        ];
+                
+                // CMO & Commission
+                TextColumn::make('cmo')
+                    ->label('CMO')
+                    ->getStateUsing(fn ($record) => $record->cmo ?? '-'),
+                
+                TextColumn::make('cmo_fee')
+                    ->label('Fee CMO')
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => $record->cmo_fee ?? 0),
+                
+                TextColumn::make('direct_commission')
+                    ->label('Komisi Langsung')
+                    ->money('IDR')
+                    ->getStateUsing(fn ($record) => $record->direct_commission ?? 0),
+                
+                // Additional Information
+                TextColumn::make('order_source')
+                    ->label('Sumber Order')
+                    ->formatStateUsing(fn ($s) => match ($s) {
+                        'fb' => 'Facebook',
+                        'ig' => 'Instagram',
+                        'tiktok' => 'TikTok',
+                        'walk_in' => 'Walk In',
+                        default => $s ?: '-',
+                    }),
+                
+                TextColumn::make('user.name')
+                    ->label('Ex')
+                    ->getStateUsing(fn ($record) => $record->user?->name ?? '-'),
+                
+                TextColumn::make('branch_name')
+                    ->label('Cabang')
+                    ->getStateUsing(fn ($record) => $record->branch_name ?? '-'),
+                
+                TextColumn::make('result')
+                    ->label('Hasil')
+                    ->getStateUsing(fn ($record) => $record->result ?? '-'),
+                
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->formatStateUsing(fn ($s) => match ($s) {
+                        'proses' => 'Proses',
+                        'kirim' => 'Kirim',
+                        'selesai' => 'Selesai',
+                        default => $s ?: '-',
+                    }),
+                
+                TextColumn::make('notes')
+                    ->label('Catatan')
+                    ->limit(50)
+                    ->getStateUsing(fn ($record) => $record->notes ?? '-'),
+            ])
+            ->paginated(false);
     }
 
-    public function styles(Worksheet $sheet)
+    public function applyFilters(): void
     {
-        return [
-            1 => ['font' => ['bold' => true]],
-        ];
-    }
-
-    public function columnFormats(): array
-    {
-        return [
-            'M'=>'#,##0',  // H TOTAL PEMBELIAN
-            'N'=>'#,##0',  // OTR
-            'O'=>'#,##0',  // DP PO
-            'P'=>'#,##0',  // DP REAL
-            'Q'=>'#,##0',  // Pencairan
-            'R'=>'#,##0',  // Total Penjualan
-            'S'=>'#,##0',  // Laba Bersih
-            'Y'=>'#,##0',  // Fee CMO
-            'Z'=>'#,##0',  // Komisi Langsung
-            'AA'=>'#,##0', // Sisa Pembayaran
-        ];
-    }
-
-    public function registerEvents(): array
-    {
-        return [
-            AfterSheet::class => function(AfterSheet $event) {
-                $sheet = $event->sheet->getDelegate();
-                $highestRow = $sheet->getHighestRow();
-                $highestColumn = $sheet->getHighestColumn();
-                $range = "A1:{$highestColumn}{$highestRow}";
-
-                $sheet->getStyle($range)->applyFromArray([
-                    'borders'=>['allBorders'=>['borderStyle'=>Border::BORDER_THIN,'color'=>['argb'=>'FF000000']]],
-                ]);
-                $sheet->getStyle("A1:{$highestColumn}1")->getAlignment()->setHorizontal('center');
-            },
-        ];
+        // Filter otomatis dipakai oleh query(), jadi kosong
     }
 }

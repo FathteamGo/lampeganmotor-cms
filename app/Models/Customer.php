@@ -54,8 +54,14 @@ class Customer extends Model
         return $this->tiktok ? "https://tiktok.com/@{$this->tiktok}" : null;
     }
 
-     public function stnkRenewals()
+    /* ----------------- Relasi ----------------- */
+    public function stnkRenewals()
     {
         return $this->hasMany(StnkRenewal::class);
+    }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
     }
 }

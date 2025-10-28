@@ -3,12 +3,13 @@
 namespace App\Filament\Resources\Sales\Schemas;
 
 use App\Models\User;
-use App\Models\Customer;
 use App\Models\Vehicle;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Section;
+use Filament\Schemas\Components\Section as ComponentsSection;
 use Filament\Schemas\Schema;
 
 class SaleForm
@@ -39,11 +40,40 @@ class SaleForm
                 ->required()
                 ->unique('sales','vehicle_id'),
 
-            Select::make('customer_id')
-                ->label('Customer')
-                ->options(Customer::query()->orderBy('name')->pluck('name', 'id'))
-                ->searchable()
-                ->required(),
+            // ===== DATA CUSTOMER (MANUAL INPUT) =====
+            ComponentsSection::make('Data Customer')
+                ->description('Data customer akan otomatis disimpan ke master Customer')
+                ->schema([
+                    TextInput::make('customer_name')
+                        ->label('Nama Customer')
+                        ->required()
+                        ->maxLength(255),
+
+                    // TextInput::make('customer_nik')
+                    //     ->label('NIK')
+                    //     ->maxLength(20),
+
+                    TextInput::make('customer_phone')
+                        ->label('No. Telepon')
+                        ->tel()
+                        ->maxLength(20),
+
+                    TextInput::make('customer_address')
+                        ->label('Alamat')
+                        ->maxLength(500)
+                        ->columnSpan(2),
+
+                    TextInput::make('customer_instagram')
+                        ->label('Instagram')
+                        ->placeholder('@username atau URL')
+                        ->maxLength(255),
+
+                    TextInput::make('customer_tiktok')
+                        ->label('TikTok')
+                        ->placeholder('@username atau URL')
+                        ->maxLength(255),
+                ])
+                ->columns(2),
 
             DatePicker::make('sale_date')
                 ->label('Tanggal')
@@ -116,6 +146,7 @@ class SaleForm
                     'fb'      => 'Facebook',
                     'ig'      => 'Instagram',
                     'tiktok'  => 'TikTok',
+                    'olx'     => 'OLX',
                     'walk_in' => 'Walk In',
                 ])
                 ->searchable()

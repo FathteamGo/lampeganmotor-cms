@@ -20,7 +20,7 @@ trait HasRoleAccess
         return $this->hasRole('Owner');
     }
 
-    /**
+    /**r
      * Cek apakah user adalah Super Admin
      */
     public function isSuperAdmin(): bool

@@ -7,6 +7,8 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
 
 class CustomersTable
 {
@@ -15,55 +17,141 @@ class CustomersTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label(__('tables.customers')) // multi-bahasa
-                    ->searchable(),
-
-                TextColumn::make('nik')
-                    ->label(__('tables.nik'))
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable(),
+                    ->label('Nama Customer')
+                    ->searchable()
+                    ->sortable(),
 
                 TextColumn::make('phone')
-                    ->label(__('tables.phone'))
+                    ->label('No. Telepon')
                     ->searchable(),
 
                 TextColumn::make('address')
-                    ->label(__('alamat'))
+                    ->label('Alamat')
+                    ->searchable()
+                    ->limit(30)
+                    ->toggleable(),
+
+                TextColumn::make('nik')
+                    ->label('NIK')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
+
+                // ===== KOLOM BARU: JUMLAH PEMBELIAN =====
+                TextColumn::make('total_units')
+                    ->label('Total Unit Dibeli')
+                    ->getStateUsing(fn ($record) => $record->sales()->count())
+                    ->badge()
+                    ->color('success'),
+
+                TextColumn::make('last_purchase')
+                    ->label('Pembelian Terakhir')
+                    ->getStateUsing(function ($record) {
+                        $lastSale = $record->sales()->latest('sale_date')->first();
+                        return $lastSale ? $lastSale->sale_date->format('d M Y') : '-';
+                    })
+                    ->sortable(),
 
                 TextColumn::make('instagram')
                     ->label('Instagram')
-                    ->formatStateUsing(fn ($record) => $record->instagram ? '@'.$record->instagram : null)
-                    ->url(fn ($record) => $record->instagram_url, shouldOpenInNewTab: true),
+                    ->formatStateUsing(fn ($record) => $record->instagram ? '@'.$record->instagram : '-')
+                    ->url(fn ($record) => $record->instagram_url, shouldOpenInNewTab: true)
+                    ->toggleable(),
 
                 TextColumn::make('tiktok')
                     ->label('TikTok')
-                    ->formatStateUsing(fn ($record) => $record->tiktok ? '@'.$record->tiktok : null)
-                    ->url(fn ($record) => $record->tiktok_url, shouldOpenInNewTab: true),
+                    ->formatStateUsing(fn ($record) => $record->tiktok ? '@'.$record->tiktok : '-')
+                    ->url(fn ($record) => $record->tiktok_url, shouldOpenInNewTab: true)
+                    ->toggleable(),
 
                 TextColumn::make('created_at')
-                    ->label(__('tables.created_at'))
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('updated_at')
-                    ->label(__('tables.updated_at'))
-                    ->dateTime()
+                    ->label('Terdaftar')
+                    ->dateTime('d M Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('period')
+                    ->label('Periode Pembelian')
+                    ->options([
+                        'this_month' => 'Bulan Ini',
+                        'last_month' => 'Bulan Kemarin',
+                        'all'        => 'Semua',
+                    ])
+                    ->default('this_month')
+                    ->query(function (Builder $query, array $data) {
+                        if (!isset($data['value']) || $data['value'] === 'all') {
+                            return $query;
+                        }
+
+                        return $query->whereHas('sales', function (Builder $q) use ($data) {
+                            if ($data['value'] === 'this_month') {
+                                $q->whereBetween('sale_date', [
+                                    now()->startOfMonth(),
+                                    now()->endOfMonth()
+                                ]);
+                            } elseif ($data['value'] === 'last_month') {
+                                $q->whereBetween('sale_date', [
+                                    now()->subMonth()->startOfMonth(),
+                                    now()->subMonth()->endOfMonth()
+                                ]);
+                            }
+                        });
+                    }),
+
+                SelectFilter::make('month')
+                    ->label('Bulan')
+                    ->options([
+                        '1'  => 'Januari',
+                        '2'  => 'Februari',
+                        '3'  => 'Maret',
+                        '4'  => 'April',
+                        '5'  => 'Mei',
+                        '6'  => 'Juni',
+                        '7'  => 'Juli',
+                        '8'  => 'Agustus',
+                        '9'  => 'September',
+                        '10' => 'Oktober',
+                        '11' => 'November',
+                        '12' => 'Desember',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (isset($data['value'])) {
+                            return $query->whereHas('sales', function (Builder $q) use ($data) {
+                                $q->whereMonth('sale_date', $data['value']);
+                            });
+                        }
+                        return $query;
+                    }),
+
+                SelectFilter::make('year')
+                    ->label('Tahun')
+                    ->options(function () {
+                        $currentYear = now()->year;
+                        $years = [];
+                        for ($i = $currentYear; $i >= $currentYear - 5; $i--) {
+                            $years[$i] = $i;
+                        }
+                        return $years;
+                    })
+                    ->default(now()->year)
+                    ->query(function (Builder $query, array $data) {
+                        if (isset($data['value'])) {
+                            return $query->whereHas('sales', function (Builder $q) use ($data) {
+                                $q->whereYear('sale_date', $data['value']);
+                            });
+                        }
+                        return $query;
+                    }),
             ])
+            ->defaultSort('created_at', 'desc')
             ->recordActions([
                 EditAction::make()
-                    ->label(__('tables.edit')), // multi-bahasa
+                    ->label('Edit'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->label(__('tables.delete')), // multi-bahasa
+                        ->label('Hapus'),
                 ]),
             ]);
     }

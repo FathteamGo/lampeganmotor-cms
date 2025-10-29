@@ -23,7 +23,7 @@ use App\Services\WhatsAppService;
 
 class LandingController extends Controller
 {
-    /**
+   /**
      * Halaman utama (Landing Page)
      */
     public function index(Request $request)
@@ -35,8 +35,15 @@ class LandingController extends Controller
             'visited_at' => now(),
         ]);
 
-        $vehicleQuery = Vehicle::whereIn('status', ['available'])
-            ->with(['vehicleModel.brand', 'photos', 'type', 'year']);
+        //  tampilkan yang available + sold < 2 hari
+        $vehicleQuery = Vehicle::where(function ($q) {
+            $q->where('status', 'available')
+              ->orWhere(function ($q2) {
+                  $q2->where('status', 'sold')
+                      ->where('updated_at', '>=', now()->subDays(2));
+              });
+        })
+        ->with(['vehicleModel.brand', 'photos', 'type', 'year']);
 
         // filter kendaraan
         if ($request->filled('brand')) {
@@ -89,7 +96,7 @@ class LandingController extends Controller
 
         $video = VideoSetting::first();
         $categories_blog = CategoriesBlog::all();
-        
+
         // hanya 3 blog terbaru
         $blogs = PostBlog::with('category')
             ->where('is_published', true)
@@ -164,22 +171,32 @@ class LandingController extends Controller
     /**
      * Halaman detail kendaraan
      */
-    public function show(Vehicle $vehicle)
-    {
-        $vehicle->load(['vehicleModel.brand', 'type', 'color', 'photos', 'year']);
+ public function show(Vehicle $vehicle)
+{
+    $vehicle->load(['vehicleModel.brand', 'type', 'color', 'photos', 'year']);
 
-        // ✅ increment views kendaraan
-        $vehicle->increment('views');
-
-        $header = HeaderSetting::first() ?? (object) [
-            'site_name'     => 'Lampegan Motor',
-            'logo'          => null,
-            'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
-            'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
-        ];
-
-        return view('frontend.show', compact('vehicle', 'header'));
+    // Blokir kalau sold
+    if ($vehicle->status === 'sold') {
+        abort(404, 'Kendaraan tidak tersedia atau sudah terjual.');
     }
+
+    // Tambah view count
+    $vehicle->increment('views');
+
+    $header = HeaderSetting::first() ?? (object) [
+        'site_name'     => 'Lampegan Motor',
+        'logo'          => null,
+        'instagram_url' => 'https://www.instagram.com/lampeganmotorbdg',
+        'tiktok_url'    => 'https://www.tiktok.com/@lampeganmotorbdg',
+    ];
+
+    // Tambahkan ini
+    $dpAmount = $vehicle->dp_amount ?? 0;
+
+    return view('frontend.show', compact('vehicle', 'header', 'dpAmount'));
+}
+
+
 
     /**
      * Form jual motor

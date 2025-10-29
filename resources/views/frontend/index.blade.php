@@ -19,7 +19,8 @@ use Illuminate\Support\Number;
     {{-- Banner Section --}}
     @include('partials.banner')
 
-     @include('partials.blog_section', ['categories_blog' => $categories_blog, 'blogs' => $blogs])
+    {{-- Blog Section --}}
+    @include('partials.blog_section', ['categories_blog' => $categories_blog, 'blogs' => $blogs])
 
     {{-- Filter Section --}}
     @include('partials.filter')
@@ -33,24 +34,60 @@ use Illuminate\Support\Number;
         @else
             <div class="grid grid-cols-1 gap-6">
                 @foreach ($vehicles as $vehicle)
-                    <a href="{{ route('landing.show', $vehicle) }}"
-                       class="block bg-white dark:bg-black rounded-lg shadow-md hover:shadow-xl 
-                              transition-all duration-300 overflow-hidden group">
-                        {{-- Gambar kotak --}}
-                        <div class="aspect-w-1 aspect-h-1 w-full overflow-hidden">
-                          <img
-                                src="{{ $vehicle->photos->first() ? Storage::url($vehicle->photos->first()->path) : asset('/Images/logo/lampegan.png') }}"
+                    @php
+                        $isSold = $vehicle->status === 'sold';
+                    @endphp
+
+                    <{{ $isSold ? 'div' : 'a' }}
+                        @unless($isSold)
+                            href="{{ route('landing.show', $vehicle) }}"
+                        @endunless
+                        class="relative block bg-white dark:bg-black rounded-lg shadow-md hover:shadow-xl 
+                               transition-all duration-300 overflow-hidden group
+                               {{ $isSold ? 'opacity-95 cursor-not-allowed' : '' }}"
+                    >
+                        {{-- Gambar dengan tinggi tetap --}}
+                        <div class="relative w-full h-64 overflow-hidden rounded-t-lg">
+                            <img
+                                src="{{ $vehicle->photos->first() 
+                                    ? Storage::url($vehicle->photos->first()->path) 
+                                    : asset('/Images/logo/lampegan.png') }}"
                                 alt="{{ $vehicle->displayName }}"
                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 onerror="this.onerror=null;this.src='{{ asset('Images/logo/lampegan.png') }}';"
                             />
+
+                            {{-- Stempel TERJUAL di atas gambar --}}
+                            @if ($isSold)
+                                <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                    <span class="text-white text-4xl font-extrabold uppercase tracking-widest
+                                                 px-8 py-3 rounded-md border-4 border-white bg-white/20
+                                                 shadow-[0_0_20px_rgba(255,255,255,0.5)]
+                                                 rotate-[-18deg] select-none"
+                                          style="text-shadow: 2px 2px 8px rgba(0,0,0,0.6);">
+                                        TERJUAL
+                                    </span>
+                                </div>
+                            @endif
                         </div>
 
-                        <div class="p-4">
-                            <h3 class="text-lg font-semibold text-black dark:text-white mb-1 
-                                       group-hover:text-red-500 transition-colors">
-                                {{ $vehicle->displayName }}
-                            </h3>
+                        {{-- Detail Kendaraan --}}
+                        <div class="p-4 flex flex-col">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-lg font-semibold text-black dark:text-white 
+                                           group-hover:text-red-500 transition-colors">
+                                    {{ $vehicle->displayName }}
+                                </h3>
+
+                                {{-- Label TERJUAL di samping nama --}}
+                                @if ($isSold)
+                                    <span class="text-xs font-bold uppercase bg-red-600 text-white px-3 py-1 rounded-md 
+                                                shadow-sm border border-red-700">
+                                        TERJUAL
+                                    </span>
+                                @endif
+                            </div>
+
                             <p class="text-sm text-black dark:text-white mb-2">
                                 Tahun {{ $vehicle->year->year ?? 'N/A' }}
                             </p>
@@ -58,7 +95,7 @@ use Illuminate\Support\Number;
                                 {{ Number::currency($vehicle->sale_price, 'IDR', 'id') }}
                             </p>
                         </div>
-                    </a>
+                    </{{ $isSold ? 'div' : 'a' }}>
                 @endforeach
             </div>
 
@@ -85,11 +122,8 @@ use Illuminate\Support\Number;
         function showSlide(index) {
             slides.forEach((slide, i) => {
                 slide.classList.remove('slide-active', 'slide-inactive');
-                if (i === index) {
-                    slide.classList.add('slide-active');
-                } else {
-                    slide.classList.add('slide-inactive');
-                }
+                if (i === index) slide.classList.add('slide-active');
+                else slide.classList.add('slide-inactive');
             });
         }
 
@@ -106,10 +140,10 @@ use Illuminate\Support\Number;
         prevButton?.addEventListener('click', prevSlide);
         nextButton?.addEventListener('click', nextSlide);
 
-        // Auto slide
+        // Auto slide every 5s
         let autoSlideInterval = setInterval(nextSlide, 5000);
 
-        // Pause auto slide on hover
+        // Pause on hover
         slider.addEventListener('mouseenter', () => clearInterval(autoSlideInterval));
         slider.addEventListener('mouseleave', () => {
             autoSlideInterval = setInterval(nextSlide, 5000);

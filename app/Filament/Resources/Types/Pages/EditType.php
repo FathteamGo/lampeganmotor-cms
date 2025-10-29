@@ -14,8 +14,8 @@ class EditType extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-             DeleteAction::make()
-                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
+            //  DeleteAction::make()
+            //     ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 }

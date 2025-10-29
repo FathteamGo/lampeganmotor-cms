@@ -14,8 +14,8 @@ use App\Models\Color;
 use App\Models\Year;
 use Illuminate\Validation\Rule;
 use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class VehicleForm
 {
@@ -88,19 +88,23 @@ class VehicleForm
                 TextInput::make('purchase_price')
                     ->label('Harga Beli')
                     ->required()
-                    ->numeric(),
+                    ->numeric()
+                    ->prefix('Rp'),
 
                 TextInput::make('sale_price')
                     ->label('Harga Jual')
-                    ->numeric(),
+                    ->numeric()
+                    ->prefix('Rp'),
 
-                TextInput::make('dp_amount')
+                TextInput::make('down_payment')
                     ->label('DP (Nominal)')
                     ->numeric()
-                    ->minValue(0),
+                    ->prefix('Rp')
+                    ->minValue(0)
+                    ->helperText('Masukkan nominal DP kendaraan (bukan persen).'),
 
                 TextInput::make('odometer')
-                    ->label('Odometer')
+                    ->label('Odometer (KM)')
                     ->numeric()
                     ->minValue(0),
 
@@ -142,26 +146,44 @@ class VehicleForm
                             ->disk('public')
                             ->directory('vehicle-photos')
                             ->required()
-                            ->getUploadedFileNameForStorageUsing(function ($file) {
-                                // Nama file unik dengan ekstensi webp
-                                return uniqid('vehicle_') . '.webp';
-                            })
+                            ->getUploadedFileNameForStorageUsing(fn($file) => uniqid('vehicle_') . '.webp')
                             ->saveUploadedFileUsing(function ($file) {
-                                // Gunakan Intervention Image untuk kompresi
+                                // Gunakan GD driver
                                 $manager = new ImageManager(new Driver());
 
-                                $image = $manager->read($file->getRealPath())
-                                    ->resize(800, null, function ($constraint) {
-                                        $constraint->aspectRatio();
-                                        $constraint->upsize();
-                                    })
-                                    ->toWebp(50); // kompres ringan (50% kualitas)
+                                // Baca gambar
+                                $image = $manager->read($file->getRealPath());
+
+                                // Coba perbaiki orientasi jika dari kamera HP
+                                try {
+                                    $ext = strtolower($file->getClientOriginalExtension() ?? pathinfo($file->getClientName(), PATHINFO_EXTENSION));
+                                    if (in_array($ext, ['jpg', 'jpeg']) && function_exists('exif_read_data')) {
+                                        $exif = @exif_read_data($file->getRealPath());
+                                        if (!empty($exif['Orientation'])) {
+                                            switch ($exif['Orientation']) {
+                                                case 3:
+                                                    $image->rotate(180);
+                                                    break;
+                                                case 6:
+                                                    $image->rotate(-90);
+                                                    break;
+                                                case 8:
+                                                    $image->rotate(90);
+                                                    break;
+                                            }
+                                        }
+                                    }
+                                } catch (\Throwable $e) {
+                                    // Abaikan error EXIF
+                                }
+
+                                // Kompres ke WebP tapi pakai ukuran asli (no resize)
+                                $encoded = $image->encodeByExtension('webp', 80);
 
                                 // Simpan manual ke disk public
                                 $path = 'vehicle-photos/' . uniqid('vehicle_') . '.webp';
-                                Storage::disk('public')->put($path, (string) $image);
+                                Storage::disk('public')->put($path, (string) $encoded);
 
-                                // return path agar disimpan ke DB
                                 return $path;
                             }),
 

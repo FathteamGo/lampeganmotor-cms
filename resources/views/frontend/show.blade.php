@@ -116,14 +116,16 @@ $fallbackImage = asset('Images/logo/lampegan.png'); // pastikan folder di server
         </div>
       @endif
 
-      @if($vehicle->dp_percentage > 0)
+      @php $dpAmount = $vehicle->down_payment ?? 0; @endphp
+      @if($dpAmount > 0)
         <h3 class="text-lg font-bold mt-5 mb-3 border-b-2 border-yellow-500 pb-2">Skema Pembayaran</h3>
         <p class="text-black dark:text-white leading-relaxed">
           Cukup bayar DP mulai dari
-          <strong class="text-yellow-500">{{ Number::currency($vehicle->sale_price * ($vehicle->dp_percentage / 100), 'IDR', 'id') }}</strong>.
+          <strong class="text-yellow-500">{{ Number::currency($dpAmount, 'IDR', 'id') }}</strong>.
           Info lebih lanjut silakan hubungi kami via WhatsApp.
         </p>
       @endif
+
 
       @php
         $admins = \App\Models\WhatsAppNumber::where('is_active', true)->get();

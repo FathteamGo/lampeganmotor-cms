@@ -52,9 +52,13 @@ class VehicleInfolist
                 ->money('IDR')
                 ->getStateUsing(fn($state, $record) => $record->sale_price ?? 0),
 
-            TextEntry::make('dp_percentage')
-                ->label(__('tables.dp_percentage'))
-                ->formatStateUsing(fn($state) => $state ? "{$state}%" : '-'),
+            // TextEntry::make('dp_percentage')
+            //     ->label(__('tables.dp_percentage'))
+            //     ->formatStateUsing(fn($state) => $state ? "{$state}%" : '-'),
+            TextEntry::make('down_payment')
+                ->label(__('tables.down_payment'))
+                ->money('IDR')
+                ->getStateUsing(fn($state, $record) => $record->down_payment ?? 0),
 
             TextEntry::make('odometer')
                 ->label(__('tables.odometer'))

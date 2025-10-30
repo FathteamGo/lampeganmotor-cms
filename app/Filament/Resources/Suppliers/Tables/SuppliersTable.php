@@ -7,6 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\SelectFilter;
 
 class SuppliersTable
 {
@@ -26,20 +27,6 @@ class SuppliersTable
                 TextColumn::make('phone')
                     ->label(__('tables.phone'))
                     ->searchable(),
-
-                // ===== JUMLAH REQUEST (PERMINTAAN) =====
-                TextColumn::make('total_requests')
-                    ->label('Total Request')
-                    ->getStateUsing(fn ($record) => $record->requests()->count())
-                    ->badge()
-                    ->color('warning'),
-
-                // ===== JUMLAH PURCHASE (PEMBELIAN) =====
-                TextColumn::make('total_purchases')
-                    ->label('Total Pembelian')
-                    ->getStateUsing(fn ($record) => $record->purchases()->count())
-                    ->badge()
-                    ->color('success'),
 
                 // ===== JUMLAH UNIT DIPASOK (dari purchases yang punya vehicle_id) =====
                 TextColumn::make('total_units')
@@ -69,7 +56,8 @@ class SuppliersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                \Filament\Tables\Filters\SelectFilter::make('month')
+                // ===== FILTER BULAN =====
+                SelectFilter::make('month')
                     ->label('Bulan')
                     ->options([
                         '1'  => 'Januari',
@@ -86,15 +74,19 @@ class SuppliersTable
                         '12' => 'Desember',
                     ])
                     ->query(function ($query, array $data) {
-                        if (isset($data['value'])) {
-                            return $query->whereHas('purchases', function ($q) use ($data) {
-                                $q->whereMonth('purchase_date', $data['value']);
+                        if (!empty($data['value'])) {
+                            return $query->where(function ($q) use ($data) {
+                                $q->whereHas('purchases', function ($sub) use ($data) {
+                                    $sub->whereMonth('purchase_date', $data['value']);
+                                })
+                                ->orDoesntHave('purchases'); // biar supplier tanpa purchases tetap tampil
                             });
                         }
                         return $query;
                     }),
 
-                \Filament\Tables\Filters\SelectFilter::make('year')
+                // ===== FILTER TAHUN =====
+                SelectFilter::make('year')
                     ->label('Tahun')
                     ->options(function () {
                         $currentYear = now()->year;
@@ -106,9 +98,12 @@ class SuppliersTable
                     })
                     ->default(now()->year)
                     ->query(function ($query, array $data) {
-                        if (isset($data['value'])) {
-                            return $query->whereHas('purchases', function ($q) use ($data) {
-                                $q->whereYear('purchase_date', $data['value']);
+                        if (!empty($data['value'])) {
+                            return $query->where(function ($q) use ($data) {
+                                $q->whereHas('purchases', function ($sub) use ($data) {
+                                    $sub->whereYear('purchase_date', $data['value']);
+                                })
+                                ->orDoesntHave('purchases'); // biar supplier tanpa purchases tetap tampil
                             });
                         }
                         return $query;

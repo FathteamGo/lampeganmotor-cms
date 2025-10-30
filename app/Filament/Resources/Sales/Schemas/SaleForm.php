@@ -23,24 +23,33 @@ class SaleForm
                 ->searchable()
                 ->required(),
 
+            // ======== FIXED DROPDOWN MOTOR (EDIT MODE AMAN) ========
             Select::make('vehicle_id')
                 ->label('Motor')
-                ->options(
-                    Vehicle::with(['vehicleModel','color'])
-                        ->where('status','available')
-                        ->whereDoesntHave('sale')
-                        ->get()
-                        ->mapWithKeys(fn($v)=>[$v->id => sprintf('%s | %s | %s',
+                ->options(function ($get, $record) {
+                    $query = Vehicle::with(['vehicleModel', 'color'])
+                        ->where('status', 'available')
+                        ->whereDoesntHave('sale');
+
+                    // ✅ Saat edit, tampilkan juga motor yang sedang dipakai sale ini
+                    if ($record && $record->vehicle_id) {
+                        $query->orWhere('id', $record->vehicle_id);
+                    }
+
+                    return $query->get()->mapWithKeys(fn ($v) => [
+                        $v->id => sprintf(
+                            '%s | %s | %s',
                             $v->vehicleModel->name ?? 'Unknown',
                             $v->color->name ?? 'Unknown',
                             $v->license_plate ?? 'No Plate'
-                        )])
-                )
+                        ),
+                    ]);
+                })
                 ->searchable()
                 ->required()
-                ->unique('sales','vehicle_id'),
+                ->unique(ignoreRecord: true),
 
-            // ===== DATA CUSTOMER (MANUAL INPUT) =====
+            // ===== DATA CUSTOMER =====
             ComponentsSection::make('Data Customer')
                 ->description('Data customer akan otomatis disimpan ke master Customer')
                 ->schema([
@@ -48,10 +57,6 @@ class SaleForm
                         ->label('Nama Customer')
                         ->required()
                         ->maxLength(255),
-
-                    // TextInput::make('customer_nik')
-                    //     ->label('NIK')
-                    //     ->maxLength(20),
 
                     TextInput::make('customer_phone')
                         ->label('No. Telepon')
@@ -171,9 +176,16 @@ class SaleForm
                     'proses'  => 'Proses',
                     'kirim'   => 'Kirim',
                     'selesai' => 'Selesai',
+                    'cancel'  => 'Cancel',
                 ])
                 ->default('proses')
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set, $get) {
+                    if ($state === 'cancel') {
+                        $set('notes', trim(($get('notes') ?? '') . "\n[Dibatalkan pada " . now()->format('d M Y H:i') . "]"));
+                    }
+                }),
 
             Textarea::make('notes')
                 ->label('Note')

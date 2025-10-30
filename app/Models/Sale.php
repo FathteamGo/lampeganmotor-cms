@@ -11,70 +11,47 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
-        'vehicle_id',
-        'customer_id',
-        'user_id',
-        'sale_date',
-        'sale_price',
-        'payment_method',
-        'remaining_payment',
-        'due_date',
-        'cmo',
-        'cmo_fee',
-        'direct_commission',
-        'order_source',
-        'branch_name',
-        'result',
-        'status',
-        'notes',
-        'dp_po',
-        'dp_real',
+        'vehicle_id', 'customer_id', 'user_id',
+        'sale_date', 'sale_price', 'payment_method',
+        'remaining_payment', 'due_date', 'cmo',
+        'cmo_fee', 'direct_commission', 'order_source',
+        'branch_name', 'result', 'status', 'notes',
+        'dp_po', 'dp_real',
     ];
 
     protected $casts = [
-        'sale_date'         => 'date',
-        'due_date'          => 'date',
-        'sale_price'        => 'decimal:2',
+        'sale_date' => 'date',
+        'due_date' => 'date',
+        'sale_price' => 'decimal:2',
         'remaining_payment' => 'decimal:2',
-        'cmo_fee'           => 'decimal:2',
+        'cmo_fee' => 'decimal:2',
         'direct_commission' => 'decimal:2',
-        'dp_po'             => 'decimal:2',
-        'dp_real'           => 'decimal:2',
+        'dp_po' => 'decimal:2',
+        'dp_real' => 'decimal:2',
     ];
 
-    protected $appends = [
-        'pencairan',
-        'laba_bersih',
-    ];
+    protected $appends = ['pencairan', 'laba_bersih'];
 
     // =======================
     // RELASI
     // =======================
-    public function customer()
+    public function customer() { return $this->belongsTo(Customer::class); }
+    public function vehicle() { return $this->belongsTo(Vehicle::class); }
+    public function user() { return $this->belongsTo(User::class, 'user_id'); }
+    public function incomes() { return $this->hasMany(Income::class, 'sale_id'); }
+    public function expenses() { return $this->hasMany(Expense::class, 'sale_id'); }
+
+    // =======================
+    // SCOPES
+    // =======================
+    public function scopeValid($query)
     {
-        return $this->belongsTo(Customer::class);
+        return $query->where('status', '!=', 'cancel');
     }
 
-    public function vehicle()
-    {
-        return $this->belongsTo(Vehicle::class);
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function incomes()
-    {
-        return $this->hasMany(Income::class, 'sale_id');
-    }
-
-    public function expenses()
-    {
-        return $this->hasMany(Expense::class, 'sale_id');
-    }
-
+    // =======================
+    // APPEND ATTRIBUTES
+    // =======================
     protected function categoryId(string $slug, string $type): ?int
     {
         return DB::table('categories')
@@ -83,9 +60,6 @@ class Sale extends Model
             ->value('id');
     }
 
-    // =======================
-    // APPEND ATTRIBUTES
-    // =======================
     public function getPencairanAttribute()
     {
         $catId = $this->categoryId('pencairan', 'income');
@@ -105,12 +79,12 @@ class Sale extends Model
     public function getLabaBersihAttribute()
     {
         $purchase = (float) optional($this->vehicle)->purchase_price;
-        $cmo      = (float) ($this->cmo_fee ?? 0);
-        $komisi   = (float) ($this->direct_commission ?? 0);
-        $dpPo     = (float) ($this->dp_po ?? 0);
-        $dpReal   = (float) ($this->dp_real ?? 0);
+        $cmo = (float) ($this->cmo_fee ?? 0);
+        $komisi = (float) ($this->direct_commission ?? 0);
+        $dpPo = (float) ($this->dp_po ?? 0);
+        $dpReal = (float) ($this->dp_real ?? 0);
 
-        return (float) ($this->vehicle->sale_price ?? $this->sale_price ?? 0)
+        return (float) (optional($this->vehicle)->sale_price ?? $this->sale_price ?? 0)
             - $dpPo
             + $dpReal
             - $purchase
@@ -119,18 +93,33 @@ class Sale extends Model
     }
 
     // =======================
-    // MODEL EVENTS UNTUK AUTO UPDATE STATUS MOTOR
+    // MODEL EVENTS
     // =======================
     protected static function booted()
     {
-        // Saat sale dibuat, ubah status motor jadi 'sold'
         static::created(function ($sale) {
-            if ($sale->vehicle && $sale->vehicle->status !== 'sold') {
+            if ($sale->status !== 'cancel' && $sale->vehicle && $sale->vehicle->status !== 'sold') {
                 $sale->vehicle->update(['status' => 'sold']);
             }
         });
 
-        // Opsional: jika sale dihapus, rollback status motor ke 'available'
+        static::updated(function ($sale) {
+            // ke cancel -> available
+            if ($sale->isDirty('status') && $sale->status === 'cancel' && $sale->vehicle) {
+                $sale->vehicle->update(['status' => 'available']);
+            }
+
+            // dari cancel -> aktif lagi -> sold
+            if (
+                $sale->isDirty('status') &&
+                $sale->getOriginal('status') === 'cancel' &&
+                $sale->status !== 'cancel' &&
+                $sale->vehicle
+            ) {
+                $sale->vehicle->update(['status' => 'sold']);
+            }
+        });
+
         static::deleted(function ($sale) {
             if ($sale->vehicle && $sale->vehicle->status === 'sold') {
                 $sale->vehicle->update(['status' => 'available']);

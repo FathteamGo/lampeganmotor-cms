@@ -21,7 +21,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 class SalesReportExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithColumnFormatting, WithEvents
 {
     protected $query;
-    private int $rowNumber = 0; // nomor urut
+    private int $rowNumber = 0;
 
     public function __construct($query = null)
     {
@@ -30,7 +30,9 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function collection()
     {
+        // Filter biar transaksi cancel gak ikut
         return ($this->query ?? Sale::query())
+            ->where('status', '!=', 'cancel')
             ->with([
                 'customer',
                 'vehicle.vehicleModel.brand',
@@ -66,6 +68,11 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
         $cmoFee        = $sale->cmo_fee ?? 0;
         $directCommission = $sale->direct_commission ?? 0;
 
+        // 🔹 Kalau status cancel, set semua nilai transaksi ke 0
+        if ($sale->status === 'cancel') {
+            $salePrice = $dpPo = $dpReal = $cmoFee = $directCommission = 0;
+        }
+
         // 🔹 Hitung Pencairan sesuai metode pembayaran
         $pencairan = match ($sale->payment_method) {
             'cash', 'tukartambah' => $salePrice,
@@ -77,7 +84,7 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
         $labaBersih = $pencairan - $purchasePrice - $cmoFee - $directCommission;
 
         return [
-            $this->rowNumber, // nomor urut otomatis
+            $this->rowNumber,
             $sale->sale_date ? Carbon::parse($sale->sale_date)->format('d F Y') : '-',
             $sale->customer?->name ?? '-',
             $sale->customer?->phone ?? '-',
@@ -94,14 +101,14 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             $dpPo,
             $dpReal,
             $pencairan,
-            $salePrice,   // 👉 Total Penjualan = Harga Jual
-            $labaBersih,  // 👉 sesuai rumus
+            $salePrice,
+            $labaBersih,
             match ($sale->payment_method) {
                 'cash' => 'Cash',
                 'credit' => 'Credit',
                 'tukartambah' => 'Tukar Tambah',
                 'cash_tempo' => 'Cash Tempo',
-                default => $sale->payment_method ?? '-'
+                default => '-'
             },
             $sale->remaining_payment ?? 0,
             $sale->due_date ? Carbon::parse($sale->due_date)->format('d F Y') : '-',
@@ -122,6 +129,7 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
                 'proses' => 'Proses',
                 'kirim' => 'Kirim',
                 'selesai' => 'Selesai',
+                'cancel' => 'Cancel',
                 default => '-'
             },
             $sale->notes ?? '-'
@@ -131,7 +139,7 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true]], // judul bold
+            1 => ['font' => ['bold' => true]],
         ];
     }
 
@@ -145,9 +153,9 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             'Q' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Pencairan
             'R' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Total Penjualan
             'S' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Laba Bersih
-            'Y' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Fee CMO
-            'Z' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Komisi Langsung
-            'T' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Sisa Pembayaran (posisi kolom T tergantung headings)
+            'U' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Sisa Pembayaran
+            'X' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Fee CMO
+            'Y' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Komisi Langsung
         ];
     }
 
@@ -160,14 +168,14 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
                 $highestColumn = $sheet->getHighestColumn();
                 $range = "A1:{$highestColumn}{$highestRow}";
 
-                // border all cells
+                // border semua cell
                 $sheet->getStyle($range)->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['argb' => 'FF000000']
-                        ]
-                    ]
+                            'color' => ['argb' => 'FF000000'],
+                        ],
+                    ],
                 ]);
 
                 // center heading

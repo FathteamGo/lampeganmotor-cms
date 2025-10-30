@@ -9,18 +9,18 @@ class SalesChart extends ChartWidget
 {
     protected ?string $heading = null;
 
-    // sort HARUS static
     protected static ?int $sort = 2;
 
     public function getHeading(): ?string
     {
-        return __('widgets.sales_statistics');
+        return 'Statistik Penjualan';
     }
 
     protected function getData(): array
     {
         $salesData = Sale::selectRaw('MONTH(sale_date) as month, SUM(sale_price) as total')
             ->whereYear('sale_date', now()->year)
+            ->whereNotIn('status', ['cancel', 'batal'])
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('total', 'month')
@@ -34,25 +34,17 @@ class SalesChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => __('widgets.sales'),
+                    'label' => 'Penjualan',
                     'data' => $data,
                     'borderColor' => 'rgb(75, 192, 192)',
+                    'backgroundColor' => 'rgba(75, 192, 192, 0.3)',
                     'tension' => 0.4,
+                    'fill' => true,
                 ],
             ],
             'labels' => [
-                __('months.jan'),
-                __('months.feb'),
-                __('months.mar'),
-                __('months.apr'),
-                __('months.may'),
-                __('months.jun'),
-                __('months.jul'),
-                __('months.aug'),
-                __('months.sep'),
-                __('months.oct'),
-                __('months.nov'),
-                __('months.dec'),
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
             ],
         ];
     }

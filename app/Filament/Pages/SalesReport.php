@@ -38,7 +38,7 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
         'search'    => null,
     ];
 
-    // Role only owner
+    // Hanya role owner yang bisa akses
     public static function shouldRegisterNavigation(): bool
     {
         $user = Auth::user();
@@ -113,6 +113,8 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
             ->query(
                 Sale::query()
                     ->with(['vehicle.vehicleModel.brand', 'vehicle.type', 'vehicle.color', 'vehicle.year', 'customer', 'user'])
+                    // ⛔ Filter: abaikan transaksi yang berstatus cancel
+                    ->whereNotIn('status', ['cancel', 'batal'])
                     ->when($start, fn ($q) => $q->whereDate('sale_date', '>=', Carbon::parse($start)))
                     ->when($end, fn ($q) => $q->whereDate('sale_date', '<=', Carbon::parse($end)))
                     ->when($search, fn ($q, $s) =>
@@ -140,7 +142,7 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
                 TextColumn::make('vehicle.vin')->label(__('tables.vin')),
                 TextColumn::make('vehicle.license_plate')->label(__('tables.license_plate')),
                 
-                // Financial columns
+                // Harga & Keuangan
                 TextColumn::make('vehicle.purchase_price')
                     ->label(__('tables.purchase_price'))
                     ->money('IDR'),
@@ -149,32 +151,24 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
                     ->label(__('tables.sale_price'))
                     ->money('IDR'),
                 
-                TextColumn::make('total_price')
-                    ->label(__('tables.total_price'))
-                    ->money('IDR')
-                    ->getStateUsing(fn ($record) => $record->sale_price ?? 0),
-                
                 TextColumn::make('otr')
                     ->label(__('tables.otr'))
                     ->money('IDR')
                     ->getStateUsing(fn ($record) => $record->sale_price ?? 0),
                 
-               TextColumn::make('payment_method')->label(__('tables.payment_method')),
+                TextColumn::make('payment_method')->label(__('tables.payment_method')),
                 
                 TextColumn::make('dp_po')
                     ->label(__('tables.dp_po'))
-                    ->money('IDR')
-                    ->getStateUsing(fn ($record) => $record->dp_po ?? 0),
+                    ->money('IDR'),
                 
                 TextColumn::make('dp_real')
                     ->label(__('tables.dp_real'))
-                    ->money('IDR')
-                    ->getStateUsing(fn ($record) => $record->dp_real ?? 0),
+                    ->money('IDR'),
                 
                 TextColumn::make('remaining_payment')
                     ->label('Sisa Pembayaran')
-                    ->money('IDR')
-                    ->getStateUsing(fn ($record) => $record->remaining_payment ?? 0),
+                    ->money('IDR'),
                 
                 TextColumn::make('due_date')
                     ->label('Tanggal Jatuh Tempo')
@@ -195,40 +189,29 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
                     ->money('IDR')
                     ->getStateUsing(fn ($record) => ($record->sale_price ?? 0) - ($record->dp_real ?? 0)),
                 
-                TextColumn::make('total_penjualan')
-                    ->label(__('tables.total_penjualan'))
-                    ->money('IDR')
-                    ->getStateUsing(fn ($record) => $record->sale_price ?? 0),
-                
                 TextColumn::make('laba_bersih')
                     ->label('Laba Bersih')
                     ->money('IDR', locale: 'id')
                     ->state(fn($record) => max(
-                        // Pencairan sudah mencakup dp_real + sisa pembayaran (kalau kredit/cash_tempo)
-                        ($record->pencairan ?? $record->sale_price ?? 0)
-                        - ($record->vehicle?->purchase_price ?? 0)
+                        (($record->sale_price ?? 0) - ($record->vehicle?->purchase_price ?? 0))
                         - ($record->cmo_fee ?? 0)
                         - ($record->direct_commission ?? 0),
                         0
                     )),
-
                 
-                // CMO & Commission
+                // Komisi dan lainnya
                 TextColumn::make('cmo')
                     ->label('CMO')
                     ->getStateUsing(fn ($record) => $record->cmo ?? '-'),
                 
                 TextColumn::make('cmo_fee')
                     ->label('Fee CMO')
-                    ->money('IDR')
-                    ->getStateUsing(fn ($record) => $record->cmo_fee ?? 0),
+                    ->money('IDR'),
                 
                 TextColumn::make('direct_commission')
                     ->label('Komisi Langsung')
-                    ->money('IDR')
-                    ->getStateUsing(fn ($record) => $record->direct_commission ?? 0),
+                    ->money('IDR'),
                 
-                // Additional Information
                 TextColumn::make('order_source')
                     ->label('Sumber Order')
                     ->formatStateUsing(fn ($s) => match ($s) {
@@ -253,12 +236,7 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
                 
                 TextColumn::make('status')
                     ->label('Status')
-                    ->formatStateUsing(fn ($s) => match ($s) {
-                        'proses' => 'Proses',
-                        'kirim' => 'Kirim',
-                        'selesai' => 'Selesai',
-                        default => $s ?: '-',
-                    }),
+                    ->formatStateUsing(fn ($s) => ucfirst($s ?? '-')),
                 
                 TextColumn::make('notes')
                     ->label('Catatan')
@@ -270,6 +248,6 @@ class SalesReport extends Page implements HasSchemas, Tables\Contracts\HasTable
 
     public function applyFilters(): void
     {
-        // Filter otomatis dipakai oleh query(), jadi kosong
+        // Kosong karena filter langsung diterapkan di query()
     }
 }

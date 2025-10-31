@@ -12,15 +12,15 @@ class OtherAssetInfolist
         return $schema
             ->components([
                 TextEntry::make('name')
-                    ->label(__('tables.other_asset_name')),
+                    ->label(__('tables.name')),
 
                 TextEntry::make('value')
                     ->numeric()
-                    ->label(__('tables.other_asset_value')),
+                    ->label(__('tables.value')),
 
                 TextEntry::make('acquisition_date')
                     ->date()
-                    ->label(__('tables.other_asset_acquisition_date')),
+                    ->label(__('tables.acquisition_date')),
 
                 TextEntry::make('created_at')
                     ->dateTime()

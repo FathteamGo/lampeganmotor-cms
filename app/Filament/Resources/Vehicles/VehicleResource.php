@@ -13,6 +13,7 @@ use App\Models\Vehicle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class VehicleResource extends Resource
 {
@@ -44,6 +45,17 @@ class VehicleResource extends Resource
         return __('navigation.vehicles');
     }
 
+   
+     public static function getEloquentQuery(): Builder
+        {
+            return parent::getEloquentQuery()
+                ->with([
+                    'vehicleModel',
+                    'type',
+                    'color',
+                    'year',
+                ]);
+        }
     public static function form(Schema $schema): Schema
     {
         return VehicleForm::configure($schema);

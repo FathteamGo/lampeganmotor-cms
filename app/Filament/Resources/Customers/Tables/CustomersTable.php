@@ -36,31 +36,42 @@ class CustomersTable
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 
-                // ===== KOLOM BARU: JUMLAH PEMBELIAN =====
+                // ===== KOLOM BARU: JUMLAH PEMBELIAN (Hanya status != cancel) =====
                 TextColumn::make('total_units')
                     ->label('Total Unit Dibeli')
-                    ->getStateUsing(fn ($record) => $record->sales()->count())
+                    ->getStateUsing(fn($record) => 
+                        $record->sales()
+                            ->where('status', '!=', 'cancel')
+                            ->count()
+                    )
                     ->badge()
                     ->color('success'),
 
+                // ===== PEMBELIAN TERAKHIR (Hanya status != cancel) =====
                 TextColumn::make('last_purchase')
                     ->label('Pembelian Terakhir')
                     ->getStateUsing(function ($record) {
-                        $lastSale = $record->sales()->latest('sale_date')->first();
-                        return $lastSale ? $lastSale->sale_date->format('d M Y') : '-';
+                        $lastSale = $record->sales()
+                            ->where('status', '!=', 'cancel')
+                            ->latest('sale_date')
+                            ->first();
+
+                        return $lastSale
+                            ? $lastSale->sale_date->format('d M Y')
+                            : '-';
                     })
                     ->sortable(),
 
                 TextColumn::make('instagram')
                     ->label('Instagram')
-                    ->formatStateUsing(fn ($record) => $record->instagram ? '@'.$record->instagram : '-')
-                    ->url(fn ($record) => $record->instagram_url, shouldOpenInNewTab: true)
+                    ->formatStateUsing(fn($record) => $record->instagram ? '@' . $record->instagram : '-')
+                    ->url(fn($record) => $record->instagram_url, shouldOpenInNewTab: true)
                     ->toggleable(),
 
                 TextColumn::make('tiktok')
                     ->label('TikTok')
-                    ->formatStateUsing(fn ($record) => $record->tiktok ? '@'.$record->tiktok : '-')
-                    ->url(fn ($record) => $record->tiktok_url, shouldOpenInNewTab: true)
+                    ->formatStateUsing(fn($record) => $record->tiktok ? '@' . $record->tiktok : '-')
+                    ->url(fn($record) => $record->tiktok_url, shouldOpenInNewTab: true)
                     ->toggleable(),
 
                 TextColumn::make('created_at')
@@ -69,6 +80,8 @@ class CustomersTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+
+            // ===== FILTERS =====
             ->filters([
                 SelectFilter::make('period')
                     ->label('Periode Pembelian')
@@ -84,6 +97,8 @@ class CustomersTable
                         }
 
                         return $query->whereHas('sales', function (Builder $q) use ($data) {
+                            $q->where('status', '!=', 'cancel');
+
                             if ($data['value'] === 'this_month') {
                                 $q->whereBetween('sale_date', [
                                     now()->startOfMonth(),
@@ -117,7 +132,8 @@ class CustomersTable
                     ->query(function (Builder $query, array $data) {
                         if (isset($data['value'])) {
                             return $query->whereHas('sales', function (Builder $q) use ($data) {
-                                $q->whereMonth('sale_date', $data['value']);
+                                $q->where('status', '!=', 'cancel')
+                                  ->whereMonth('sale_date', $data['value']);
                             });
                         }
                         return $query;
@@ -137,21 +153,23 @@ class CustomersTable
                     ->query(function (Builder $query, array $data) {
                         if (isset($data['value'])) {
                             return $query->whereHas('sales', function (Builder $q) use ($data) {
-                                $q->whereYear('sale_date', $data['value']);
+                                $q->where('status', '!=', 'cancel')
+                                  ->whereYear('sale_date', $data['value']);
                             });
                         }
                         return $query;
                     }),
             ])
+
             ->defaultSort('created_at', 'desc')
+
             ->recordActions([
-                EditAction::make()
-                    ->label('Edit'),
+                EditAction::make()->label('Edit'),
             ])
+
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->label('Hapus'),
+                    DeleteBulkAction::make()->label('Hapus'),
                 ]),
             ]);
     }

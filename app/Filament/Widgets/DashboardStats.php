@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\OtherAsset;
 use App\Models\Sale;
+use App\Models\StnkRenewal;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -23,125 +24,127 @@ class DashboardStats extends BaseWidget
 
     protected function getStats(): array
     {
-        // ============ FILTER ===============
-        $month = $this->filters['month'] ?? now()->month;
-        $year  = $this->filters['year']  ?? now()->year;
+        // ====== BACA FILTER DENGAN DEFAULT SEKARANG ======
+        $month = isset($this->filters['month']) && $this->filters['month'] ? (int)$this->filters['month'] : now()->month;
+        $year  = isset($this->filters['year']) && $this->filters['year'] ? (int)$this->filters['year'] : now()->year;
 
-        // Helper buat format rupiah
-        $rupiah = fn ($value) => 'Rp ' . number_format($value, 0, ',', '.');
+        // Validasi aman
+        if ($month < 1 || $month > 12) $month = now()->month;
+        if ($year < 2000 || $year > now()->year + 5) $year = now()->year;
 
-        // ==============================
-        // PENJUALAN (hanya valid / != cancel)
-        // ==============================
+        // Format rupiah
+        $rupiah = fn($v) => 'Rp ' . number_format($v, 0, ',', '.');
+
+        // Format periode yang aman
+        $periode = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
+
+        //Unit
+        $totalUnit = Vehicle::count();
+
+        // ================= PENJUALAN =================
         $salesQuery = Sale::valid()->whereYear('sale_date', $year);
-
-        $totalPenjualanBulanIni = (clone $salesQuery)
-            ->whereMonth('sale_date', $month)
-            ->sum('sale_price');
-
-        $totalPenjualanTahunIni = (clone $salesQuery)
-            ->sum('sale_price');
-
-        $terjualBulanIni = (clone $salesQuery)
-            ->whereMonth('sale_date', $month)
-            ->count();
-
+        $terjualBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->count();
         $terjualTahunIni = (clone $salesQuery)->count();
+        $totalPenjualanBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->sum('sale_price');
+        $totalPenjualanTahunIni = (clone $salesQuery)->sum('sale_price');
 
-        // ==============================
-        // INCOME
-        // ==============================
+        // ================= INCOME =================
         $incomeQuery = Income::whereYear('income_date', $year);
-
-        $totalIncomeBulanIni = (clone $incomeQuery)
-            ->whereMonth('income_date', $month)
-            ->sum('amount');
-
+        $totalIncomeBulanIni = (clone $incomeQuery)->whereMonth('income_date', $month)->sum('amount');
         $totalIncomeTahunIni = (clone $incomeQuery)->sum('amount');
 
-        // ==============================
-        // EXPENSE
-        // ==============================
+        // ================= STNK =================
+        $stnkQuery = StnkRenewal::whereYear('tgl', $year);
+        $stnkIncomeBulanIni = (clone $stnkQuery)->whereMonth('tgl', $month)->sum('margin_total');
+        $stnkIncomeTahunIni = (clone $stnkQuery)->sum('margin_total');
+        $stnkExpenseBulanIni = (clone $stnkQuery)->whereMonth('tgl', $month)->sum('pembayaran_ke_samsat');
+        $stnkExpenseTahunIni = (clone $stnkQuery)->sum('pembayaran_ke_samsat');
+
+        // ================= PENGELUARAN =================
         $expenseQuery = Expense::whereYear('expense_date', $year);
+        $totalPengeluaranBulanIni = (clone $expenseQuery)->whereMonth('expense_date', $month)->sum('amount') + $stnkExpenseBulanIni;
+        $totalPengeluaranTahunIni = (clone $expenseQuery)->sum('amount') + $stnkExpenseTahunIni;
 
-        $totalPengeluaranBulanIni = (clone $expenseQuery)
-            ->whereMonth('expense_date', $month)
-            ->sum('amount');
-
-        $totalPengeluaranTahunIni = (clone $expenseQuery)->sum('amount');
-
-        // ==============================
-        // KEUNTUNGAN
-        // ==============================
-        $totalPendapatanBulanIni = $totalPenjualanBulanIni + $totalIncomeBulanIni;
-        $totalPendapatanTahunIni = $totalPenjualanTahunIni + $totalIncomeTahunIni;
-
+        // ================= KEUNTUNGAN =================
+        $totalPendapatanBulanIni = $totalPenjualanBulanIni + $totalIncomeBulanIni + $stnkIncomeBulanIni;
+        $totalPendapatanTahunIni = $totalPenjualanTahunIni + $totalIncomeTahunIni + $stnkIncomeTahunIni;
         $keuntunganBulanIni = $totalPendapatanBulanIni - $totalPengeluaranBulanIni;
         $keuntunganTahunIni = $totalPendapatanTahunIni - $totalPengeluaranTahunIni;
 
-        // ==============================
-        // ASET
-        // ==============================
-        $totalAsetMotor = Vehicle::where('status', 'available')->sum('sale_price');
-        $totalAsetLainnya = OtherAsset::sum('value');
-        $totalNilaiAset = $totalAsetMotor + $totalAsetLainnya;
+        // ================= ASET =================
+        $asetKendaraan = Vehicle::where('status', 'available')->sum('sale_price');
+        $asetLainnya = OtherAsset::sum('value');
+        $totalAset = $asetKendaraan + $asetLainnya;
 
-        // ==============================
-        // STATS CARD
-        // ==============================
-        $periode = Carbon::create($year, $month)->translatedFormat('F Y');
-
+        // ================= RETURN =================
         return [
-            // ===== UNIT =====
-            Stat::make('Stok Unit', Vehicle::where('status', 'available')->count())
-                ->description('Total unit tersedia')
+            // UNIT
+            Stat::make('Total Unit Tersedia', "{$totalUnit} unit")
+                ->description('Jumlah seluruh kendaraan tersedia')
                 ->color('primary'),
-
+            // PENJUALAN
             Stat::make('Terjual Bulan Ini', "{$terjualBulanIni} unit")
-                ->description("Penjualan bulan {$periode}")
+                ->description("Unit terjual pada {$periode}")
                 ->color('success'),
 
             Stat::make('Terjual Tahun Ini', "{$terjualTahunIni} unit")
-                ->description("Total unit terjual sepanjang tahun {$year}")
+                ->description("Total unit terjual sepanjang {$year}")
                 ->color('success'),
 
-            // ===== BULANAN =====
-            Stat::make('Penjualan Bulan Ini', $rupiah($totalPenjualanBulanIni))
-                ->description("Total penjualan bulan {$periode}")
+            Stat::make('Total Penjualan Bulan Ini', $rupiah($totalPenjualanBulanIni))
+                ->description("Nominal penjualan bulan {$periode}")
                 ->color('warning'),
 
+            Stat::make('Total Penjualan Tahun Ini', $rupiah($totalPenjualanTahunIni))
+                ->description("Akumulasi penjualan sepanjang {$year}")
+                ->color('warning'),
+
+            // INCOME
             Stat::make('Income Bulan Ini', $rupiah($totalIncomeBulanIni))
                 ->description("Pendapatan tambahan bulan {$periode}")
                 ->color('info'),
 
-            Stat::make('Pengeluaran Bulan Ini', $rupiah($totalPengeluaranBulanIni))
-                ->description("Total biaya keluar bulan {$periode}")
-                ->color('danger'),
-
-            Stat::make('Keuntungan Bulan Ini', $rupiah($keuntunganBulanIni))
-                ->description("Pendapatan - Pengeluaran bulan {$periode}")
-                ->color($keuntunganBulanIni >= 0 ? 'success' : 'danger'),
-
-            // ===== TAHUNAN =====
-            Stat::make('Penjualan Tahun Ini', $rupiah($totalPenjualanTahunIni))
-                ->description("Total penjualan sepanjang tahun {$year}")
-                ->color('warning'),
-
             Stat::make('Income Tahun Ini', $rupiah($totalIncomeTahunIni))
-                ->description("Pendapatan tambahan sepanjang tahun {$year}")
+                ->description("Pendapatan tambahan sepanjang {$year}")
                 ->color('info'),
 
-            Stat::make('Pengeluaran Tahun Ini', $rupiah($totalPengeluaranTahunIni))
-                ->description("Total biaya keluar sepanjang tahun {$year}")
+            Stat::make('Income STNK Bulan Ini', $rupiah($stnkIncomeBulanIni))
+                ->description("Pendapatan dari STNK bulan {$periode}")
+                ->color('info'),
+
+            Stat::make('Income STNK Tahun Ini', $rupiah($stnkIncomeTahunIni))
+                ->description("Pendapatan STNK sepanjang {$year}")
+                ->color('info'),
+
+            // PENGELUARAN
+            Stat::make('Pengeluaran Bulan Ini', $rupiah($totalPengeluaranBulanIni))
+                ->description("Biaya keluar {$periode} (termasuk STNK)")
                 ->color('danger'),
 
+            Stat::make('Pengeluaran Tahun Ini', $rupiah($totalPengeluaranTahunIni))
+                ->description("Total pengeluaran sepanjang {$year}")
+                ->color('danger'),
+
+            // KEUNTUNGAN
+            Stat::make('Keuntungan Bulan Ini', $rupiah($keuntunganBulanIni))
+                ->description("Pendapatan bersih bulan {$periode}")
+                ->color($keuntunganBulanIni >= 0 ? 'success' : 'danger'),
+
             Stat::make('Keuntungan Tahun Ini', $rupiah($keuntunganTahunIni))
-                ->description("Akumulasi pendapatan bersih tahun {$year}")
+                ->description("Pendapatan bersih tahun {$year}")
                 ->color($keuntunganTahunIni >= 0 ? 'success' : 'danger'),
 
-            // ===== ASET =====
-            Stat::make('Total Nilai Aset', $rupiah($totalNilaiAset))
-                ->description('Aset motor + aset lainnya yang masih dimiliki')
+            // ASET
+            Stat::make('Aset Kendaraan', $rupiah($asetKendaraan))
+                ->description('Total nilai kendaraan tersedia')
+                ->color('primary'),
+
+            Stat::make('Aset Lainnya', $rupiah($asetLainnya))
+                ->description('Nilai aset non-kendaraan')
+                ->color('primary'),
+
+            Stat::make('Total Aset Keseluruhan', $rupiah($totalAset))
+                ->description('Akumulasi nilai seluruh aset')
                 ->color('primary'),
         ];
     }

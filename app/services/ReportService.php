@@ -29,8 +29,15 @@ class ReportService
         }
 
         $pengunjung = Visitor::whereBetween('visited_at', [$start, $end])->count();
-        $penjualanJumlah = Sale::whereBetween('sale_date', [$start, $end])->count();
-        $penjualanTotal  = Sale::whereBetween('sale_date', [$start, $end])->sum('sale_price');
+
+        // Exclude cancel
+        $penjualanJumlah = Sale::whereBetween('sale_date', [$start, $end])
+            ->where('status', '!=', 'cancel')
+            ->count();
+
+        $penjualanTotal  = Sale::whereBetween('sale_date', [$start, $end])
+            ->where('status', '!=', 'cancel')
+            ->sum('sale_price');
 
         $pemasukan   = Income::whereBetween('income_date', [$start, $end])->sum('amount');
         $pengeluaran = Expense::whereBetween('expense_date', [$start, $end])->sum('amount');
@@ -63,7 +70,9 @@ class ReportService
     {
         $data = $this->generateWeeklyReport();
 
+        // Exclude cancel
         $bestSelling = Sale::whereBetween('sale_date', [$data['periode']['mulai'], $data['periode']['selesai']])
+            ->where('status', '!=', 'cancel')
             ->select('vehicle_id', DB::raw('COUNT(*) as total_unit'))
             ->groupBy('vehicle_id')
             ->with('vehicle.vehicleModel')
@@ -82,9 +91,9 @@ class ReportService
         $comparison = [];
 
         if ($lastWeek) {
-            $comparison['sales'] = $this->compareValue($data['penjualan']['total'], $lastWeek->sales_total, 'Penjualan');
+            $comparison['sales']    = $this->compareValue($data['penjualan']['total'], $lastWeek->sales_total, 'Penjualan');
             $comparison['visitors'] = $this->compareValue($data['pengunjung'], $lastWeek->visitors, 'Pengunjung');
-            $comparison['income'] = $this->compareValue($totalIncome, $lastWeek->total_income, 'Pemasukan');
+            $comparison['income']   = $this->compareValue($totalIncome, $lastWeek->total_income, 'Pemasukan');
         }
 
         $prompt = "Buat 3 insight singkat untuk laporan Lampegan Motor periode {$data['periode']['mulai']} - {$data['periode']['selesai']}.\n" .

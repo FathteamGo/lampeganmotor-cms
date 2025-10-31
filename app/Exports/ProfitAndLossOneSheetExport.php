@@ -41,7 +41,7 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                 $row = $this->writeSummary($s, $col, $row) + 2;
 
                 [$h, $r] = $this->dataSales();
-                $row = $this->writeDetail($s, $col, $row, 'Sales', $h, $r) + 2;
+                $row = $this->writeDetail($s, $col, $row, 'Sales', $h, $r, 'sale') + 2;
 
                 [$h, $r] = $this->dataIncomes();
                 $row = $this->writeDetail($s, $col, $row, 'Income', $h, $r) + 2;
@@ -59,7 +59,7 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
 
     protected function dataSales(): array
     {
-        $headers = ['TANGGAL','NAMA','KATEGORI','TAHUN','KETERANGAN','NOMINAL','NO INVOICE','TIPE','MODEL','WARNA','METODE'];
+        $headers = ['TANGGAL','NAMA','KATEGORI','TAHUN','KETERANGAN','NOMINAL','NO INVOICE','TIPE','MODEL','WARNA','METODE','STATUS'];
 
         $q = Sale::query()
             ->with(['vehicle.vehicleModel.brand','vehicle.vehicleModel','vehicle.type','vehicle.color','vehicle.year','customer'])
@@ -95,6 +95,7 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                 (string) optional(optional($r->vehicle)->vehicleModel)->name,
                 (string) optional(optional($r->vehicle)->color)->name,
                 (string) ($r->payment_method ?? ''),
+                (string) ($r->status ?? ''),
             ];
         }
 
@@ -200,8 +201,8 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                 (string) $r->license_plate,
                 (string) optional($r->customer)->name,
                 (float) $r->total_pajak_jasa,
-                (float) ($r->total_pajak_jasa - $r->margin_total), // expense (biaya ke samsat)
-                (float) $r->margin_total,                          // income (keuntungan)
+                (float) ($r->total_pajak_jasa - $r->margin_total),
+                (float) $r->margin_total,
             ];
         }
 
@@ -212,7 +213,9 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
 
     protected function writeSummary(Worksheet $sheet, string $startCol, int $startRow): int
     {
-        $sales    = (float) Sale::whereBetween('sale_date', [$this->start, $this->end])->sum('sale_price');
+        $sales    = (float) Sale::whereBetween('sale_date', [$this->start, $this->end])
+                                 ->where('status', '!=', 'cancel')
+                                 ->sum('sale_price');
         $incomes  = (float) Income::whereBetween('income_date',[$this->start, $this->end])->sum('amount');
         $expenses = (float) Expense::whereBetween('expense_date',[$this->start, $this->end])->sum('amount');
 
@@ -299,7 +302,8 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
         int $startRow,
         string $title,
         array $headers,
-        array $rows
+        array $rows,
+        string $type = ''
     ): int {
         $startIdx = Coordinate::columnIndexFromString($startCol);
         $cStart   = Coordinate::stringFromColumnIndex($startIdx);
@@ -325,9 +329,11 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
         // Data rows
         $r = $hRow + 1;
         foreach ($rows as $row) {
+            $isCancel = $type === 'sale' && isset($row[11]) && strtolower($row[11]) === 'cancel';
             foreach ($row as $i => $val) {
                 $cell = Coordinate::stringFromColumnIndex($startIdx + $i) . $r;
 
+                // Tanggal
                 if ($i === 0 && filled($val)) {
                     $sheet->setCellValueExplicit(
                         $cell,
@@ -337,6 +343,7 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                     continue;
                 }
 
+                // Nominal / total bayar / margin / ke samsat
                 if (strtoupper($headers[$i]) === 'NOMINAL' ||
                     strtoupper($headers[$i]) === 'TOTAL BAYAR' ||
                     strtoupper($headers[$i]) === 'KE SAMSAT' ||
@@ -346,11 +353,17 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                 }
 
                 $sheet->setCellValueExplicit($cell, (string)$val, DataType::TYPE_STRING);
+
+                // Row cancel merah
+                if ($isCancel) {
+                    $sheet->getStyle($cell)->getFont()->getColor()->setARGB('FFFF0000');
+                }
             }
             $r++;
         }
         $last = $r - 1;
 
+        // Borders & zebra
         $sheet->getStyle("{$cStart}{$hRow}:{$cEnd}{$last}")
               ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 

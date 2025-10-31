@@ -21,18 +21,41 @@ class SalesSheet implements FromArray, WithTitle, WithEvents
         protected ?string $search = null,
     ) {}
 
-    public function title(): string { return 'Sales'; }
+    public function title(): string 
+    { 
+        return 'Sales'; 
+    }
 
     public function array(): array
     {
-        $headers = ['TANGGAL','NAMA','KATEGORI','TAHUN','KETERANGAN','NOMINAL','NO INVOICE','TIPE','MODEL','WARNA','METODE'];
+        $headers = [
+            'TANGGAL',
+            'NAMA',
+            'KATEGORI',
+            'TAHUN',
+            'KETERANGAN',
+            'NOMINAL',
+            'NO INVOICE',
+            'TIPE',
+            'MODEL',
+            'WARNA',
+            'METODE'
+        ];
 
         $q = Sale::query()
-            ->with(['vehicle.vehicleModel.brand','vehicle.vehicleModel','vehicle.type','vehicle.color','vehicle.year','customer'])
+            ->with([
+                'vehicle.vehicleModel.brand',
+                'vehicle.vehicleModel',
+                'vehicle.type',
+                'vehicle.color',
+                'vehicle.year',
+                'customer'
+            ])
             ->whereBetween('sale_date', [$this->start, $this->end])
+            ->where('status', '!=', 'cancel') // ✅ abaikan yang cancel
             ->orderBy('sale_date');
 
-        // Global search (mirror dari widget SalesTable)
+        // 🔍 Global search (mirror dari widget SalesTable)
         if (filled($this->search)) {
             $term = trim($this->search);
             $s = "%{$term}%";
@@ -49,6 +72,7 @@ class SalesSheet implements FromArray, WithTitle, WithEvents
         }
 
         $rows = [];
+
         foreach ($q->get() as $r) {
             $rows[] = [
                 Carbon::parse($r->sale_date)->toDateString(),
@@ -74,9 +98,11 @@ class SalesSheet implements FromArray, WithTitle, WithEvents
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 $rowCount = max(1, $sheet->getHighestDataRow());
-                $colCount = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+                $colCount = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString(
+                    $sheet->getHighestDataColumn()
+                );
                 $this->applyTableStyles($sheet, $colCount, $rowCount, $this->headerValues($sheet));
-            }
+            },
         ];
     }
 
@@ -85,7 +111,7 @@ class SalesSheet implements FromArray, WithTitle, WithEvents
         $lastCol = $sheet->getHighestDataColumn();
         $cells = [];
         for ($c = 'A'; $c <= $lastCol; $c++) {
-            $cells[] = (string) $sheet->getCell($c.'1')->getValue();
+            $cells[] = (string) $sheet->getCell($c . '1')->getValue();
             if ($c === $lastCol) break;
         }
         return $cells;

@@ -57,6 +57,14 @@ class YearResource extends Resource
         return [];
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+
+        return false;
+
+    }
+
+
     public static function getPages(): array
     {
         return [

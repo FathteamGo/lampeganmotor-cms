@@ -77,17 +77,24 @@ class Vehicle extends Model
     }
 
     // =======================
-    // 🎨 ACCESSOR
+    // ACCESSOR
     // =======================
 
-    // ✅ PAKAI YANG INI AJA (Modern Laravel style)
-    public function displayName(): Attribute
-    {
-        return Attribute::make(
-            get: fn() => trim(
-                ($this->vehicleModel?->brand?->name ?? '') . ' ' .
-                ($this->vehicleModel?->name ?? 'Unknown')
-            )
-        );
-    }
+   public function displayName(): Attribute
+{
+    return Attribute::make(
+        get: function () {
+            $brand = trim($this->vehicleModel?->brand?->name ?? '');
+            $model = trim($this->vehicleModel?->name ?? 'Unknown');
+
+            // Kalau nama model sudah mengandung brand (misal "Honda Beat"), jangan dobel
+            if ($brand && str_starts_with(strtolower($model), strtolower($brand))) {
+                return $model;
+            }
+
+            return trim("{$brand} {$model}");
+        }
+    );
+}
+
 }

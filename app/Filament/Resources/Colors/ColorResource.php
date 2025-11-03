@@ -24,6 +24,12 @@ class ColorResource extends Resource
         return __('navigation.master_data');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+    return false;
+    }
+
+
     /** 🔹 Label di Sidebar */
     public static function getNavigationLabel(): string
     {

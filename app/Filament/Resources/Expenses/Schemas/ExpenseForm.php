@@ -22,7 +22,22 @@ class ExpenseForm
                     ->label(__('tables.category_name'))
                     ->options(Category::whereType('expense')->pluck('name', 'id'))
                     ->searchable()
-                    ->required(),
+                    ->required()
+                    ->createOptionForm([
+                        TextInput::make('name')
+                            ->label('Nama Kategori')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->createOptionUsing(function ($data) {
+                        if (!empty($data['name'])) {
+                            return Category::create([
+                                'name' => $data['name'],
+                                'type' => 'expense',
+                            ])->id;
+                        }
+                        return null;
+                    }),
 
                 TextInput::make('amount')
                     ->label(__('tables.amount'))

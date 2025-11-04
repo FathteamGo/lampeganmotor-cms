@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Sales\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -140,6 +141,14 @@ class SalesTable
             ->recordActions([
                 ViewAction::make()->label(__('tables.view')),
                 EditAction::make()->label(__('tables.edit')),
+                Action::make('invoice_cash')
+                        ->label('Invoice (Cash)')
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->payment_method === 'cash')
+                        ->url(fn ($record) => route('sales.invoice.cash', $record))
+                        ->openUrlInNewTab(),
+
             ])
 
             ->toolbarActions([

@@ -9,14 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->decimal('salary', 15, 2)->nullable()->after('password');
+            $table->bigInteger('base_salary')->default(0)->after('role');
+            $table->bigInteger('bonus')->default(0)->after('base_salary');
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('salary');
+            $table->dropColumn(['base_salary', 'bonus']);
         });
     }
 };

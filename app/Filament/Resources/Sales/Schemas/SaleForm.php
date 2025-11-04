@@ -27,11 +27,14 @@ class SaleForm
             Select::make('vehicle_id')
                 ->label('Motor')
                 ->options(function ($get, $record) {
-                    $query = Vehicle::with(['vehicleModel', 'color'])
-                        ->where('status', 'available')
-                        ->whereDoesntHave('sale');
+                     $query = Vehicle::with(['vehicleModel', 'color'])
+                            ->where('status', 'available')
+                            ->whereDoesntHave('sale', function ($q) {
+                                $q->where('status', '!=', 'cancel');
+                            });
 
-                    // ✅ Saat edit, tampilkan juga motor yang sedang dipakai sale ini
+
+                    // Saat edit, tampilkan juga motor yang sedang dipakai sale ini
                     if ($record && $record->vehicle_id) {
                         $query->orWhere('id', $record->vehicle_id);
                     }

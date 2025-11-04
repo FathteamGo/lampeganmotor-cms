@@ -4,9 +4,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
 use App\Exports\AssetReportExport;
 use App\Exports\VehiclesExport;
+use App\Http\Controllers\Admin\SalesSummaryExportController;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Controllers\AssetReportController;
 use App\Http\Controllers\FrontPostBlogController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\TesReportInsight;
 use App\Http\Controllers\WeeklyReportController;
 
@@ -14,6 +16,10 @@ use App\Http\Controllers\WeeklyReportController;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/sales/{sale}/invoice-cash', [InvoiceController::class, 'cash'])
+    ->name('sales.invoice.cash');
+
 
 // Halaman utama (Landing Page)
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
@@ -50,6 +56,9 @@ Route::get('/inventory/export/excel', function () {
     return Excel::download(new VehiclesExport, 'vehicles.xlsx');
 })->name('inventory.export.excel');
 
+//sales summary export
+Route::get('/admin/sales-summaries/export', [SalesSummaryExportController::class, 'export'])
+    ->name('sales-summaries.export');
 
 
 Route::get('/export/asset-report', function () {

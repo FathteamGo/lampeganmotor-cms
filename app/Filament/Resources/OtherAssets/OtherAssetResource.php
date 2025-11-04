@@ -13,6 +13,7 @@ use App\Models\OtherAsset;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class OtherAssetResource extends Resource
 {
@@ -30,6 +31,21 @@ class OtherAssetResource extends Resource
     public static function getNavigationLabel(): string
     {
         return __('navigation.other_assets');
+    }
+
+
+    public static function shouldRegisterNavigation(): bool
+    {
+    $user = Auth::user();
+
+    return $user && $user->role === 'owner';
+    }
+
+    public static function canAccess(): bool
+    {
+    $user = Auth::user();
+
+    return $user && $user->role === 'owner';
     }
 
     /** 🔹 Label Jamak */

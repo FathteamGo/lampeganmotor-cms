@@ -122,6 +122,11 @@ class AdminPanelProvider extends PanelProvider
                 ->collapsed(),
 
             NavigationGroup::make()
+                ->label(fn() => __('Laporan Sales'))
+                ->icon('heroicon-o-chart-bar')
+                ->collapsed(),
+            
+            NavigationGroup::make()
                 ->label('Blog')
                 ->icon('heroicon-o-newspaper')
                 ->collapsed(),

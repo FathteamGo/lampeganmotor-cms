@@ -20,12 +20,26 @@ class IncomeForm
                     ->required()
                     ->maxLength(255),
 
-                // Relasi ke Category
                 Select::make('category_id')
                     ->label(__('tables.category_name'))
                     ->options(Category::whereType('income')->pluck('name', 'id'))
                     ->searchable()
-                    ->required(),
+                    ->required()
+                    ->createOptionForm([
+                        TextInput::make('name')
+                            ->label('Nama Kategori')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->createOptionUsing(function ($data) {
+                        if (!empty($data['name'])) {
+                            return Category::create([
+                                'name' => $data['name'],
+                                'type' => 'income',
+                            ])->id;
+                        }
+                        return null;
+                    }),
 
                 TextInput::make('amount')
                     ->label(__('tables.amount'))
@@ -38,7 +52,6 @@ class IncomeForm
                     ->required()
                     ->default(now()),
 
-                // // Relasi ke Customer
                 Select::make('customer_id')
                     ->label(__('tables.customer_name'))
                     ->relationship('customer', 'name')

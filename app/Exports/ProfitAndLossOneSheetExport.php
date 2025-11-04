@@ -34,23 +34,28 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
     {
         return [
             AfterSheet::class => function (AfterSheet $e) {
-                $s   = $e->sheet->getDelegate();
+                $sheet = $e->sheet->getDelegate();
                 $col = 'C';
                 $row = 2;
 
-                $row = $this->writeSummary($s, $col, $row) + 2;
+                // Summary (SALES, INCOME, EXPENSE, STNK, LABA BERSIH)
+                $row = $this->writeSummary($sheet, $col, $row) + 2;
 
+                // Detail Sales
                 [$h, $r] = $this->dataSales();
-                $row = $this->writeDetail($s, $col, $row, 'Sales', $h, $r, 'sale') + 2;
+                $row = $this->writeDetail($sheet, $col, $row, 'Sales', $h, $r, 'sale') + 2;
 
+                // Detail Income
                 [$h, $r] = $this->dataIncomes();
-                $row = $this->writeDetail($s, $col, $row, 'Income', $h, $r) + 2;
+                $row = $this->writeDetail($sheet, $col, $row, 'Income', $h, $r) + 2;
 
+                // Detail Expenses
                 [$h, $r] = $this->dataExpenses();
-                $row = $this->writeDetail($s, $col, $row, 'Expense', $h, $r) + 2;
+                $row = $this->writeDetail($sheet, $col, $row, 'Expense', $h, $r) + 2;
 
+                // Detail STNK
                 [$h, $r] = $this->dataStnk();
-                $this->writeDetail($s, $col, $row, 'STNK', $h, $r);
+                $this->writeDetail($sheet, $col, $row, 'STNK', $h, $r);
             },
         ];
     }
@@ -258,44 +263,44 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
 
         // Rows
         $rows = [
-            ['SALES',      $sales],
-            ['INCOME',     $incomes],
-            ['STNK INCOME',$stnkIncome],
-            ['EXPENSE',    $expenses],
-            ['STNK EXPENSE',$stnkExpense],
-            ['TOTAL',      $profit],
+            ['SALES',       $sales],
+            ['INCOME',      $incomes],
+            ['STNK INCOME', $stnkIncome],
+            ['EXPENSE',     $expenses],
+            ['STNK EXPENSE', $stnkExpense],
         ];
 
         $r = $h + 1;
         foreach ($rows as [$label, $val]) {
             $sheet->setCellValue("{$c1}{$r}", $label);
             $sheet->setCellValueExplicit("{$c2}{$r}", (float)$val, DataType::TYPE_NUMERIC);
-
-            $sheet->getStyle("{$c1}{$r}:{$c2}{$r}")
-                  ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-            $sheet->getStyle("{$c2}{$r}")
-                  ->getNumberFormat()->setFormatCode("\"Rp\" #,##0;-" . "\"Rp\" #,##0");
-            $sheet->getStyle("{$c2}{$r}")
-                  ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle("{$c1}{$r}:{$c2}{$r}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+            $sheet->getStyle("{$c2}{$r}")->getNumberFormat()->setFormatCode("\"Rp\" #,##0;-"."\"Rp\" #,##0");
+            $sheet->getStyle("{$c2}{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             $r++;
         }
 
-        // Total highlight
-        $last = $r - 1;
-        $sheet->getStyle("{$c1}{$last}:{$c2}{$last}")->getFont()->setBold(true);
-        $sheet->getStyle("{$c1}{$last}:{$c2}{$last}")
-              ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFEDEDED');
+        // LABA BERSIH / PROFIT
+        $sheet->setCellValue("{$c1}{$r}", 'LABA BERSIH / PROFIT');
+        $sheet->setCellValueExplicit("{$c2}{$r}", (float)$profit, DataType::TYPE_NUMERIC);
+
+        // Warna otomatis
+        $color = $profit >= 0 ? 'FF008000' : 'FFFF0000'; // hijau jika untung, merah jika rugi
+        $sheet->getStyle("{$c1}{$r}:{$c2}{$r}")->getFont()->setBold(true)->getColor()->setARGB($color);
+
+        $sheet->getStyle("{$c1}{$r}:{$c2}{$r}")
+            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("{$c2}{$r}")->getNumberFormat()->setFormatCode("\"Rp\" #,##0;-"."\"Rp\" #,##0");
+        $sheet->getStyle("{$c2}{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
 
         // Width
         $sheet->getColumnDimension($c1)->setWidth(28);
         $sheet->getColumnDimension($c2)->setWidth(24);
 
-        return $last;
+        return $r; // baris terakhir
     }
 
-    /**
-     * Tabel detail (judul + header + zebra + border + format tanggal & rupiah + wrap text)
-     */
     protected function writeDetail(
         Worksheet $sheet,
         string $startCol,

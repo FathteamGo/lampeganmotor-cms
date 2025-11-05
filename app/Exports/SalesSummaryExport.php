@@ -19,47 +19,51 @@ class SalesSummaryExport implements FromCollection, WithHeadings, WithMapping, W
 
     public function __construct($month = null, $year = null)
     {
-        $this->month = $month;
-        $this->year = $year;
+        $this->month = $month ?? now()->format('m');
+        $this->year  = $year ?? now()->format('Y');
     }
 
     public function collection()
     {
-        return User::all();
+        return User::orderBy('name')->get();
     }
 
     public function map($user): array
     {
-        $unit = DB::table('sales')
+        $salesCount = DB::table('sales')
             ->where('user_id', $user->id)
-            ->where('status','!=','cancel')
-            ->when($this->month && $this->year, fn($q) => $q->whereMonth('sale_date', $this->month)
-                                                           ->whereYear('sale_date', $this->year))
+            ->whereNotIn('status', ['cancel'])
+            ->whereIn('result', ['ACC', 'CASH'])
+            ->whereMonth('sale_date', $this->month)
+            ->whereYear('sale_date', $this->year)
             ->count();
 
         $totalOmzet = DB::table('sales')
             ->where('user_id', $user->id)
-            ->where('status','!=','cancel')
-            ->when($this->month && $this->year, fn($q) => $q->whereMonth('sale_date', $this->month)
-                                                           ->whereYear('sale_date', $this->year))
+            ->whereNotIn('status', ['cancel'])
+            ->whereIn('result', ['ACC', 'CASH'])
+            ->whereMonth('sale_date', $this->month)
+            ->whereYear('sale_date', $this->year)
             ->sum('sale_price');
 
-        $bonus = $user->bonus ?? 0;
-        $salary = $user->base_salary ?? 0;
+        $bonus = self::calculateBonus($salesCount);
+        $baseSalary = $user->base_salary ?? 0;
+        $totalIncome = $baseSalary + $bonus;
 
         return [
             $user->name,
-            $unit,
+            $salesCount,
             $totalOmzet,
             $bonus,
-            $salary,
-            $bonus + $salary,
+            $baseSalary,
+            $totalIncome,
         ];
     }
 
     public function headings(): array
     {
         return [
+            // Heading tabel (baris ke-2, karena baris pertama akan diisi periode)
             'Nama Sales',
             'Unit Terjual',
             'Total Omzet (Rp)',
@@ -69,24 +73,49 @@ class SalesSummaryExport implements FromCollection, WithHeadings, WithMapping, W
         ];
     }
 
-    // Styling header dan sheet
+    private static function calculateBonus(int $salesCount): int
+    {
+        if ($salesCount <= 0) return 0;
+
+        if ($salesCount < 5) return 150_000 * $salesCount;
+        if ($salesCount < 10) return 250_000 * $salesCount;
+        if ($salesCount == 10) return (250_000 * 10) + 500_000;
+
+        return (250_000 * 10) + 500_000 + (150_000 * ($salesCount - 10));
+    }
+
     public function styles(Worksheet $sheet)
     {
-        // Header bold & background abu-abu
-        $sheet->getStyle('A1:F1')->getFont()->setBold(true);
-        $sheet->getStyle('A1:F1')->getFill()
+        // Tambah baris di atas untuk keterangan periode
+        $monthName = match ($this->month) {
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember',
+            default => $this->month,
+        };
+
+        $periodeText = "Periode: {$monthName} {$this->year}";
+        $sheet->insertNewRowBefore(1, 1); // Sisipkan baris di atas heading
+        $sheet->setCellValue('A1', $periodeText);
+
+        // Gabungkan cell A1 sampai F1
+        $sheet->mergeCells('A1:F1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(12);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
+
+        // Style header (baris ke-2 setelah periode)
+        $sheet->getStyle('A2:F2')->getFont()->setBold(true);
+        $sheet->getStyle('A2:F2')->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('D9D9D9');
 
-        // Auto-fit kolom
-        foreach(range('A','F') as $col){
+        foreach (range('A', 'F') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         return [];
     }
 
-    // Format kolom mata uang
     public function columnFormats(): array
     {
         return [

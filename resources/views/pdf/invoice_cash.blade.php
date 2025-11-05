@@ -76,9 +76,9 @@
             <th>Jenis Motor</th>
             <td>{{ $sale->vehicle->vehicleModel->brand->name ?? '-' }}</td>
         </tr>
-        <tr>
+       <tr>
             <th>Type</th>
-            <td>{{ $sale->vehicle->vehicleModel->name ?? '-' }}</td>
+            <td>{{ $sale->vehicle->type->name ?? '-' }}</td>
         </tr>
         <tr>
             <th>Tahun</th>

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Sales\Schemas;
 
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\Sale;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -11,6 +12,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Section;
 use Filament\Schemas\Components\Section as ComponentsSection;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\ValidationException;
 
 class SaleForm
 {
@@ -23,23 +25,21 @@ class SaleForm
                 ->searchable()
                 ->required(),
 
-            // ======== FIXED DROPDOWN MOTOR (EDIT MODE AMAN) ========
             Select::make('vehicle_id')
                 ->label('Motor')
                 ->options(function ($get, $record) {
-                     $query = Vehicle::with(['vehicleModel', 'color'])
-                            ->where('status', 'available')
-                            ->whereDoesntHave('sale', function ($q) {
-                                $q->where('status', '!=', 'cancel');
-                            });
+                    $query = Vehicle::with(['vehicleModel', 'color'])
+                        ->where('status', 'available')
+                        ->whereDoesntHave('sale', function ($q) {
+                            $q->where('status', '!=', 'cancel');
+                        });
 
-
-                    // Saat edit, tampilkan juga motor yang sedang dipakai sale ini
+                    // saat edit, izinkan motor yang sekarang dipakai
                     if ($record && $record->vehicle_id) {
                         $query->orWhere('id', $record->vehicle_id);
                     }
 
-                    return $query->get()->mapWithKeys(fn ($v) => [
+                    return $query->get()->mapWithKeys(fn($v) => [
                         $v->id => sprintf(
                             '%s | %s | %s',
                             $v->vehicleModel->name ?? 'Unknown',
@@ -48,38 +48,31 @@ class SaleForm
                         ),
                     ]);
                 })
-                ->searchable()
                 ->required()
-                ->unique(ignoreRecord: true),
+                ->searchable()
+                ->afterStateUpdated(function ($state, callable $set, $get) {
+                    // validasi manual supaya tetep unique tapi skip cancel
+                    if (!$state) return;
 
-            // ===== DATA CUSTOMER =====
+                    $exists = Sale::where('vehicle_id', $state)
+                        ->where('status', '!=', 'cancel')
+                        ->exists();
+
+                    if ($exists) {
+                        throw ValidationException::withMessages([
+                            'vehicle_id' => 'Motor ini masih terikat dengan penjualan aktif (belum cancel).',
+                        ]);
+                    }
+                }),
+
             ComponentsSection::make('Data Customer')
                 ->description('Data customer akan otomatis disimpan ke master Customer')
                 ->schema([
-                    TextInput::make('customer_name')
-                        ->label('Nama Customer')
-                        ->required()
-                        ->maxLength(255),
-
-                    TextInput::make('customer_phone')
-                        ->label('No. Telepon')
-                        ->tel()
-                        ->maxLength(20),
-
-                    TextInput::make('customer_address')
-                        ->label('Alamat')
-                        ->maxLength(500)
-                        ->columnSpan(2),
-
-                    TextInput::make('customer_instagram')
-                        ->label('Instagram')
-                        ->placeholder('@username atau URL')
-                        ->maxLength(255),
-
-                    TextInput::make('customer_tiktok')
-                        ->label('TikTok')
-                        ->placeholder('@username atau URL')
-                        ->maxLength(255),
+                    TextInput::make('customer_name')->label('Nama Customer')->required(),
+                    TextInput::make('customer_phone')->label('No. Telepon')->tel(),
+                    TextInput::make('customer_address')->label('Alamat'),
+                    TextInput::make('customer_instagram')->label('Instagram'),
+                    TextInput::make('customer_tiktok')->label('TikTok'),
                 ])
                 ->columns(2),
 
@@ -91,7 +84,6 @@ class SaleForm
             TextInput::make('sale_price')
                 ->label('OTR')
                 ->numeric()
-                ->minValue(0)
                 ->prefix('Rp')
                 ->required(),
 
@@ -110,43 +102,28 @@ class SaleForm
             TextInput::make('dp_po')
                 ->label('DP PO')
                 ->numeric()
-                ->minValue(0)
                 ->prefix('Rp')
-                ->visible(fn ($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
+                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
             TextInput::make('dp_real')
                 ->label('DP REAL')
                 ->numeric()
-                ->minValue(0)
                 ->prefix('Rp')
-                ->visible(fn ($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
+                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
             TextInput::make('remaining_payment')
                 ->label('Sisa Pembayaran')
                 ->numeric()
-                ->minValue(0)
                 ->prefix('Rp')
-                ->visible(fn ($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
+                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
             DatePicker::make('due_date')
                 ->label('Jatuh Tempo')
-                ->visible(fn ($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
+                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
-            TextInput::make('cmo')
-                ->label('CMO / Mediator')
-                ->maxLength(255),
-
-            TextInput::make('cmo_fee')
-                ->label('Fee CMO')
-                ->numeric()
-                ->minValue(0)
-                ->prefix('Rp'),
-
-            TextInput::make('direct_commission')
-                ->label('Komisi Langsung')
-                ->numeric()
-                ->minValue(0)
-                ->prefix('Rp'),
+            TextInput::make('cmo')->label('CMO / Mediator'),
+            TextInput::make('cmo_fee')->label('Fee CMO')->numeric()->prefix('Rp'),
+            TextInput::make('direct_commission')->label('Komisi Langsung')->numeric()->prefix('Rp'),
 
             Select::make('order_source')
                 ->label('Sumber Order')
@@ -156,13 +133,9 @@ class SaleForm
                     'tiktok'  => 'TikTok',
                     'olx'     => 'OLX',
                     'walk_in' => 'Walk In',
-                ])
-                ->searchable()
-                ->placeholder('Pilih sumber order'),
+                ]),
 
-            TextInput::make('branch_name')
-                ->label('Cabang')
-                ->maxLength(255),
+            TextInput::make('branch_name')->label('Cabang'),
 
             Select::make('result')
                 ->label('Hasil')
@@ -170,8 +143,7 @@ class SaleForm
                     'ACC'    => 'ACC',
                     'CASH'   => 'CASH',
                     'CANCEL' => 'CANCEL',
-                ])
-                ->searchable(),
+                ]),
 
             Select::make('status')
                 ->label('Status')
@@ -182,7 +154,6 @@ class SaleForm
                     'cancel'  => 'Cancel',
                 ])
                 ->default('proses')
-                ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, $get) {
                     if ($state === 'cancel') {
@@ -190,9 +161,7 @@ class SaleForm
                     }
                 }),
 
-            Textarea::make('notes')
-                ->label('Note')
-                ->columnSpanFull(),
+            Textarea::make('notes')->label('Catatan')->columnSpanFull(),
         ]);
     }
 }

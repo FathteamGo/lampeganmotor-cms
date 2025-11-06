@@ -44,6 +44,7 @@ class PurchaseForm
             ComponentsSection::make('Data Kendaraan')
                 ->columns(2)
                 ->columnSpanFull()
+                ->visible(fn($record) => !$record)
                 ->schema([
                     TextInput::make('vehicle_model_name')
                         ->label('Model Kendaraan')

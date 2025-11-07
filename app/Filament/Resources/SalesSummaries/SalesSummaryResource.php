@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SalesSummaries;
 
 use App\Filament\Resources\SalesSummaries\Pages\ListSalesSummaries;
+use App\Filament\Resources\SalesSummaries\Pages\EditSalesSummary;
 use App\Filament\Resources\SalesSummaries\Schemas\SalesSummaryForm;
 use App\Filament\Resources\SalesSummaries\Tables\SalesSummariesTable;
 use App\Models\User;
@@ -14,7 +15,6 @@ use Illuminate\Support\Facades\Auth;
 class SalesSummaryResource extends Resource
 {
     protected static ?string $model = User::class;
-
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema
@@ -22,19 +22,16 @@ class SalesSummaryResource extends Resource
         return SalesSummaryForm::configure($schema);
     }
 
-
-      public static function shouldRegisterNavigation(): bool
+    public static function shouldRegisterNavigation(): bool
     {
-    $user = Auth::user();
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
+    }
 
-    return $user && $user->role === 'owner';
-    }   
-
- public static function canAccess(): bool
+    public static function canAccess(): bool
     {
-    $user = Auth::user();
-
-    return $user && $user->role === 'owner';
+        $user = Auth::user();
+        return $user && $user->role === 'owner';
     }
 
     public static function table(Table $table): Table
@@ -61,7 +58,7 @@ class SalesSummaryResource extends Resource
     {
         return [
             'index' => ListSalesSummaries::route('/'),
-            'edit' => Pages\EditSalesSummary::route('/{record}/edit'),
+            'edit' => EditSalesSummary::route('/{record}/edit'),
         ];
     }
 }

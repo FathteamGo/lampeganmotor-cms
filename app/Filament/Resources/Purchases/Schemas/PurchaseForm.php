@@ -46,6 +46,10 @@ class PurchaseForm
                 ->columnSpanFull()
                 ->visible(fn($record) => !$record)
                 ->schema([
+                    TextInput::make('brand_name')
+                        ->label('Merek Kendaraan')
+                        ->required(),
+
                     TextInput::make('vehicle_model_name')
                         ->label('Model Kendaraan')
                         ->required(),
@@ -144,7 +148,7 @@ class PurchaseForm
                     Repeater::make('additional_costs')
                         ->label('Biaya Tambahan')
                         ->columns(2)
-                        ->reactive() // penting!
+                        ->reactive()
                         ->afterStateUpdated(fn(callable $set, callable $get) =>
                             $set('grand_total', self::calculateGrandTotal($get))
                         )
@@ -152,8 +156,7 @@ class PurchaseForm
                             Select::make('category_id')
                                 ->label('Kategori')
                                 ->options(fn() => Category::pluck('name', 'id'))
-                                ->searchable()
-                                ->required(),
+                                ->searchable(),
 
                             TextInput::make('price')
                                 ->label('Harga')

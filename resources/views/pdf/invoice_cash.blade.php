@@ -74,7 +74,8 @@
     <table class="detail-table">
         <tr>
             <th>Jenis Motor</th>
-            <td>{{ $sale->vehicle->vehicleModel->brand->name ?? '-' }}</td>
+            <td>{{ $sale->vehicle->vehicleModel->brand->name ?? '-' }}
+                {{ $sale->vehicle->vehicleModel->name ?? '-' }}</td>
         </tr>
        <tr>
             <th>Type</th>
@@ -103,6 +104,16 @@
         <tr>
             <th>Metode Pembayaran</th>
             <td>{{ strtoupper($sale->payment_method ?? '-') }}</td>
+        </tr>
+        <tr>
+            <th>Status</th>
+            <td>
+                @if(strtolower($sale->status ?? '') === 'cancel')
+                    <span style="color:#ff0000; font-weight:bold;">DIBATALKAN</span>
+                @else
+                    {{ strtoupper($sale->status ?? '-') }}
+                @endif
+            </td>
         </tr>
     </table>
 

@@ -19,13 +19,11 @@ class SalesSummariesTable
         return $table
             ->query(User::query())
             ->columns([
-                // === NAMA SALES ===
                 TextColumn::make('name')
                     ->label('Nama Sales')
                     ->sortable()
                     ->searchable(),
 
-                // === UNIT TERJUAL ===
                 TextColumn::make('sales_count')
                     ->label('Unit Terjual')
                     ->getStateUsing(function ($record, $column) {
@@ -42,7 +40,6 @@ class SalesSummariesTable
                             ->count();
                     }),
 
-                // === TOTAL OMZET ===
                 TextColumn::make('total_omzet')
                     ->label('Total Omzet')
                     ->money('IDR', true)
@@ -60,7 +57,6 @@ class SalesSummariesTable
                             ->sum('sale_price');
                     }),
 
-                // === BONUS ===
                 TextColumn::make('bonus')
                     ->label('Bonus')
                     ->money('IDR', true)
@@ -80,13 +76,11 @@ class SalesSummariesTable
                         return self::calculateBonus($salesCount);
                     }),
 
-                // === GAJI POKOK ===
                 TextColumn::make('base_salary')
                     ->label('Gaji Pokok')
                     ->money('IDR', true)
                     ->getStateUsing(fn($record) => $record->base_salary ?? 0),
 
-                // === TOTAL PENGHASILAN ===
                 TextColumn::make('total_income')
                     ->label('Total Penghasilan')
                     ->money('IDR', true)
@@ -108,7 +102,6 @@ class SalesSummariesTable
                     }),
             ])
 
-            // === FILTER PERIODE ===
             ->filters([
                 Filter::make('periode')
                     ->form([
@@ -120,6 +113,7 @@ class SalesSummariesTable
                                 '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember',
                             ])
                             ->default(now()->format('m')),
+
                         Select::make('year')
                             ->label('Tahun')
                             ->options(fn() => DB::table('sales')
@@ -134,16 +128,11 @@ class SalesSummariesTable
                     ]),
             ])
 
-            // === EXPORT KE EXCEL ===
             ->headerActions([
                 ActionsAction::make('export')
                     ->label('Export Excel')
                     ->icon('heroicon-s-arrow-down-tray')
                     ->action(function ($data, $livewire) {
-                        /** 
-                         * NOTE: Di Filament 3, $livewire->filters adalah cara resmi
-                         * untuk ambil filter aktif dari tabel
-                         */
                         $filters = $livewire->filters['periode'] ?? [];
                         $month = $filters['month'] ?? now()->format('m');
                         $year  = $filters['year'] ?? now()->format('Y');
@@ -154,27 +143,15 @@ class SalesSummariesTable
                         );
                     }),
             ])
-
             ->defaultSort('name', 'asc');
     }
 
-    /**
-     * Hitung bonus otomatis sesuai kebijakan.
-     */
     private static function calculateBonus(int $salesCount): int
     {
         if ($salesCount <= 0) return 0;
-
-        // 1–4 unit → 150k per unit
         if ($salesCount < 5) return 150_000 * $salesCount;
-
-        // 5–9 unit → 250k per unit
         if ($salesCount < 10) return 250_000 * $salesCount;
-
-        // 10 unit → 250k per unit + 500k total
         if ($salesCount == 10) return (250_000 * 10) + 500_000;
-
-        // Di atas 11 unit → 250k per unit untuk 10 pertama + 500k + 150k sisanya
         return (250_000 * 10) + 500_000 + (150_000 * ($salesCount - 10));
     }
 }

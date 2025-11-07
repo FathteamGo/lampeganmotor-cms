@@ -60,124 +60,124 @@ class Dashboard extends BaseDashboard
         ]);
     }
 
-    // protected function getHeaderActions(): array
-    // {
-    //     return [
-    //         Action::make('runSample')
-    //             ->label('Run Report AI Agent')
-    //             ->icon('heroicon-o-bolt')
-    //             ->color('success')
-    //             ->action(fn() => $this->runSample()),
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('runSample')
+                ->label('Run Report AI Agent')
+                ->icon('heroicon-o-bolt')
+                ->color('success')
+                ->action(fn() => $this->runSample()),
 
-    //         Action::make('weeklyReportNotif')
-    //             ->label('Ada Insight Terbaru')
-    //             ->modalHeading('Insight Baru')
-    //             ->modalSubheading('Ada laporan mingguan baru yang belum dibaca.')
-    //             ->modalContent(view('filament.components.weekly-report-notif'))
-    //             ->modalButton('Tandai Sudah Dibaca')
-    //             ->modalWidth('lg')
-    //             ->hidden(fn () => !WeeklyReport::where('read', 0)->exists())
-    //             ->action(function () {
-    //                 WeeklyReport::where('read', 0)->update(['read' => 1]);
-    //                 Notification::make()
-    //                     ->title('Laporan ditandai sudah dibaca')
-    //                     ->success()
-    //                     ->send();
-    //             }),
-    //     ];
-    // }
+            Action::make('weeklyReportNotif')
+                ->label('Ada Insight Terbaru')
+                ->modalHeading('Insight Baru')
+                ->modalSubheading('Ada laporan mingguan baru yang belum dibaca.')
+                ->modalContent(view('filament.components.weekly-report-notif'))
+                ->modalButton('Tandai Sudah Dibaca')
+                ->modalWidth('lg')
+                ->hidden(fn () => !WeeklyReport::where('read', 0)->exists())
+                ->action(function () {
+                    WeeklyReport::where('read', 0)->update(['read' => 1]);
+                    Notification::make()
+                        ->title('Laporan ditandai sudah dibaca')
+                        ->success()
+                        ->send();
+                }),
+        ];
+    }
 
-    // protected function runSample(): void
-    // {
-    //     try {
-    //         $report = app(\App\Services\ReportService::class)
-    //             ->saveWeeklyReport(app(\App\Services\GeminiService::class));
+    protected function runSample(): void
+    {
+        try {
+            $report = app(\App\Services\ReportService::class)
+                ->saveWeeklyReport(app(\App\Services\GeminiService::class));
 
-    //         $number = WhatsAppNumber::where('is_active', true)
-    //             ->where('is_report_gateway', true)
-    //             ->value('number');
+            $number = WhatsAppNumber::where('is_active', true)
+                ->where('is_report_gateway', true)
+                ->value('number');
 
-    //         if (!$number) {
-    //             throw new \Exception('Nomor WhatsApp gateway belum diatur.');
-    //         }
+            if (!$number) {
+                throw new \Exception('Nomor WhatsApp gateway belum diatur.');
+            }
 
-    //         // --- Siapkan message ---
-    //         $lastWeek = WeeklyReport::where('end_date', '<', $report->start_date)
-    //             ->latest('end_date')
-    //             ->first();
+            // --- Siapkan message ---
+            $lastWeek = WeeklyReport::where('end_date', '<', $report->start_date)
+                ->latest('end_date')
+                ->first();
 
-    //         $comparison = "📊 Belum ada data minggu lalu untuk perbandingan.";
-    //         if ($lastWeek) {
-    //             $salesDiff = $report->sales_count - $lastWeek->sales_count;
-    //             $salesPercent = $lastWeek->sales_count > 0
-    //                 ? round(($salesDiff / $lastWeek->sales_count) * 100, 1)
-    //                 : 0;
+            $comparison = "📊 Belum ada data minggu lalu untuk perbandingan.";
+            if ($lastWeek) {
+                $salesDiff = $report->sales_count - $lastWeek->sales_count;
+                $salesPercent = $lastWeek->sales_count > 0
+                    ? round(($salesDiff / $lastWeek->sales_count) * 100, 1)
+                    : 0;
 
-    //             $incomeDiff = $report->total_income - $lastWeek->total_income;
-    //             $incomePercent = $lastWeek->total_income > 0
-    //                 ? round(($incomeDiff / $lastWeek->total_income) * 100, 1)
-    //                 : 0;
+                $incomeDiff = $report->total_income - $lastWeek->total_income;
+                $incomePercent = $lastWeek->total_income > 0
+                    ? round(($incomeDiff / $lastWeek->total_income) * 100, 1)
+                    : 0;
 
-    //             $comparison =
-    //                 "📊 Perbandingan dengan minggu lalu:\n" .
-    //                 "• Penjualan: {$report->sales_count} unit (" .
-    //                 ($salesDiff >= 0 ? "naik" : "turun") . " {$salesPercent}%)\n" .
-    //                 "• Pemasukan: Rp " . number_format($report->total_income, 0, ',', '.') .
-    //                 " (" . ($incomeDiff >= 0 ? "naik" : "turun") . " {$incomePercent}%)";
-    //         }
+                $comparison =
+                    "📊 Perbandingan dengan minggu lalu:\n" .
+                    "• Penjualan: {$report->sales_count} unit (" .
+                    ($salesDiff >= 0 ? "naik" : "turun") . " {$salesPercent}%)\n" .
+                    "• Pemasukan: Rp " . number_format($report->total_income, 0, ',', '.') .
+                    " (" . ($incomeDiff >= 0 ? "naik" : "turun") . " {$incomePercent}%)";
+            }
 
-    //         $topMotors = collect($report->top_motors)
-    //             ->map(fn($m) => "• {$m['name']} → {$m['unit']} unit")
-    //             ->implode("\n") ?: "Belum ada penjualan minggu ini";
+            $topMotors = collect($report->top_motors)
+                ->map(fn($m) => "• {$m['name']} → {$m['unit']} unit")
+                ->implode("\n") ?: "Belum ada penjualan minggu ini";
 
-    //         $startDate = Carbon::parse($report->start_date)->format('d M Y');
-    //         $endDate   = Carbon::parse($report->end_date)->format('d M Y');
+            $startDate = Carbon::parse($report->start_date)->format('d M Y');
+            $endDate   = Carbon::parse($report->end_date)->format('d M Y');
 
-    //         $message =
-    //             "🤖 Halo, saya Royal Zero, asisten AI Anda.\n\n" .
-    //             "📆 Report Lampegan Motor Periode \n" .
-    //             "{$startDate} - {$endDate}\n\n" .
-    //             "1. Pengunjung: {$report->visitors}\n" .
-    //             "2. Penjualan: {$report->sales_count} unit (Rp " . number_format($report->sales_total, 0, ',', '.') . ")\n" .
-    //             "3. Pemasukan: Rp " . number_format($report->total_income, 0, ',', '.') . "\n" .
-    //             "4. Pengeluaran: Rp " . number_format($report->expense_total, 0, ',', '.') . "\n" .
-    //             "5. Stok tersedia: {$report->stock}\n" .
-    //             "6. Perpanjangan STNK: {$report->stnk_renewal}\n\n" .
-    //             "🏆 Motor Terlaris:\n{$topMotors}\n\n" .
-    //             "💡 Insight:\n{$report->insight}\n\n" .
-    //             $comparison . "\n\n" .
-    //             "⚠️ Disclaimer: Laporan ini dibuat otomatis oleh sistem AI. Periksa kembali sebelum digunakan untuk keputusan bisnis.";
+            $message =
+                "🤖 Halo, saya Royal Zero, asisten AI Anda.\n\n" .
+                "📆 Report Lampegan Motor Periode \n" .
+                "{$startDate} - {$endDate}\n\n" .
+                "1. Pengunjung: {$report->visitors}\n" .
+                "2. Penjualan: {$report->sales_count} unit (Rp " . number_format($report->sales_total, 0, ',', '.') . ")\n" .
+                "3. Pemasukan: Rp " . number_format($report->total_income, 0, ',', '.') . "\n" .
+                "4. Pengeluaran: Rp " . number_format($report->expense_total, 0, ',', '.') . "\n" .
+                "5. Stok tersedia: {$report->stock}\n" .
+                "6. Perpanjangan STNK: {$report->stnk_renewal}\n\n" .
+                "🏆 Motor Terlaris:\n{$topMotors}\n\n" .
+                "💡 Insight:\n{$report->insight}\n\n" .
+                $comparison . "\n\n" .
+                "⚠️ Disclaimer: Laporan ini dibuat otomatis oleh sistem AI. Periksa kembali sebelum digunakan untuk keputusan bisnis.";
 
-    //         try {
-    //             app(WaService::class)->sendText($number, $message);
+            try {
+                app(WaService::class)->sendText($number, $message);
 
-    //             Notification::make()
-    //                 ->title('Sample report berhasil dibuat & dikirim via WhatsApp')
-    //                 ->success()
-    //                 ->duration(5000)
-    //                 ->send();
-    //         } catch (\Throwable $waError) {
-    //             // Tangkap error WA, tampilkan sebagai danger notification
-    //             Notification::make()
-    //                 ->title('Gagal mengirim laporan via WhatsApp')
-    //                 ->body('Error WA: ' . $waError->getMessage())
-    //                 ->danger()
-    //                 ->duration(8000)
-    //                 ->send();
+                Notification::make()
+                    ->title('Sample report berhasil dibuat & dikirim via WhatsApp')
+                    ->success()
+                    ->duration(5000)
+                    ->send();
+            } catch (\Throwable $waError) {
+                // Tangkap error WA, tampilkan sebagai danger notification
+                Notification::make()
+                    ->title('Gagal mengirim laporan via WhatsApp')
+                    ->body('Error WA: ' . $waError->getMessage())
+                    ->danger()
+                    ->duration(8000)
+                    ->send();
 
-    //             // Stop process, jangan tampilkan success
-    //             return;
-    //         }
+                // Stop process, jangan tampilkan success
+                return;
+            }
 
-    //     } catch (\Throwable $e) {
-    //         Notification::make()
-    //             ->title('Gagal membuat laporan')
-    //             ->body('Error: ' . $e->getMessage())
-    //             ->danger()
-    //             ->duration(8000)
-    //             ->send();
-    //     }
-    // }
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->title('Gagal membuat laporan')
+                ->body('Error: ' . $e->getMessage())
+                ->danger()
+                ->duration(8000)
+                ->send();
+        }
+    }
 
     public function getWidgets(): array
     {

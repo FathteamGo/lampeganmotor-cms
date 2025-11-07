@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Suppliers\Tables;
 
+use App\Models\Supplier;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -14,6 +15,9 @@ class SuppliersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->query(fn() => Supplier::whereHas('purchases', function ($q) {
+                $q->whereNotNull('vehicle_id');
+            }))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('tables.name'))
@@ -28,7 +32,7 @@ class SuppliersTable
                     ->label(__('tables.phone'))
                     ->searchable(),
 
-                // ===== JUMLAH UNIT DIPASOK (dari purchases yang punya vehicle_id) =====
+                // ===== JUMLAH UNIT DIPASOK =====
                 TextColumn::make('total_units')
                     ->label('Total Unit Dipasok')
                     ->getStateUsing(fn ($record) => $record->purchases()->whereNotNull('vehicle_id')->count())
@@ -73,13 +77,12 @@ class SuppliersTable
                         '11' => 'November',
                         '12' => 'Desember',
                     ])
+                    ->default(now()->month) // default bulan sekarang
                     ->query(function ($query, array $data) {
                         if (!empty($data['value'])) {
-                            return $query->where(function ($q) use ($data) {
-                                $q->whereHas('purchases', function ($sub) use ($data) {
-                                    $sub->whereMonth('purchase_date', $data['value']);
-                                })
-                                ->orDoesntHave('purchases'); // biar supplier tanpa purchases tetap tampil
+                            return $query->whereHas('purchases', function ($sub) use ($data) {
+                                $sub->whereMonth('purchase_date', $data['value'])
+                                    ->whereNotNull('vehicle_id');
                             });
                         }
                         return $query;
@@ -96,14 +99,12 @@ class SuppliersTable
                         }
                         return $years;
                     })
-                    ->default(now()->year)
+                    ->default(now()->year) // default tahun sekarang
                     ->query(function ($query, array $data) {
                         if (!empty($data['value'])) {
-                            return $query->where(function ($q) use ($data) {
-                                $q->whereHas('purchases', function ($sub) use ($data) {
-                                    $sub->whereYear('purchase_date', $data['value']);
-                                })
-                                ->orDoesntHave('purchases'); // biar supplier tanpa purchases tetap tampil
+                            return $query->whereHas('purchases', function ($sub) use ($data) {
+                                $sub->whereYear('purchase_date', $data['value'])
+                                    ->whereNotNull('vehicle_id');
                             });
                         }
                         return $query;

@@ -8,13 +8,18 @@ use Filament\Notifications\Notification;
 use Illuminate\Validation\ValidationException;
 use Filament\Actions;
 use Filament\Facades\Filament;
+use App\Models\VehicleModel;
+use App\Models\Type;
+use App\Models\Color;
+use App\Models\Year;
+use App\Models\Brand;
 
 class EditVehicle extends EditRecord
 {
     protected static string $resource = VehicleResource::class;
 
     /**
-     * Tambah header actions (View + Delete hanya untuk owner)
+     * Header actions (View + Delete hanya untuk owner)
      */
     protected function getHeaderActions(): array
     {
@@ -45,5 +50,25 @@ class EditVehicle extends EditRecord
 
             throw $e;
         }
+    }
+
+    /**
+     * Auto-fill form data dari relasi kendaraan
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $vehicleModel = VehicleModel::find($this->record->vehicle_model_id);
+        $type = Type::find($this->record->type_id);
+        $color = Color::find($this->record->color_id);
+        $year = Year::find($this->record->year_id);
+        $brand = Brand::find(optional($vehicleModel)->brand_id);
+
+        $data['brand_name'] = $brand?->name;
+        $data['vehicle_model_name'] = $vehicleModel?->name;
+        $data['type_name'] = $type?->name;
+        $data['color_name'] = $color?->name;
+        $data['year_name'] = $year?->year;
+
+        return $data;
     }
 }

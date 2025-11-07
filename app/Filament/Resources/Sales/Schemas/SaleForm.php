@@ -9,7 +9,6 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Section;
 use Filament\Schemas\Components\Section as ComponentsSection;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\ValidationException;
@@ -51,7 +50,6 @@ class SaleForm
                 ->required()
                 ->searchable()
                 ->afterStateUpdated(function ($state, callable $set, $get) {
-                    // validasi manual supaya tetep unique tapi skip cancel
                     if (!$state) return;
 
                     $exists = Sale::where('vehicle_id', $state)
@@ -155,7 +153,26 @@ class SaleForm
                 ])
                 ->default('proses')
                 ->reactive()
-                ->afterStateUpdated(function ($state, callable $set, $get) {
+                ->afterStateUpdated(function ($state, callable $set, $get, $record) {
+                    if (!$record) return;
+
+                    $vehicleId = $record->vehicle_id;
+
+                    // Validasi duplicate status jika motor sudah ada
+                    if (in_array($state, ['kirim', 'selesai'])) {
+                        $existing = Sale::where('vehicle_id', $vehicleId)
+                            ->where('status', $state)
+                            ->where('id', '!=', $record->id)
+                            ->first();
+
+                        if ($existing) {
+                            throw ValidationException::withMessages([
+                                'status' => "Motor ini sudah dijual kepada customer: {$existing->customer_name}.",
+                            ]);
+                        }
+                    }
+
+                    // Tambahkan catatan otomatis jika status cancel
                     if ($state === 'cancel') {
                         $set('notes', trim(($get('notes') ?? '') . "\n[Dibatalkan pada " . now()->format('d M Y H:i') . "]"));
                     }

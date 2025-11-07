@@ -5,16 +5,11 @@ namespace App\Filament\Resources\Vehicles\Schemas;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
-use App\Models\VehicleModel;
-use App\Models\Type;
-use App\Models\Color;
-use App\Models\Year;
 use Illuminate\Validation\Rule;
-use Intervention\Image\ImageManager;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 
 class VehicleForm
@@ -24,31 +19,37 @@ class VehicleForm
         return $schema
             ->columns(2)
             ->schema([
+                // ======== DATA DASAR (manual input) ========
 
-                // ======== DATA DASAR ========
-                Select::make('vehicle_model_id')
+                TextInput::make('brand_name')
+                    ->label('Merek Kendaraan')
+                    ->required()
+                    ->maxLength(255)
+                    ->placeholder('Contoh: Yamaha'),
+
+                TextInput::make('vehicle_model_name')
                     ->label('Model Kendaraan')
-                    ->options(VehicleModel::orderBy('name')->pluck('name', 'id'))
-                    ->searchable()
-                    ->required(),
+                    ->required()
+                    ->maxLength(255)
+                    ->placeholder('Contoh: Mio Z'),
 
-                Select::make('type_id')
-                    ->label('Tipe')
-                    ->options(Type::orderBy('name')->pluck('name', 'id'))
-                    ->searchable()
-                    ->required(),
+                TextInput::make('type_name')
+                    ->label('Tipe Kendaraan')
+                    ->required()
+                    ->maxLength(255)
+                    ->placeholder('Contoh: Matic'),
 
-                Select::make('color_id')
+                TextInput::make('color_name')
                     ->label('Warna')
-                    ->options(Color::orderBy('name')->pluck('name', 'id'))
-                    ->searchable()
-                    ->required(),
+                    ->required()
+                    ->maxLength(255)
+                    ->placeholder('Contoh: Merah'),
 
-                Select::make('year_id')
+                TextInput::make('year_name')
                     ->label('Tahun')
-                    ->options(Year::orderBy('year')->pluck('year', 'id'))
-                    ->searchable()
-                    ->required(),
+                    ->required()
+                    ->numeric()
+                    ->placeholder('Contoh: 2020'),
 
                 TextInput::make('vin')
                     ->label('Nomor Rangka (VIN)')
@@ -108,15 +109,9 @@ class VehicleForm
                     ->numeric()
                     ->minValue(0),
 
-                Select::make('status')
+                TextInput::make('status')
                     ->label('Status')
-                    ->options([
-                        'available' => 'Tersedia',
-                        'sold' => 'Terjual',
-                        'in_repair' => 'Perbaikan',
-                        'hold' => 'Ditahan',
-                    ])
-                    ->default('hold')
+                    ->default('available')
                     ->required(),
 
                 // ======== INFO TAMBAHAN ========
@@ -148,42 +143,28 @@ class VehicleForm
                             ->required()
                             ->getUploadedFileNameForStorageUsing(fn($file) => uniqid('vehicle_') . '.webp')
                             ->saveUploadedFileUsing(function ($file) {
-                                // Gunakan GD driver
                                 $manager = new ImageManager(new Driver());
-
-                                // Baca gambar
                                 $image = $manager->read($file->getRealPath());
 
-                                // Coba perbaiki orientasi jika dari kamera HP
+                                // Koreksi orientasi kamera HP
                                 try {
                                     $ext = strtolower($file->getClientOriginalExtension() ?? pathinfo($file->getClientName(), PATHINFO_EXTENSION));
                                     if (in_array($ext, ['jpg', 'jpeg']) && function_exists('exif_read_data')) {
                                         $exif = @exif_read_data($file->getRealPath());
                                         if (!empty($exif['Orientation'])) {
                                             switch ($exif['Orientation']) {
-                                                case 3:
-                                                    $image->rotate(180);
-                                                    break;
-                                                case 6:
-                                                    $image->rotate(-90);
-                                                    break;
-                                                case 8:
-                                                    $image->rotate(90);
-                                                    break;
+                                                case 3: $image->rotate(180); break;
+                                                case 6: $image->rotate(-90); break;
+                                                case 8: $image->rotate(90); break;
                                             }
                                         }
                                     }
-                                } catch (\Throwable $e) {
-                                    // Abaikan error EXIF
-                                }
+                                } catch (\Throwable $e) {}
 
-                                // Kompres ke WebP tapi pakai ukuran asli (no resize)
+                                // Simpan gambar WebP
                                 $encoded = $image->encodeByExtension('webp', 80);
-
-                                // Simpan manual ke disk public
                                 $path = 'vehicle-photos/' . uniqid('vehicle_') . '.webp';
                                 Storage::disk('public')->put($path, (string) $encoded);
-
                                 return $path;
                             }),
 

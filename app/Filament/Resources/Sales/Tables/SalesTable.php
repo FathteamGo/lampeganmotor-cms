@@ -37,37 +37,12 @@ class SalesTable
                 TextColumn::make('vehicle.color.name')->label('Warna')->toggleable(),
                 TextColumn::make('vehicle.license_plate')->label('No Pol')->searchable()->sortable(),
 
-                TextColumn::make('vehicle.purchase_price')
-                    ->label('H-Total Pembelian')
-                    ->money('IDR', locale: 'id')
-                    ->sortable()
-                    ->toggleable(),
+                TextColumn::make('vehicle.purchase_price')->label('H-Total Pembelian')->money('IDR', locale: 'id')->sortable()->toggleable(),
+                TextColumn::make('sale_price')->label('OTR')->money('IDR', locale: 'id')->sortable()->toggleable(),
+                TextColumn::make('dp_po')->label('Dp Po')->money('IDR', locale: 'id')->placeholder('-')->toggleable(),
+                TextColumn::make('dp_real')->label('Dp Real')->money('IDR', locale: 'id')->placeholder('-')->toggleable(),
+                TextColumn::make('pencairan')->label('Pencairan')->money('IDR', locale: 'id')->placeholder('-')->toggleable(),
 
-                TextColumn::make('sale_price')
-                    ->label('OTR')
-                    ->money('IDR', locale: 'id')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('dp_po')
-                    ->label('Dp Po')
-                    ->money('IDR', locale: 'id')
-                    ->placeholder('-')
-                    ->toggleable(),
-
-                TextColumn::make('dp_real')
-                    ->label('Dp Real')
-                    ->money('IDR', locale: 'id')
-                    ->placeholder('-')
-                    ->toggleable(),
-
-                TextColumn::make('pencairan')
-                    ->label('Pencairan')
-                    ->money('IDR', locale: 'id')
-                    ->placeholder('-')
-                    ->toggleable(),
-
-                // ✅ Laba Bersih dihitung ulang
                 TextColumn::make('laba_bersih')
                     ->label('Laba Bersih')
                     ->money('IDR', locale: 'id')
@@ -86,21 +61,23 @@ class SalesTable
                 TextColumn::make('cmo')->label('CMO')->toggleable(),
                 TextColumn::make('cmo_fee')->label('FEE CMO')->money('IDR', locale: 'id')->toggleable(),
                 TextColumn::make('direct_commission')->label('Komisi Langsung')->money('IDR', locale: 'id')->toggleable(),
-
                 TextColumn::make('order_source')->label('Sumber Order')->searchable()->toggleable(),
                 TextColumn::make('user.name')->label('Ex')->searchable()->sortable()->toggleable(),
                 TextColumn::make('branch_name')->label('Cabang')->searchable()->toggleable(),
                 TextColumn::make('result')->label('Hasil')->searchable()->toggleable(),
-                TextColumn::make('status')->label('Status')->searchable()->toggleable(),
+
+                // Hanya kolom status yang berubah merah jika dibatalkan
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->searchable()
+                    ->toggleable()
+                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null),
 
                 TextColumn::make('sale_date')->label('Tanggal')->date()->sortable(),
                 TextColumn::make('notes')->label('Note')->limit(40)->toggleable(),
-
                 TextColumn::make('created_at')->dateTime()->label(__('tables.created_at'))->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')->dateTime()->label(__('tables.updated_at'))->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
-
-            // 🗓️ Filter gabungan Bulan & Tahun
             ->filters([
                 Filter::make('periode')
                     ->label('Periode')
@@ -122,7 +99,6 @@ class SalesTable
                                 '12' => 'Desember',
                             ])
                             ->default(date('n')),
-
                         Select::make('year')
                             ->label('Tahun')
                             ->options(function () {
@@ -137,20 +113,17 @@ class SalesTable
                             ->when($data['year'] ?? null, fn($q, $year) => $q->whereYear('sale_date', $year));
                     }),
             ])
-
             ->recordActions([
                 ViewAction::make()->label(__('tables.view')),
                 EditAction::make()->label(__('tables.edit')),
                 Action::make('invoice_cash')
-                        ->label('Invoice (Cash)')
-                        ->icon('heroicon-o-document-text')
-                        ->color('success')
-                        ->visible(fn ($record) => $record->payment_method === 'cash')
-                        ->url(fn ($record) => route('sales.invoice.cash', $record))
-                        ->openUrlInNewTab(),
-
+                    ->label('Invoice (Cash)')
+                    ->icon('heroicon-o-document-text')
+                    ->color('success')
+                    ->visible(fn ($record) => $record->payment_method === 'cash')
+                    ->url(fn ($record) => route('sales.invoice.cash', $record))
+                    ->openUrlInNewTab(),
             ])
-
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->label(__('tables.delete')),

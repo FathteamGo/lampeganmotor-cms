@@ -8,6 +8,7 @@ use App\Models\VehicleModel;
 use App\Models\Type;
 use App\Models\Color;
 use App\Models\Year;
+use App\Models\Brand;
 use App\Models\VehiclePhoto;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Storage;
@@ -34,8 +35,16 @@ class CreatePurchase extends CreateRecord
             ]);
         }
 
-        // Buat entri baru untuk model, tipe, warna, tahun (manual input)
-        $model = VehicleModel::firstOrCreate(['name' => $data['vehicle_model_name']]);
+        // 🧩 Buat entri brand dari input manual user
+        $brand = Brand::firstOrCreate(['name' => $data['brand_name']]);
+
+        // 🧩 Buat entri model dengan brand_id dari brand barusan
+        $model = VehicleModel::firstOrCreate([
+            'name' => $data['vehicle_model_name'],
+            'brand_id' => $brand->id,
+        ]);
+
+        // Buat entri lain (tipe, warna, tahun)
         $type = Type::firstOrCreate(['name' => $data['type_name']]);
         $color = Color::firstOrCreate(['name' => $data['color_name']]);
         $year = Year::firstOrCreate(['year' => $data['year_name']]);
@@ -73,7 +82,7 @@ class CreatePurchase extends CreateRecord
             }
         }
 
-        // Hitung total (harga beli + biaya tambahan)
+        // Hitung total harga (harga beli + biaya tambahan)
         $harga = floatval($data['purchase_price'] ?? 0);
         $tambahan = collect($data['additional_costs'] ?? [])
             ->sum(fn($item) => floatval($item['price'] ?? 0));

@@ -10,19 +10,19 @@ class SaleInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            // Customer
+            // 🔹 Customer
             TextEntry::make('customer.name')->label('Nama'),
             TextEntry::make('customer.address')->label('Alamat'),
             TextEntry::make('customer.phone')->label('No Telepon'),
 
-            // Kendaraan
+            // 🔹 Kendaraan
             TextEntry::make('vehicle.vehicleModel.name')->label('Jenis Motor'),
             TextEntry::make('vehicle.type.name')->label('Type'),
             TextEntry::make('vehicle.year.year')->label('Tahun'),
             TextEntry::make('vehicle.color.name')->label('Warna'),
             TextEntry::make('vehicle.license_plate')->label('No Pol'),
 
-            // Harga
+            // 🔹 Harga & Perhitungan
             TextEntry::make('vehicle.purchase_price')
                 ->label('H-Total Pembelian')
                 ->money('IDR', locale: 'id'),
@@ -32,73 +32,81 @@ class SaleInfolist
                 ->money('IDR', locale: 'id'),
 
             TextEntry::make('dp_po')
-                ->label('Dp Po')
+                ->label('DP PO')
                 ->money('IDR', locale: 'id'),
 
             TextEntry::make('dp_real')
-                ->label('Dp Real')
+                ->label('DP REAL')
                 ->money('IDR', locale: 'id'),
 
             TextEntry::make('pencairan')
                 ->label('Pencairan')
                 ->money('IDR', locale: 'id'),
 
+            // 🔹 Laba Bersih (dihitung otomatis)
             TextEntry::make('laba_bersih')
                 ->label('Laba Bersih')
                 ->money('IDR', locale: 'id')
-                ->state(fn($record) => max(
-                    // logic: pencairan (atau sale_price jika pencairan kosong) + dp_real
-                    // dikurangi purchase_price, cmo_fee, direct_commission
-                    ($record->pencairan ?? $record->sale_price ?? 0)
-                    + ($record->dp_real ?? 0)
-                    - ($record->vehicle?->purchase_price ?? 0)
-                    - ($record->cmo_fee ?? 0)
-                    - ($record->direct_commission ?? 0),
-                    0
-                )),
+                ->state(function ($record) {
+                    $pencairan = $record->pencairan ?? $record->sale_price ?? 0;
+                    $dpReal = $record->dp_real ?? 0;
+                    $beli = $record->vehicle?->purchase_price ?? 0;
+                    $cmoFee = $record->cmo_fee ?? 0;
+                    $komisi = $record->direct_commission ?? 0;
 
-            // Pembayaran
+                    // rumus: (pencairan + dp_real) - (harga_beli + cmo_fee + komisi)
+                    return max(($pencairan + $dpReal) - ($beli + $cmoFee + $komisi), 0);
+                }),
+
+            // 🔹 Metode & Pembayaran
             TextEntry::make('payment_method')
                 ->label('Metode Pembayaran')
-                ->formatStateUsing(fn($s) => match ($s) {
-                    'cash' => 'Cash',
-                    'credit' => 'Credit',
-                    'tukartambah' => 'Tukar Tambah',
-                    'cash_tempo' => 'Cash Tempo',
-                    default => $s ?: '-',
-                }),
+                ->default('-'),
 
             TextEntry::make('remaining_payment')
                 ->label('Sisa Pembayaran')
                 ->money('IDR', locale: 'id')
-                ->state(fn($record) => match ($record->payment_method) {
-                    'credit', 'cash_tempo' => max(0, ($record->sale_price ?? 0) - ($record->dp_real ?? 0)),
-                    default => null,
+                ->state(function ($record) {
+                    if (!in_array($record->payment_method, ['credit', 'cash_tempo'])) {
+                        return null;
+                    }
+
+                    // rumus: OTR - DP PO + DP REAL
+                    $otr = $record->sale_price ?? 0;
+                    $dpPo = $record->dp_po ?? 0;
+                    $dpReal = $record->dp_real ?? 0;
+
+                    return max($otr - $dpPo + $dpReal, 0);
                 }),
 
             TextEntry::make('due_date')
                 ->label('Jatuh Tempo')
                 ->date()
-                ->state(fn($record) => match ($record->payment_method) {
-                    'credit', 'cash_tempo' => ($record->created_at ? $record->created_at->copy()->addDays(30) : null),
-                    default => null,
+                ->state(function ($record) {
+                    if (!in_array($record->payment_method, ['credit', 'cash_tempo'])) {
+                        return null;
+                    }
+
+                    // jatuh tempo: created_at + 30 hari (default)
+                    return $record->due_date
+                        ?? ($record->created_at ? $record->created_at->copy()->addDays(30) : null);
                 }),
 
-            // CMO & Komisi
+            // 🔹 Komisi & CMO
             TextEntry::make('cmo')->label('CMO'),
-            TextEntry::make('cmo_fee')->label('FEE CMO')->money('IDR', locale: 'id'),
+            TextEntry::make('cmo_fee')->label('Fee CMO')->money('IDR', locale: 'id'),
             TextEntry::make('direct_commission')->label('Komisi Langsung')->money('IDR', locale: 'id'),
 
-            // Lainnya
+            // 🔹 Info Lainnya
             TextEntry::make('order_source')->label('Sumber Order'),
-            TextEntry::make('user.name')->label('Ex'),
+            TextEntry::make('user.name')->label('Sales / Ex'),
             TextEntry::make('branch_name')->label('Cabang'),
             TextEntry::make('result')->label('Hasil'),
             TextEntry::make('status')->label('Status'),
-            TextEntry::make('notes')->label('Note'),
+            TextEntry::make('notes')->label('Catatan'),
 
-            // Timestamps
-            TextEntry::make('sale_date')->label('Tanggal')->date(),
+            // 🔹 Waktu
+            TextEntry::make('sale_date')->label('Tanggal Penjualan')->date(),
             TextEntry::make('created_at')->label('Dibuat')->dateTime(),
             TextEntry::make('updated_at')->label('Diubah')->dateTime(),
         ]);

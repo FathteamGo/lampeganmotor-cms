@@ -1,32 +1,23 @@
 <?php
 
-namespace App\Filament\Resources\StnkRenewals\Tables;
+namespace App\Filament\Resources\Sales\Schemas;
 
-use App\Filament\Resources\Sales\Schemas\InfoListStnkRenewals;
-use Filament\Tables;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Actions\ViewAction;
-use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Forms;
 
-
-class StnkRenewalsTable
+class InfoListStnkRenewals
 {
-    public static function configure(Table $table): Table
+    public static function configure(Schema $schema): Schema
     {
-        return $table
-            ->columns([
+        return $schema->components([
                 TextColumn::make('tgl')->label('Tanggal')->date(),
                 TextColumn::make('license_plate')->label('Nomor Polisi')->searchable(),
                 TextColumn::make('atas_nama_stnk')->label('Atas Nama'),
                 TextColumn::make('customer.name')->label('Customer'),
                 TextColumn::make('customer.name')->label('Customer'),
-                // TextColumn::make('vendor')->label('Nama Vendor'),
+                TextColumn::make('vendor')->label('Nama Vendor'),
                 // TextColumn::make('payvendor')->label('Pembayaran ke Vendor'),
                 TextColumn::make('customer.phone')->label('Nomor Telepon'),
                 TextColumn::make('total_pajak_jasa')->label('Total Pajak + Jasa')->money('idr', true),
@@ -47,15 +38,6 @@ class StnkRenewalsTable
                     'done' => 'Done',
                     default => $state,
                 })
-            ])
-            ->recordActions([
-                ViewAction::make()->label('Lihat'),
-                EditAction::make()->label('Ubah'),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make()->label('Hapus'),
-                ]),
-            ]);
+        ]);
     }
 }

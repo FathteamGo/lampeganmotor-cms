@@ -7,6 +7,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use App\Models\Customer;
 use App\Models\StnkRenewal;
+use Dom\Text;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rule;
 
@@ -57,6 +58,18 @@ class StnkRenewalForm
                     ->validationMessages([
                         'required' => 'Customer wajib dipilih!',
                     ]),
+
+                // TextInput::make('vendor')
+                //     ->label('Nama Vendor')
+                //     ->required()
+                //     ->maxLength(255)
+                //     ->default('-'),
+
+                // TextInput::make('payvendor')
+                //     ->label('Pembayaran ke vendor')
+                //     ->integer()
+                //     ->default(0),
+            
 
                 // Total Pajak + Jasa
                 TextInput::make('total_pajak_jasa')

@@ -18,12 +18,14 @@ class SaleForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
+            // 🔹 Sales
             Select::make('user_id')
                 ->label('Sales')
                 ->options(User::query()->orderBy('name')->pluck('name', 'id'))
                 ->searchable()
                 ->required(),
 
+            // 🔹 Kendaraan
             Select::make('vehicle_id')
                 ->label('Motor')
                 ->options(function ($get, $record) {
@@ -33,7 +35,6 @@ class SaleForm
                             $q->where('status', '!=', 'cancel');
                         });
 
-                    // saat edit, izinkan motor yang sekarang dipakai
                     if ($record && $record->vehicle_id) {
                         $query->orWhere('id', $record->vehicle_id);
                     }
@@ -49,7 +50,7 @@ class SaleForm
                 })
                 ->required()
                 ->searchable()
-                ->afterStateUpdated(function ($state, callable $set, $get) {
+                ->afterStateUpdated(function ($state) {
                     if (!$state) return;
 
                     $exists = Sale::where('vehicle_id', $state)
@@ -63,6 +64,7 @@ class SaleForm
                     }
                 }),
 
+            // 🔹 Data Customer
             ComponentsSection::make('Data Customer')
                 ->description('Data customer akan otomatis disimpan ke master Customer')
                 ->schema([
@@ -74,6 +76,7 @@ class SaleForm
                 ])
                 ->columns(2),
 
+            // 🔹 Detail Penjualan
             DatePicker::make('sale_date')
                 ->label('Tanggal')
                 ->required()
@@ -83,7 +86,11 @@ class SaleForm
                 ->label('OTR')
                 ->numeric()
                 ->prefix('Rp')
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(fn($state, callable $set, callable $get) =>
+                    $set('remaining_payment', self::calculateRemaining($get))
+                ),
 
             Select::make('payment_method')
                 ->label('Metode Pembayaran')
@@ -101,24 +108,34 @@ class SaleForm
                 ->label('DP PO')
                 ->numeric()
                 ->prefix('Rp')
-                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
+                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo']))
+                ->reactive()
+                ->afterStateUpdated(fn($state, callable $set, callable $get) =>
+                    $set('remaining_payment', self::calculateRemaining($get))
+                ),
 
             TextInput::make('dp_real')
                 ->label('DP REAL')
                 ->numeric()
                 ->prefix('Rp')
-                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
+                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo']))
+                ->reactive()
+                ->afterStateUpdated(fn($state, callable $set, callable $get) =>
+                    $set('remaining_payment', self::calculateRemaining($get))
+                ),
 
             TextInput::make('remaining_payment')
                 ->label('Sisa Pembayaran')
                 ->numeric()
                 ->prefix('Rp')
+                ->readOnly()
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
             DatePicker::make('due_date')
                 ->label('Jatuh Tempo')
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
+            // 🔹 Komisi & Info Tambahan
             TextInput::make('cmo')->label('CMO / Mediator'),
             TextInput::make('cmo_fee')->label('Fee CMO')->numeric()->prefix('Rp'),
             TextInput::make('direct_commission')->label('Komisi Langsung')->numeric()->prefix('Rp'),
@@ -153,12 +170,11 @@ class SaleForm
                 ])
                 ->default('proses')
                 ->reactive()
-                ->afterStateUpdated(function ($state, callable $set, $get, $record) {
+                ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
                     if (!$record) return;
 
                     $vehicleId = $record->vehicle_id;
 
-                    // Validasi duplicate status jika motor sudah ada
                     if (in_array($state, ['kirim', 'selesai'])) {
                         $existing = Sale::where('vehicle_id', $vehicleId)
                             ->where('status', $state)
@@ -172,7 +188,6 @@ class SaleForm
                         }
                     }
 
-                    // Tambahkan catatan otomatis jika status cancel
                     if ($state === 'cancel') {
                         $set('notes', trim(($get('notes') ?? '') . "\n[Dibatalkan pada " . now()->format('d M Y H:i') . "]"));
                     }
@@ -180,5 +195,16 @@ class SaleForm
 
             Textarea::make('notes')->label('Catatan')->columnSpanFull(),
         ]);
+    }
+
+    /** 🔹 Hitung sisa pembayaran otomatis */
+    private static function calculateRemaining(callable $get): float
+    {
+        $otr = floatval($get('sale_price') ?? 0);
+        $dpPo = floatval($get('dp_po') ?? 0);
+        $dpReal = floatval($get('dp_real') ?? 0);
+
+        // Rumus yang benar: OTR - DP PO + DP REAL
+        return max($otr - $dpPo + $dpReal, 0);
     }
 }

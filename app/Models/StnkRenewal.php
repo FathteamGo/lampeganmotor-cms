@@ -16,6 +16,8 @@ class StnkRenewal extends Model
         'customer_id',
         'total_pajak_jasa',
         'pembayaran_ke_samsat',
+        'vendor',
+        'payvendor',
         'dp',
         'sisa_pembayaran',
         'margin_total',

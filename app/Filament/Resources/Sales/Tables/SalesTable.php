@@ -95,6 +95,7 @@ class SalesTable
                                 11 => 'November',
                                 12 => 'Desember',
                             ])
+                                ->default(now()->month),
                     ])
                     ->query(function ($query, array $data) {
                         return $query->when($data['month'], fn($q) =>

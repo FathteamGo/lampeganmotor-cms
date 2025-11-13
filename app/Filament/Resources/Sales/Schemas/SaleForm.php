@@ -87,7 +87,7 @@ class SaleForm
                 ->numeric()
                 ->prefix('Rp')
                 ->required()
-                ->reactive()
+                ->lazy() // update state saat blur
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
@@ -108,8 +108,8 @@ class SaleForm
                 ->label('DP PO')
                 ->numeric()
                 ->prefix('Rp')
+                ->lazy()
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo']))
-                ->reactive()
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
@@ -118,8 +118,8 @@ class SaleForm
                 ->label('DP REAL')
                 ->numeric()
                 ->prefix('Rp')
+                ->lazy()
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo']))
-                ->reactive()
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
@@ -204,7 +204,7 @@ class SaleForm
         $dpPo = floatval($get('dp_po') ?? 0);
         $dpReal = floatval($get('dp_real') ?? 0);
 
-        // Rumus yang benar: OTR - DP PO + DP REAL
+        // Rumus OTR - DP PO + DP REAL
         return max($otr - $dpPo + $dpReal, 0);
     }
 }

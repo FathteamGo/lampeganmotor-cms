@@ -53,9 +53,9 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                 [$h, $r] = $this->dataExpenses();
                 $row = $this->writeDetail($sheet, $col, $row, 'Expense', $h, $r) + 2;
 
-                // Detail STNK
+                // Detail STNK Renewal
                 [$h, $r] = $this->dataStnk();
-                $this->writeDetail($sheet, $col, $row, 'STNK', $h, $r);
+                $this->writeDetail($sheet, $col, $row, 'STNK Renewal', $h, $r);
             },
         ];
     }
@@ -184,7 +184,17 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
 
     protected function dataStnk(): array
     {
-        $headers = ['TANGGAL','NO. POLISI','CUSTOMER','TOTAL BAYAR','KE SAMSAT','MARGIN'];
+        $headers = [
+            'TANGGAL',
+            'NO. POLISI',
+            'CUSTOMER',
+            'JENIS PEKERJAAN',
+            'VENDOR',
+            'PEMBAYARAN KE VENDOR',
+            'TOTAL BAYAR',
+            'KE SAMSAT',
+            'MARGIN',
+        ];
 
         $q = StnkRenewal::query()
             ->with('customer')
@@ -195,7 +205,9 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
             $s = '%'.trim($this->search).'%';
             $q->where(function ($qq) use ($s) {
                 $qq->where('license_plate', 'like', $s)
-                   ->orWhereHas('customer', fn($w) => $w->where('name', 'like', $s));
+                   ->orWhereHas('customer', fn($w) => $w->where('name', 'like', $s))
+                   ->orWhere('vendor', 'like', $s)
+                   ->orWhere('jenis_pekerjaan', 'like', $s);
             });
         }
 
@@ -205,9 +217,12 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
                 Carbon::parse($r->tgl)->toDateString(),
                 (string) $r->license_plate,
                 (string) optional($r->customer)->name,
-                (float) $r->total_pajak_jasa,
-                (float) ($r->total_pajak_jasa - $r->margin_total),
-                (float) $r->margin_total,
+                (string) ($r->jenis_pekerjaan ?? '-'),
+                (string) ($r->vendor ?? '-'),
+                (float) ($r->payvendor ?? 0),
+                (float) ($r->total_pajak_jasa ?? 0),
+                (float) ($r->pembayaran_ke_samsat ?? 0),
+                (float) ($r->margin_total ?? 0),
             ];
         }
 
@@ -227,7 +242,7 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
         $stnkIncome  = (float) StnkRenewal::whereBetween('tgl', [$this->start, $this->end])->sum('margin_total');
         $stnkExpense = (float) StnkRenewal::whereBetween('tgl', [$this->start, $this->end])
             ->get()
-            ->sum(fn($r) => $r->total_pajak_jasa - $r->margin_total);
+            ->sum(fn($r) => $r->payvendor + $r->pembayaran_ke_samsat);
 
         $profit   = $sales + $incomes + $stnkIncome - ($expenses + $stnkExpense);
 
@@ -285,7 +300,7 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
         $sheet->setCellValueExplicit("{$c2}{$r}", (float)$profit, DataType::TYPE_NUMERIC);
 
         // Warna otomatis
-        $color = $profit >= 0 ? 'FF008000' : 'FFFF0000'; // hijau jika untung, merah jika rugi
+        $color = $profit >= 0 ? 'FF008000' : 'FFFF0000';
         $sheet->getStyle("{$c1}{$r}:{$c2}{$r}")->getFont()->setBold(true)->getColor()->setARGB($color);
 
         $sheet->getStyle("{$c1}{$r}:{$c2}{$r}")
@@ -293,14 +308,13 @@ class ProfitAndLossOneSheetExport implements FromArray, WithEvents, WithTitle
         $sheet->getStyle("{$c2}{$r}")->getNumberFormat()->setFormatCode("\"Rp\" #,##0;-"."\"Rp\" #,##0");
         $sheet->getStyle("{$c2}{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
-
         // Width
         $sheet->getColumnDimension($c1)->setWidth(28);
         $sheet->getColumnDimension($c2)->setWidth(24);
 
-        return $r; // baris terakhir
+        return $r;
     }
-
+    
     protected function writeDetail(
         Worksheet $sheet,
         string $startCol,

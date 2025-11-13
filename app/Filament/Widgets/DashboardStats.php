@@ -24,64 +24,80 @@ class DashboardStats extends BaseWidget
 
     protected function getStats(): array
     {
-        // ====== BACA FILTER DENGAN DEFAULT SEKARANG ======
-        $month = isset($this->filters['month']) && $this->filters['month'] ? (int)$this->filters['month'] : now()->month;
-        $year  = isset($this->filters['year']) && $this->filters['year'] ? (int)$this->filters['year'] : now()->year;
+        // ========== FILTER BULAN & TAHUN ==========
+        $month = isset($this->filters['month']) && $this->filters['month']
+            ? (int)$this->filters['month']
+            : now()->month;
 
-        // Validasi aman
+        $year = isset($this->filters['year']) && $this->filters['year']
+            ? (int)$this->filters['year']
+            : now()->year;
+
         if ($month < 1 || $month > 12) $month = now()->month;
         if ($year < 2000 || $year > now()->year + 5) $year = now()->year;
 
-        // Format rupiah
         $rupiah = fn($v) => 'Rp ' . number_format($v, 0, ',', '.');
-
-        // Format periode yang aman
         $periode = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
 
-        //Unit
-        $totalUnit = Vehicle::count();
+        // ========== DATA DASAR ==========
+        $totalUnit = Vehicle::where('status', 'available')->count();
 
-        // ================= PENJUALAN =================
+        // PENJUALAN
         $salesQuery = Sale::valid()->whereYear('sale_date', $year);
         $terjualBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->count();
         $terjualTahunIni = (clone $salesQuery)->count();
         $totalPenjualanBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->sum('sale_price');
         $totalPenjualanTahunIni = (clone $salesQuery)->sum('sale_price');
 
-        // ================= INCOME =================
+        // INCOME
         $incomeQuery = Income::whereYear('income_date', $year);
         $totalIncomeBulanIni = (clone $incomeQuery)->whereMonth('income_date', $month)->sum('amount');
         $totalIncomeTahunIni = (clone $incomeQuery)->sum('amount');
 
-        // ================= STNK =================
+        // STNK
         $stnkQuery = StnkRenewal::whereYear('tgl', $year);
-        $stnkIncomeBulanIni = (clone $stnkQuery)->whereMonth('tgl', $month)->sum('margin_total');
+
+        // Pendapatan STNK berdasarkan margin
+        $stnkIncomeBulanIni = (clone $stnkQuery)
+            ->whereMonth('tgl', $month)
+            ->sum('margin_total');
         $stnkIncomeTahunIni = (clone $stnkQuery)->sum('margin_total');
-        $stnkExpenseBulanIni = (clone $stnkQuery)->whereMonth('tgl', $month)->sum('pembayaran_ke_samsat');
-        $stnkExpenseTahunIni = (clone $stnkQuery)->sum('pembayaran_ke_samsat');
 
-        // ================= PENGELUARAN =================
+        // Pengeluaran STNK — hanya pembayaran ke vendor
+        $stnkExpenseBulanIni = (clone $stnkQuery)
+            ->whereMonth('tgl', $month)
+            ->sum('payvendor');
+        $stnkExpenseTahunIni = (clone $stnkQuery)->sum('payvendor');
+
+        // PENGELUARAN LAINNYA
         $expenseQuery = Expense::whereYear('expense_date', $year);
-        $totalPengeluaranBulanIni = (clone $expenseQuery)->whereMonth('expense_date', $month)->sum('amount') + $stnkExpenseBulanIni;
-        $totalPengeluaranTahunIni = (clone $expenseQuery)->sum('amount') + $stnkExpenseTahunIni;
+        $totalPengeluaranBulanIni =
+            (clone $expenseQuery)->whereMonth('expense_date', $month)->sum('amount')
+            + $stnkExpenseBulanIni;
 
-        // ================= KEUNTUNGAN =================
+        $totalPengeluaranTahunIni =
+            (clone $expenseQuery)->sum('amount')
+            + $stnkExpenseTahunIni;
+
+        // TOTAL PENDAPATAN & KEUNTUNGAN
         $totalPendapatanBulanIni = $totalPenjualanBulanIni + $totalIncomeBulanIni + $stnkIncomeBulanIni;
         $totalPendapatanTahunIni = $totalPenjualanTahunIni + $totalIncomeTahunIni + $stnkIncomeTahunIni;
+
         $keuntunganBulanIni = $totalPendapatanBulanIni - $totalPengeluaranBulanIni;
         $keuntunganTahunIni = $totalPendapatanTahunIni - $totalPengeluaranTahunIni;
 
-        // ================= ASET =================
+        // ASET
         $asetKendaraan = Vehicle::where('status', 'available')->sum('sale_price');
         $asetLainnya = OtherAsset::sum('value');
         $totalAset = $asetKendaraan + $asetLainnya;
 
-        // ================= RETURN =================
+        // ========== RETURN STATISTICS ==========
         return [
             // UNIT
             Stat::make('Total Unit Tersedia', "{$totalUnit} unit")
                 ->description('Jumlah seluruh kendaraan tersedia')
                 ->color('primary'),
+
             // PENJUALAN
             Stat::make('Terjual Bulan Ini', "{$terjualBulanIni} unit")
                 ->description("Unit terjual pada {$periode}")
@@ -118,7 +134,7 @@ class DashboardStats extends BaseWidget
 
             // PENGELUARAN
             Stat::make('Pengeluaran Bulan Ini', $rupiah($totalPengeluaranBulanIni))
-                ->description("Biaya keluar {$periode} (termasuk STNK)")
+                ->description("Biaya keluar {$periode} (termasuk vendor STNK)")
                 ->color('danger'),
 
             Stat::make('Pengeluaran Tahun Ini', $rupiah($totalPengeluaranTahunIni))

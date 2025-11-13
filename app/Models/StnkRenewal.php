@@ -18,6 +18,8 @@ class StnkRenewal extends Model
         'pembayaran_ke_samsat',
         'vendor',
         'payvendor',
+        'foto_stnk',
+        'jenis_pekerjaan',
         'dp',
         'sisa_pembayaran',
         'margin_total',

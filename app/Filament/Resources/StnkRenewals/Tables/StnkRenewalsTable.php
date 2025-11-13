@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\StnkRenewals\Tables;
 
-use App\Filament\Resources\Sales\Schemas\InfoListStnkRenewals;
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Table;
@@ -12,8 +11,6 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms;
-
 
 class StnkRenewalsTable
 {
@@ -25,28 +22,29 @@ class StnkRenewalsTable
                 TextColumn::make('license_plate')->label('Nomor Polisi')->searchable(),
                 TextColumn::make('atas_nama_stnk')->label('Atas Nama'),
                 TextColumn::make('customer.name')->label('Customer'),
-                TextColumn::make('customer.name')->label('Customer'),
-                // TextColumn::make('vendor')->label('Nama Vendor'),
-                // TextColumn::make('payvendor')->label('Pembayaran ke Vendor'),
                 TextColumn::make('customer.phone')->label('Nomor Telepon'),
+                TextColumn::make('jenis_pekerjaan')->label('Jenis Pekerjaan'),
+                TextColumn::make('vendor')->label('Vendor'),
+                TextColumn::make('payvendor')->label('Bayar ke Vendor')->money('idr', true),
                 TextColumn::make('total_pajak_jasa')->label('Total Pajak + Jasa')->money('idr', true),
                 TextColumn::make('dp')->label('DP / Dibayar')->money('idr', true),
                 TextColumn::make('sisa_pembayaran')->label('Sisa Pembayaran')->money('idr', true),
                 TextColumn::make('margin_total')->label('Margin')->money('idr', true),
                 TextColumn::make('diambil_tgl')->label('Tanggal Diambil')->date(),
+
                 BadgeColumn::make('status')
-                ->label('Status')
-                ->colors([
-                    'warning' => 'pending',
-                    'primary' => 'progress',
-                    'success' => 'done',
-                ])
-                ->formatStateUsing(fn ($state) => match ($state) {
-                    'pending' => 'Pending',
-                    'progress' => 'Progress',
-                    'done' => 'Done',
-                    default => $state,
-                })
+                    ->label('Status')
+                    ->colors([
+                        'warning' => 'pending',
+                        'primary' => 'progress',
+                        'success' => 'done',
+                    ])
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'pending' => 'Pending',
+                        'progress' => 'Progress',
+                        'done' => 'Done',
+                        default => $state,
+                    }),
             ])
             ->recordActions([
                 ViewAction::make()->label('Lihat'),

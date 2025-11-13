@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Vehicles\Schemas;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rule;
@@ -109,8 +110,14 @@ class VehicleForm
                     ->numeric()
                     ->minValue(0),
 
-                TextInput::make('status')
+                Select::make('status')
                     ->label('Status')
+                    ->options([
+                        'available' => 'Tersedia',
+                        'sold' => 'Terjual',
+                        'in_repair' => 'Perbaikan',
+                        'hold' => 'Ditahan',
+                    ])
                     ->default('available')
                     ->required(),
 

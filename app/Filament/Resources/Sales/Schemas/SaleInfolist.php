@@ -23,27 +23,13 @@ class SaleInfolist
             TextEntry::make('vehicle.license_plate')->label('No Pol'),
 
             // 🔹 Harga & Perhitungan
-            TextEntry::make('vehicle.purchase_price')
-                ->label('H-Total Pembelian')
-                ->money('IDR', locale: 'id'),
+            TextEntry::make('vehicle.purchase_price')->label('H-Total Pembelian')->money('IDR', locale: 'id'),
+            TextEntry::make('sale_price')->label('OTR')->money('IDR', locale: 'id'),
+            TextEntry::make('dp_po')->label('DP PO')->money('IDR', locale: 'id'),
+            TextEntry::make('dp_real')->label('DP REAL')->money('IDR', locale: 'id'),
+            TextEntry::make('pencairan')->label('Pencairan')->money('IDR', locale: 'id'),
 
-            TextEntry::make('sale_price')
-                ->label('OTR')
-                ->money('IDR', locale: 'id'),
-
-            TextEntry::make('dp_po')
-                ->label('DP PO')
-                ->money('IDR', locale: 'id'),
-
-            TextEntry::make('dp_real')
-                ->label('DP REAL')
-                ->money('IDR', locale: 'id'),
-
-            TextEntry::make('pencairan')
-                ->label('Pencairan')
-                ->money('IDR', locale: 'id'),
-
-            // 🔹 Laba Bersih (dihitung otomatis)
+            // 🔹 Laba Bersih (untuk semua metode pembayaran)
             TextEntry::make('laba_bersih')
                 ->label('Laba Bersih')
                 ->money('IDR', locale: 'id')
@@ -54,42 +40,7 @@ class SaleInfolist
                     $cmoFee = $record->cmo_fee ?? 0;
                     $komisi = $record->direct_commission ?? 0;
 
-                    // rumus: (pencairan + dp_real) - (harga_beli + cmo_fee + komisi)
                     return max(($pencairan + $dpReal) - ($beli + $cmoFee + $komisi), 0);
-                }),
-
-            // 🔹 Metode & Pembayaran
-            TextEntry::make('payment_method')
-                ->label('Metode Pembayaran')
-                ->default('-'),
-
-            TextEntry::make('remaining_payment')
-                ->label('Sisa Pembayaran')
-                ->money('IDR', locale: 'id')
-                ->state(function ($record) {
-                    if (!in_array($record->payment_method, ['credit', 'cash_tempo'])) {
-                        return null;
-                    }
-
-                    // rumus: OTR - DP PO + DP REAL
-                    $otr = $record->sale_price ?? 0;
-                    $dpPo = $record->dp_po ?? 0;
-                    $dpReal = $record->dp_real ?? 0;
-
-                    return max($otr - $dpPo + $dpReal, 0);
-                }),
-
-            TextEntry::make('due_date')
-                ->label('Jatuh Tempo')
-                ->date()
-                ->state(function ($record) {
-                    if (!in_array($record->payment_method, ['credit', 'cash_tempo'])) {
-                        return null;
-                    }
-
-                    // jatuh tempo: created_at + 30 hari (default)
-                    return $record->due_date
-                        ?? ($record->created_at ? $record->created_at->copy()->addDays(30) : null);
                 }),
 
             // 🔹 Komisi & CMO
@@ -97,12 +48,21 @@ class SaleInfolist
             TextEntry::make('cmo_fee')->label('Fee CMO')->money('IDR', locale: 'id'),
             TextEntry::make('direct_commission')->label('Komisi Langsung')->money('IDR', locale: 'id'),
 
-            // 🔹 Info Lainnya
+            // 🔹 Info Umum
+            TextEntry::make('payment_method')->label('Metode Pembayaran'),
             TextEntry::make('order_source')->label('Sumber Order'),
             TextEntry::make('user.name')->label('Sales / Ex'),
             TextEntry::make('branch_name')->label('Cabang'),
             TextEntry::make('result')->label('Hasil'),
-            TextEntry::make('status')->label('Status'),
+            TextEntry::make('status')
+                ->label('Status')
+                ->badge()
+                ->colors([
+                    'warning' => fn($state) => in_array($state, ['selesai']),
+                    'success' => fn($state) => in_array($state, ['kirim']),
+                    'info'    => fn($state) => in_array($state, ['proses']),
+                    'danger'  => fn($state) => in_array($state, ['cancel']),
+                ]),
             TextEntry::make('notes')->label('Catatan'),
 
             // 🔹 Waktu

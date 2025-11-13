@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\Select;
+use Illuminate\Support\Facades\DB;
 
 class SalesTable
 {
@@ -28,25 +29,21 @@ class SalesTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('customer.address')->label('Alamat')->toggleable(),
-                TextColumn::make('customer.phone')->label('No Telepon')->toggleable(),
+                TextColumn::make('vehicle.vehicleModel.name')
+                    ->label('Jenis Motor')
+                    ->sortable(),
 
-                TextColumn::make('vehicle.vehicleModel.name')->label('Jenis Motor')->searchable()->sortable(),
-                TextColumn::make('vehicle.type.name')->label('Type')->toggleable(),
-                TextColumn::make('vehicle.year.year')->label('Tahun')->sortable()->toggleable(),
-                TextColumn::make('vehicle.color.name')->label('Warna')->toggleable(),
-                TextColumn::make('vehicle.license_plate')->label('No Pol')->searchable()->sortable(),
+                TextColumn::make('vehicle.purchase_price')
+                    ->label('H-Total Pembelian')
+                    ->money('IDR', locale: 'id'),
 
-                TextColumn::make('vehicle.purchase_price')->label('H-Total Pembelian')->money('IDR', locale: 'id')->sortable()->toggleable(),
-                TextColumn::make('sale_price')->label('OTR')->money('IDR', locale: 'id')->sortable()->toggleable(),
-                TextColumn::make('dp_po')->label('Dp Po')->money('IDR', locale: 'id')->placeholder('-')->toggleable(),
-                TextColumn::make('dp_real')->label('Dp Real')->money('IDR', locale: 'id')->placeholder('-')->toggleable(),
-                TextColumn::make('pencairan')->label('Pencairan')->money('IDR', locale: 'id')->placeholder('-')->toggleable(),
+                TextColumn::make('sale_price')
+                    ->label('OTR')
+                    ->money('IDR', locale: 'id'),
 
                 TextColumn::make('laba_bersih')
                     ->label('Laba Bersih')
                     ->money('IDR', locale: 'id')
-                    ->placeholder('-')
                     ->state(fn($record) => max(
                         ($record->pencairan ?? $record->sale_price ?? 0)
                         + ($record->dp_real ?? 0)
@@ -55,78 +52,88 @@ class SalesTable
                         - ($record->direct_commission ?? 0),
                         0
                     ))
-                    ->toggleable(),
+                    ->sortable(),
 
-                TextColumn::make('payment_method')->label('Metode Pembayaran')->searchable()->toggleable(),
-                TextColumn::make('cmo')->label('CMO')->toggleable(),
-                TextColumn::make('cmo_fee')->label('FEE CMO')->money('IDR', locale: 'id')->toggleable(),
-                TextColumn::make('direct_commission')->label('Komisi Langsung')->money('IDR', locale: 'id')->toggleable(),
-                TextColumn::make('order_source')->label('Sumber Order')->searchable()->toggleable(),
-                TextColumn::make('user.name')->label('Ex')->searchable()->sortable()->toggleable(),
-                TextColumn::make('branch_name')->label('Cabang')->searchable()->toggleable(),
-                TextColumn::make('result')->label('Hasil')->searchable()->toggleable(),
+                TextColumn::make('payment_method')
+                    ->label('Metode Pembayaran')
+                    ->searchable(),
 
-                // Hanya kolom status yang berubah merah jika dibatalkan
                 TextColumn::make('status')
                     ->label('Status')
-                    ->searchable()
-                    ->toggleable()
-                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null),
+                    ->badge()
+                    ->colors([
+                        'warning' => fn($state, $record) =>
+                            ($record->vehicle?->status === 'sold'),
+                        'success' => fn($state, $record) =>
+                            in_array($state, ['kirim', 'selesai'])
+                            && $record->vehicle?->status !== 'sold',
+                        'info' => fn($state) => in_array($state, ['proses']),
+                        'danger' => fn($state) => in_array($state, ['cancel']),
+                    ])
+                    ->sortable(),
 
-                TextColumn::make('sale_date')->label('Tanggal')->date()->sortable(),
-                TextColumn::make('notes')->label('Note')->limit(40)->toggleable(),
-                TextColumn::make('created_at')->dateTime()->label(__('tables.created_at'))->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')->dateTime()->label(__('tables.updated_at'))->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('sale_date')
+                    ->label('Tanggal')
+                    ->date(),
             ])
             ->filters([
-                Filter::make('periode')
-                    ->label('Periode')
+                Filter::make('Bulan')
                     ->form([
                         Select::make('month')
                             ->label('Bulan')
                             ->options([
-                                '1' => 'Januari',
-                                '2' => 'Februari',
-                                '3' => 'Maret',
-                                '4' => 'April',
-                                '5' => 'Mei',
-                                '6' => 'Juni',
-                                '7' => 'Juli',
-                                '8' => 'Agustus',
-                                '9' => 'September',
-                                '10' => 'Oktober',
-                                '11' => 'November',
-                                '12' => 'Desember',
+                                1 => 'Januari',
+                                2 => 'Februari',
+                                3 => 'Maret',
+                                4 => 'April',
+                                5 => 'Mei',
+                                6 => 'Juni',
+                                7 => 'Juli',
+                                8 => 'Agustus',
+                                9 => 'September',
+                                10 => 'Oktober',
+                                11 => 'November',
+                                12 => 'Desember',
                             ])
-                            ->default(date('n')),
-                        Select::make('year')
-                            ->label('Tahun')
-                            ->options(function () {
-                                $years = range(date('Y'), 2020);
-                                return collect($years)->mapWithKeys(fn($year) => [$year => $year])->toArray();
-                            })
-                            ->default(date('Y')),
                     ])
                     ->query(function ($query, array $data) {
-                        return $query
-                            ->when($data['month'] ?? null, fn($q, $month) => $q->whereMonth('sale_date', $month))
-                            ->when($data['year'] ?? null, fn($q, $year) => $q->whereYear('sale_date', $year));
+                        return $query->when($data['month'], fn($q) =>
+                            $q->whereMonth('sale_date', $data['month'])
+                        );
+                    }),
+
+                Filter::make('Tahun')
+                    ->form([
+                        Select::make('year')
+                            ->label('Tahun')
+                            ->options(
+                                DB::table('sales')
+                                    ->selectRaw('YEAR(sale_date) as year')
+                                    ->distinct()
+                                    ->orderBy('year', 'desc')
+                                    ->pluck('year', 'year')
+                            )
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when($data['year'], fn($q) =>
+                            $q->whereYear('sale_date', $data['year'])
+                        );
                     }),
             ])
             ->recordActions([
-                ViewAction::make()->label(__('tables.view')),
-                EditAction::make()->label(__('tables.edit')),
+                ViewAction::make(),
+                EditAction::make(),
                 Action::make('invoice_cash')
                     ->label('Invoice (Cash)')
                     ->icon('heroicon-o-document-text')
                     ->color('success')
-                    ->visible(fn ($record) => $record->payment_method === 'cash')
-                    ->url(fn ($record) => route('sales.invoice.cash', $record))
+                    ->visible(fn($record) => $record->payment_method === 'cash')
+                    ->url(fn($record) => route('sales.invoice.cash', $record))
                     ->openUrlInNewTab(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()->label(__('tables.delete')),
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

@@ -9,7 +9,6 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Sale;
 use App\Models\StnkRenewal;
-use App\Models\WhatsApp; // ← tambah model ini
 use App\Models\WhatsAppNumber;
 use App\Services\WhatsAppService;
 use Filament\Notifications\Notification;
@@ -18,16 +17,40 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Maatwebsite\Excel\Facades\Excel;
 use Psr\Http\Message\ResponseInterface;
-use UnitEnum;
 
 class ProfitAndLossReport extends Page
 {
-    protected static string | UnitEnum | null $navigationGroup = 'navigation.report_audit';
+    protected static string|\UnitEnum|null $navigationGroup = 'navigation.report_audit';
     protected static ?string $navigationLabel = 'navigation.profit_loss';
-    protected static ?string $title = 'navigation.profit_loss'; 
+    protected static ?string $title = 'navigation.profit_loss';
     protected static ?int $navigationSort = 5;
 
     protected string $view = 'filament.pages.profit-and-loss-report';
+
+    // === FILTER & STATE ===
+    public ?string $dateStart = null;
+    public ?string $dateEnd   = null;
+    public ?string $search    = null;
+
+    public float $totalSales = 0.0;
+    public float $totalIncomes = 0.0;
+    public float $totalExpenses = 0.0;
+    public float $totalStnkIncome = 0.0;
+    public float $totalStnkExpense = 0.0;
+
+    // Modal WA manual
+    public bool $waModalOpen = false;
+    public array $wa = ['phone' => '', 'note' => ''];
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return Auth::user()?->role === 'owner';
+    }
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->role === 'owner';
+    }
 
     public static function getNavigationGroup(): ?string
     {
@@ -44,34 +67,6 @@ class ProfitAndLossReport extends Page
         return __(static::$title);
     }
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        $user = Auth::user();
-        return $user && $user->role === 'owner';
-    }
-
-    public static function canAccess(): bool
-    {
-        $user = Auth::user();
-        return $user && $user->role === 'owner';
-    }
-
-    // Filter tanggal
-    public ?string $dateStart = null;
-    public ?string $dateEnd   = null;
-    public ?string $search    = null;
-
-    // Summary totals
-    public float $totalSales = 0.0;
-    public float $totalIncomes = 0.0;
-    public float $totalExpenses = 0.0;
-    public float $totalStnkIncome = 0.0;
-    public float $totalStnkExpense = 0.0;
-
-    // Modal WA manual
-    public bool $waModalOpen = false;
-    public array $wa = ['phone' => '', 'note' => ''];
-
     public function mount(): void
     {
         $this->dateStart = now()->startOfMonth()->toDateString();
@@ -86,13 +81,62 @@ class ProfitAndLossReport extends Page
         }
     }
 
-    /** Export Excel */
+    /** Ekspor Excel */
     public function exportToExcel()
     {
         return Excel::download(
             new ProfitAndLossOneSheetExport($this->dateStart, $this->dateEnd, $this->search),
             "profit-loss_{$this->dateStart}_{$this->dateEnd}.xlsx"
         );
+    }
+
+    /** Hitung semua total (dengan filter tanggal konsisten) */
+    public function recalcTotals(): void
+    {
+        $range = [$this->dateStart, $this->dateEnd];
+
+        // SALES
+        $this->totalSales = (float) Sale::query()
+            ->where('status', '!=', 'CANCEL')
+            ->whereBetween('sale_date', $range)
+            ->sum('sale_price');
+
+        // INCOME
+        $this->totalIncomes = (float) Income::query()
+            ->whereBetween('income_date', $range)
+            ->sum('amount');
+
+        // EXPENSES
+        $this->totalExpenses = (float) Expense::query()
+            ->whereBetween('expense_date', $range)
+            ->sum('amount');
+
+        // STNK
+        $stnk = StnkRenewal::query()->whereBetween('tgl', $range);
+        $this->totalStnkIncome = (float) (clone $stnk)->sum('margin_total');
+        $this->totalStnkExpense = (float) (clone $stnk)->sum('payvendor');
+    }
+
+    /** Properti profit total */
+    public function getProfitProperty(): float
+    {
+        return $this->totalSales
+             + $this->totalIncomes
+             + $this->totalStnkIncome
+             - $this->totalExpenses
+             - $this->totalStnkExpense;
+    }
+
+    /** Format rupiah */
+    public function formatIdr(null|int|float $v): string
+    {
+        return 'Rp ' . number_format((float) ($v ?? 0), 0, ',', '.');
+    }
+
+    public function formatIdrSigned(float $v): string
+    {
+        $sign = $v < 0 ? '-' : '';
+        return $sign . $this->formatIdr(abs($v));
     }
 
     /** Normalisasi nomor WA */
@@ -105,49 +149,10 @@ class ProfitAndLossReport extends Page
         return $p;
     }
 
-    /** Cek respons WA sukses */
-    protected function waSucceeded(mixed $res): bool
-    {
-        if (is_bool($res)) return $res;
-
-        if (is_object($res) && method_exists($res, 'successful')) {
-            return (bool) $res->successful();
-        }
-        if (is_object($res) && method_exists($res, 'status')) {
-            $code = (int) $res->status();
-            return $code >= 200 && $code < 300;
-        }
-
-        if ($res instanceof ResponseInterface) {
-            $code = (int) $res->getStatusCode();
-            return $code >= 200 && $code < 300;
-        }
-
-        if (is_array($res)) {
-            $status = strtolower((string) ($res['status'] ?? ''));
-            return ($res['success'] ?? null) === true
-                || in_array($status, ['ok', 'success', 'sent'], true)
-                || isset($res['message_id'])
-                || isset($res['messages'][0]['id']);
-        }
-
-        if (is_object($res)) {
-            if (property_exists($res, 'success')) return (bool) $res->success;
-            if (property_exists($res, 'status')) {
-                $status = strtolower((string) $res->status);
-                return in_array($status, ['ok', 'success', 'sent'], true);
-            }
-            if (property_exists($res, 'message_id')) return true;
-        }
-
-        return false;
-    }
-
-    /**  AUTO SEND via gateway WhatsApps */
+    /** Kirim laporan otomatis ke WA gateway */
     public function sendWhatsAppAuto(): void
     {
-        // Ambil nomor WA aktif yang dijadikan gateway laporan
-        $gateway =WhatsAppNumber::query()
+        $gateway = WhatsAppNumber::query()
             ->where('is_report_gateway', true)
             ->where('is_active', true)
             ->first();
@@ -167,8 +172,8 @@ class ProfitAndLossReport extends Page
             $res = app(WhatsAppService::class)->sendText($phone, $this->buildWaMessage());
             $ok  = $this->waSucceeded($res);
         } catch (\Throwable $e) {
-            $ok = false;
             logger()->error('WA send error', ['e' => $e]);
+            $ok = false;
         }
 
         $ok
@@ -176,60 +181,31 @@ class ProfitAndLossReport extends Page
             : Notification::make()->title('Gagal mengirim laporan via WhatsApp')->danger()->send();
     }
 
-    /** Perhitungan total */
-    public function recalcTotals(): void
+    /** Validasi respon WA */
+    protected function waSucceeded(mixed $res): bool
     {
-        $s = $this->dateStart;
-        $e = $this->dateEnd;
+        if (is_bool($res)) return $res;
+        if (is_object($res) && method_exists($res, 'successful')) return $res->successful();
+        if (is_object($res) && method_exists($res, 'status')) return ((int)$res->status() >= 200 && (int)$res->status() < 300);
+        if ($res instanceof ResponseInterface) return ((int)$res->getStatusCode() >= 200 && (int)$res->getStatusCode() < 300);
 
-        // hanya penjualan yang status-nya bukan CANCEL
-        $this->totalSales = (float) Sale::query()
-            ->when($s, fn ($q) => $q->whereDate('sale_date', '>=', $s))
-            ->when($e, fn ($q) => $q->whereDate('sale_date', '<=', $e))
-            ->where('status', '!=', 'CANCEL')
-            ->sum('sale_price');
+        if (is_array($res)) {
+            $status = strtolower((string) ($res['status'] ?? ''));
+            return ($res['success'] ?? false)
+                || in_array($status, ['ok', 'success', 'sent'], true)
+                || isset($res['message_id'])
+                || isset($res['messages'][0]['id']);
+        }
 
-        $this->totalIncomes = (float) Income::query()
-            ->when($s, fn ($q) => $q->whereDate('income_date', '>=', $s))
-            ->when($e, fn ($q) => $q->whereDate('income_date', '<=', $e))
-            ->sum('amount');
+        if (is_object($res)) {
+            if (property_exists($res, 'success')) return (bool)$res->success;
+            if (property_exists($res, 'status')) {
+                $status = strtolower((string)$res->status);
+                return in_array($status, ['ok', 'success', 'sent'], true);
+            }
+        }
 
-        $this->totalExpenses = (float) Expense::query()
-            ->when($s, fn ($q) => $q->whereDate('expense_date', '>=', $s))
-            ->when($e, fn ($q) => $q->whereDate('expense_date', '<=', $e))
-            ->sum('amount');
-
-        $this->totalStnkIncome = (float) StnkRenewal::query()
-            ->when($s, fn ($q) => $q->whereDate('tgl', '>=', $s))
-            ->when($e, fn ($q) => $q->whereDate('tgl', '<=', $e))
-            ->sum('margin_total');
-
-        $this->totalStnkExpense = (float) StnkRenewal::query()
-            ->when($s, fn ($q) => $q->whereDate('tgl', '>=', $s))
-            ->when($e, fn ($q) => $q->whereDate('tgl', '<=', $e))
-            ->sum('pembayaran_ke_samsat');
-    }
-
-    /** Hitung profit total */
-    public function getProfitProperty(): float
-    {
-        return $this->totalSales
-             + $this->totalIncomes
-             + $this->totalStnkIncome
-             - $this->totalExpenses
-             - $this->totalStnkExpense;
-    }
-
-    /** Format Rupiah */
-    public function formatIdr(null|int|float $v): string
-    {
-        return 'Rp ' . number_format((float) ($v ?? 0), 0, ',', '.');
-    }
-
-    public function formatIdrSigned(float $v): string
-    {
-        $sign = $v < 0 ? '-' : '';
-        return $sign . $this->formatIdr(abs($v));
+        return false;
     }
 
     /** Template pesan WA */
@@ -238,7 +214,7 @@ class ProfitAndLossReport extends Page
         $profit = $this->profit;
 
         $lines = [
-            'Laporan Profit & Loss',
+            '📊 *Laporan Profit & Loss*',
             "Periode: {$this->dateStart} s/d {$this->dateEnd}",
             '--------------------------------',
             'SALES        : ' . $this->formatIdr($this->totalSales),

@@ -4,13 +4,15 @@ namespace App\Filament\Resources\StnkRenewals\Tables;
 
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Filament\Actions\ViewAction;
-use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Illuminate\Support\Facades\DB;
 
 class StnkRenewalsTable
 {
@@ -44,6 +46,66 @@ class StnkRenewalsTable
                         'progress' => 'Progress',
                         'done' => 'Done',
                         default => $state,
+                    }),
+            ])
+            ->filters([
+                // Filter Tanggal
+                Tables\Filters\Filter::make('Tanggal')
+                    ->form([
+                        DatePicker::make('date')
+                            ->label('Tanggal'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when($data['date'], fn($q) =>
+                            $q->whereDate('tgl', $data['date'])
+                        );
+                    }),
+
+                // Filter Bulan
+                Tables\Filters\Filter::make('Bulan')
+                    ->form([
+                        Select::make('month')
+                            ->label('Bulan')
+                            ->options([
+                                1 => 'Januari',
+                                2 => 'Februari',
+                                3 => 'Maret',
+                                4 => 'April',
+                                5 => 'Mei',
+                                6 => 'Juni',
+                                7 => 'Juli',
+                                8 => 'Agustus',
+                                9 => 'September',
+                                10 => 'Oktober',
+                                11 => 'November',
+                                12 => 'Desember',
+                            ])
+                            ->default(now()->month),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when($data['month'], fn($q) =>
+                            $q->whereMonth('tgl', $data['month'])
+                        );
+                    }),
+
+                // Filter Tahun
+                Tables\Filters\Filter::make('Tahun')
+                    ->form([
+                        Select::make('year')
+                            ->label('Tahun')
+                            ->options(
+                                DB::table('stnk_renewals')
+                                    ->selectRaw('YEAR(tgl) as year')
+                                    ->distinct()
+                                    ->orderBy('year', 'desc')
+                                    ->pluck('year', 'year')
+                            )
+                            ->default(now()->year),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when($data['year'], fn($q) =>
+                            $q->whereYear('tgl', $data['year'])
+                        );
                     }),
             ])
             ->recordActions([

@@ -16,8 +16,18 @@ class EditIncome extends EditRecord
     {
         return [
             ViewAction::make(),
-             DeleteAction::make()
+            DeleteAction::make()
                 ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
+    }
+
+    // Format angka sebelum ditampilkan di form
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if (isset($data['amount'])) {
+            // Hanya untuk tampil, tetap simpan angka asli di DB
+            $data['amount'] = number_format((float) $data['amount'], 0, ',', '.');
+        }
+        return $data;
     }
 }

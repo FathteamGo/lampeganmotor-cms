@@ -16,8 +16,18 @@ class EditExpense extends EditRecord
     {
         return [
             ViewAction::make(),
-             DeleteAction::make()
+            DeleteAction::make()
                 ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
+
+   protected function mutateFormDataBeforeFill(array $data): array
+{
+    // Jangan preg_replace lagi, hanya format untuk tampil di form
+    if (isset($data['amount'])) {
+        $data['amount'] = number_format((float) $data['amount'], 0, ',', '.');
+    }
+    return $data;
+}
+
 }

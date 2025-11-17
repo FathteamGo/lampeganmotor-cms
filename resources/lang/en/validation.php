@@ -2,6 +2,8 @@
 
 return [
 
+    'required' => 'This field is required.',
+
     'custom' => [
         'license_plate' => [
             'required' => 'License Plate is required!',

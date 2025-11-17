@@ -40,42 +40,46 @@ class PurchaseForm
                         ->columnSpanFull(),
                 ]),
 
-            /** 🔹 DATA KENDARAAN BARU (MANUAL SEMUA) */
+            /** 🔹 DATA KENDARAAN */
             ComponentsSection::make('Data Kendaraan')
                 ->columns(2)
                 ->columnSpanFull()
-                ->visible(fn($record) => !$record)
                 ->schema([
                     TextInput::make('brand_name')
                         ->label('Merek Kendaraan')
-                        ->required(),
+                        ->required(fn($record) => !$record)
+                        ->disabled(fn($record) => $record !== null),
 
                     TextInput::make('vehicle_model_name')
                         ->label('Model Kendaraan')
-                        ->required(),
+                        ->required(fn($record) => !$record)
+                        ->disabled(fn($record) => $record !== null),
 
                     TextInput::make('type_name')
                         ->label('Tipe Unit')
-                        ->required(),
+                        ->required(fn($record) => !$record)
+                        ->disabled(fn($record) => $record !== null),
 
                     TextInput::make('color_name')
                         ->label('Warna')
-                        ->required(),
+                        ->required(fn($record) => !$record)
+                        ->disabled(fn($record) => $record !== null),
 
                     TextInput::make('year_name')
                         ->label('Tahun')
                         ->numeric()
                         ->minValue(2000)
                         ->maxValue(now()->year + 1)
-                        ->required(),
+                        ->required(fn($record) => !$record)
+                        ->disabled(fn($record) => $record !== null),
 
                     TextInput::make('vin')
                         ->label('Nomor Rangka (VIN)')
-                        ->required(),
+                        ->required(fn($record) => !$record),
 
                     TextInput::make('engine_number')
                         ->label('Nomor Mesin')
-                        ->required(),
+                        ->required(fn($record) => !$record),
 
                     TextInput::make('license_plate')
                         ->label('Plat Nomor'),
@@ -85,10 +89,23 @@ class PurchaseForm
 
                     TextInput::make('purchase_price')
                         ->label('Harga Beli')
-                        ->numeric()
-                        ->prefix('Rp')
                         ->required()
-                        ->default(0)
+                        ->prefix('Rp')
+                        ->extraInputAttributes([
+                            'oninput' => "
+                                clearTimeout(window.priceTimeout);
+                                let n = this.value.replace(/[^0-9]/g, '');
+                                if(n){
+                                    this.value = new Intl.NumberFormat('id-ID').format(n);
+                                } else {
+                                    this.value = '';
+                                }
+                                window.priceTimeout = setTimeout(() => {
+                                    this.dispatchEvent(new Event('change', { bubbles: true }));
+                                }, 800);
+                            "
+                        ])
+                        ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null)
                         ->reactive()
                         ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                             $set('grand_total', self::calculateGrandTotal($get))
@@ -96,19 +113,47 @@ class PurchaseForm
 
                     TextInput::make('sale_price')
                         ->label('Harga Jual')
-                        ->numeric()
                         ->prefix('Rp')
-                        ->default(0),
+                        ->extraInputAttributes([
+                            'oninput' => "
+                                let n = this.value.replace(/[^0-9]/g, '');
+                                if(n){
+                                    this.value = new Intl.NumberFormat('id-ID').format(n);
+                                } else {
+                                    this.value = '';
+                                }
+                            "
+                        ])
+                        ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
 
                     TextInput::make('down_payment')
                         ->label('DP')
-                        ->numeric()
                         ->prefix('Rp')
-                        ->default(0),
+                        ->extraInputAttributes([
+                            'oninput' => "
+                                let n = this.value.replace(/[^0-9]/g, '');
+                                if(n){
+                                    this.value = new Intl.NumberFormat('id-ID').format(n);
+                                } else {
+                                    this.value = '';
+                                }
+                            "
+                        ])
+                        ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
 
                     TextInput::make('odometer')
                         ->label('Odometer (KM)')
-                        ->numeric(),
+                        ->extraInputAttributes([
+                            'oninput' => "
+                                let n = this.value.replace(/[^0-9]/g, '');
+                                if(n){
+                                    this.value = new Intl.NumberFormat('id-ID').format(n);
+                                } else {
+                                    this.value = '';
+                                }
+                            "
+                        ])
+                        ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
 
                     TextInput::make('engine_specification')
                         ->label('Spesifikasi Mesin'),
@@ -125,6 +170,7 @@ class PurchaseForm
                     Repeater::make('photos')
                         ->label('Foto Kendaraan')
                         ->columnSpanFull()
+                        ->visible(fn($record) => !$record)
                         ->schema([
                             FileUpload::make('file')
                                 ->label('Upload Foto')
@@ -132,7 +178,7 @@ class PurchaseForm
                                 ->disk('public')
                                 ->directory('vehicle-photos')
                                 ->getUploadedFileNameForStorageUsing(fn($file) => uniqid('vehicle_') . '.webp')
-                                ->required(),
+                                ->nullable(),
                             TextInput::make('caption')
                                 ->label('Keterangan Foto'),
                         ])
@@ -160,8 +206,22 @@ class PurchaseForm
 
                             TextInput::make('price')
                                 ->label('Harga')
-                                ->numeric()
-                                ->default(0)
+                                ->prefix('Rp')
+                                ->extraInputAttributes([
+                                    'oninput' => "
+                                        clearTimeout(window.additionalTimeout);
+                                        let n = this.value.replace(/[^0-9]/g, '');
+                                        if(n){
+                                            this.value = new Intl.NumberFormat('id-ID').format(n);
+                                        } else {
+                                            this.value = '';
+                                        }
+                                        window.additionalTimeout = setTimeout(() => {
+                                            this.dispatchEvent(new Event('change', { bubbles: true }));
+                                        }, 800);
+                                    "
+                                ])
+                                ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null)
                                 ->reactive()
                                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                                     $set('grand_total', self::calculateGrandTotal($get))
@@ -178,15 +238,14 @@ class PurchaseForm
                 ->schema([
                     TextInput::make('grand_total')
                         ->label('Total Pembayaran')
-                        ->numeric()
                         ->readOnly()
                         ->dehydrated(false)
                         ->reactive()
-                        ->default(0)
-                        ->suffix('Rp')
-                        ->extraAttributes([
+                        ->prefix('Rp')
+                        ->extraInputAttributes([
                             'class' => 'text-green-600 font-bold text-lg',
                         ])
+                        ->formatStateUsing(fn($state) => $state ? number_format($state, 0, ',', '.') : '0')
                         ->afterStateHydrated(fn(callable $set, callable $get) =>
                             $set('grand_total', self::calculateGrandTotal($get))
                         ),
@@ -197,9 +256,16 @@ class PurchaseForm
     /** 🔹 Hitung total harga beli + biaya tambahan */
     private static function calculateGrandTotal(callable $get): float
     {
-        $harga = floatval($get('purchase_price') ?? 0);
+        // Ambil harga beli (sudah dalam format angka mentah karena dehydrate)
+        $purchasePrice = $get('purchase_price');
+        $harga = floatval(is_string($purchasePrice) ? preg_replace('/[^0-9]/', '', $purchasePrice) : ($purchasePrice ?? 0));
+
+        // Ambil biaya tambahan
         $tambahan = collect($get('additional_costs') ?? [])
-            ->sum(fn($item) => floatval(data_get($item, 'price', 0)));
+            ->sum(function ($item) {
+                $price = data_get($item, 'price', 0);
+                return floatval(is_string($price) ? preg_replace('/[^0-9]/', '', $price) : $price);
+            });
 
         return round($harga + $tambahan, 2);
     }

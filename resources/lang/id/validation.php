@@ -2,6 +2,8 @@
 
 return [
 
+    'required' => 'Field ini wajib diisi.',
+
     'custom' => [
         'license_plate' => [
             'required' => 'Nomor Polisi wajib diisi!',

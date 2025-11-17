@@ -20,8 +20,8 @@ class VehicleForm
         return $schema
             ->columns(2)
             ->schema([
-                // ======== DATA DASAR (manual input) ========
 
+                // ========= DATA DASAR =========
                 TextInput::make('brand_name')
                     ->label('Merek Kendaraan')
                     ->required()
@@ -86,29 +86,72 @@ class VehicleForm
                         'unique' => 'Nomor BPKB sudah terdaftar.',
                     ]),
 
-                // ======== HARGA ========
+
+                // ========= HARGA DENGAN FORMAT =========
+
                 TextInput::make('purchase_price')
                     ->label('Harga Beli')
                     ->required()
-                    ->numeric()
-                    ->prefix('Rp'),
+                    ->prefix('Rp')
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g, '');
+                            if(n){
+                                this.value = new Intl.NumberFormat('id-ID').format(n);
+                            } else {
+                                this.value = '';
+                            }
+                        "
+                    ])
+                    ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
 
                 TextInput::make('sale_price')
                     ->label('Harga Jual')
-                    ->numeric()
-                    ->prefix('Rp'),
+                    ->prefix('Rp')
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g, '');
+                            if(n){
+                                this.value = new Intl.NumberFormat('id-ID').format(n);
+                            } else {
+                                this.value = '';
+                            }
+                        "
+                    ])
+                    ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
 
                 TextInput::make('down_payment')
                     ->label('DP (Nominal)')
-                    ->numeric()
                     ->prefix('Rp')
-                    ->minValue(0)
-                    ->helperText('Masukkan nominal DP kendaraan (bukan persen).'),
+                    ->helperText('Masukkan nominal DP kendaraan (bukan persen).')
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g, '');
+                            if(n){
+                                this.value = new Intl.NumberFormat('id-ID').format(n);
+                            } else {
+                                this.value = '';
+                            }
+                        "
+                    ])
+                    ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
 
                 TextInput::make('odometer')
                     ->label('Odometer (KM)')
-                    ->numeric()
-                    ->minValue(0),
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g, '');
+                            if(n){
+                                this.value = new Intl.NumberFormat('id-ID').format(n);
+                            } else {
+                                this.value = '';
+                            }
+                        "
+                    ])
+                    ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
+
+
+                // ========= STATUS =========
 
                 Select::make('status')
                     ->label('Status')
@@ -121,7 +164,9 @@ class VehicleForm
                     ->default('available')
                     ->required(),
 
-                // ======== INFO TAMBAHAN ========
+
+                // ========= INFO TAMBAHAN =========
+
                 TextInput::make('engine_specification')
                     ->label('Spesifikasi Mesin'),
 
@@ -136,7 +181,8 @@ class VehicleForm
                     ->label('Deskripsi')
                     ->columnSpanFull(),
 
-                // ======== FOTO KENDARAAN ========
+
+                // ========= FOTO =========
                 Repeater::make('photos')
                     ->relationship()
                     ->label('Foto Kendaraan')
@@ -147,13 +193,12 @@ class VehicleForm
                             ->image()
                             ->disk('public')
                             ->directory('vehicle-photos')
-                            ->required()
+                            ->nullable()
                             ->getUploadedFileNameForStorageUsing(fn($file) => uniqid('vehicle_') . '.webp')
                             ->saveUploadedFileUsing(function ($file) {
                                 $manager = new ImageManager(new Driver());
                                 $image = $manager->read($file->getRealPath());
 
-                                // Koreksi orientasi kamera HP
                                 try {
                                     $ext = strtolower($file->getClientOriginalExtension() ?? pathinfo($file->getClientName(), PATHINFO_EXTENSION));
                                     if (in_array($ext, ['jpg', 'jpeg']) && function_exists('exif_read_data')) {
@@ -168,7 +213,6 @@ class VehicleForm
                                     }
                                 } catch (\Throwable $e) {}
 
-                                // Simpan gambar WebP
                                 $encoded = $image->encodeByExtension('webp', 80);
                                 $path = 'vehicle-photos/' . uniqid('vehicle_') . '.webp';
                                 Storage::disk('public')->put($path, (string) $encoded);

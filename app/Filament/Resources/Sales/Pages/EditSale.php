@@ -15,19 +15,28 @@ class EditSale extends EditRecord
     /**
      * Load data customer ke form saat buka halaman edit
      */
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        if ($this->record->customer) {
-            $data['customer_name']      = $this->record->customer->name;
-            $data['customer_nik']       = $this->record->customer->nik;
-            $data['customer_phone']     = $this->record->customer->phone;
-            $data['customer_address']   = $this->record->customer->address;
-            $data['customer_instagram'] = $this->record->customer->instagram;
-            $data['customer_tiktok']    = $this->record->customer->tiktok;
-        }
-
-        return $data;
+   protected function mutateFormDataBeforeFill(array $data): array
+{
+    if ($this->record->customer) {
+        $data['customer_name']      = $this->record->customer->name;
+        $data['customer_nik']       = $this->record->customer->nik;
+        $data['customer_phone']     = $this->record->customer->phone;
+        $data['customer_address']   = $this->record->customer->address;
+        $data['customer_instagram'] = $this->record->customer->instagram;
+        $data['customer_tiktok']    = $this->record->customer->tiktok;
     }
+
+    // --- FORMAT FIELD NOMINAL ---
+    $nominalFields = ['sale_price', 'dp_po', 'dp_real', 'cmo_fee', 'direct_commission'];
+    foreach ($nominalFields as $field) {
+        if (isset($data[$field]) && $data[$field] !== null) {
+            $data[$field] = number_format($data[$field], 0, ',', '.'); // 1000000 -> 1.000.000
+        }
+    }
+
+    return $data;
+}
+
 
     /**
      * Update customer dan validasi status sebelum save sale

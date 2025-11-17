@@ -44,8 +44,16 @@ class IncomeForm
                 TextInput::make('amount')
                     ->label(__('tables.amount'))
                     ->required()
-                    ->numeric()
-                    ->prefix('Rp'),
+                    ->prefix('Rp')
+                    ->reactive()
+                    ->lazy()
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g,'');
+                            this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
+                        ",
+                    ])
+                    ->dehydrateStateUsing(fn($state) => (int) str_replace('.', '', $state)),
 
                 DatePicker::make('income_date')
                     ->label(__('tables.income_date'))

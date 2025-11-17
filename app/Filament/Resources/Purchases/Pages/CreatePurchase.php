@@ -21,6 +21,20 @@ class CreatePurchase extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // 🧹 Clean format ribuan dari semua field harga
+        $data['purchase_price'] = isset($data['purchase_price']) 
+            ? preg_replace('/[^0-9]/', '', $data['purchase_price']) 
+            : 0;
+        $data['sale_price'] = isset($data['sale_price']) 
+            ? preg_replace('/[^0-9]/', '', $data['sale_price']) 
+            : 0;
+        $data['down_payment'] = isset($data['down_payment']) 
+            ? preg_replace('/[^0-9]/', '', $data['down_payment']) 
+            : 0;
+        $data['odometer'] = isset($data['odometer']) 
+            ? preg_replace('/[^0-9]/', '', $data['odometer']) 
+            : 0;
+
         // Validasi Duplikasi VIN
         if (Vehicle::where('vin', $data['vin'])->exists()) {
             throw ValidationException::withMessages([
@@ -60,9 +74,9 @@ class CreatePurchase extends CreateRecord
             'license_plate' => $data['license_plate'] ?? null,
             'bpkb_number' => $data['bpkb_number'] ?? null,
             'purchase_price' => $data['purchase_price'],
-            'sale_price' => $data['sale_price'] ?? 0,
-            'down_payment' => $data['down_payment'] ?? 0,
-            'odometer' => $data['odometer'] ?? 0,
+            'sale_price' => $data['sale_price'],
+            'down_payment' => $data['down_payment'],
+            'odometer' => $data['odometer'],
             'engine_specification' => $data['engine_specification'] ?? null,
             'notes' => $data['vehicle_notes'] ?? null,
             'location' => $data['location'] ?? null,
@@ -82,8 +96,17 @@ class CreatePurchase extends CreateRecord
             }
         }
 
+        // 🧹 Clean biaya tambahan juga
+        if (!empty($data['additional_costs'])) {
+            foreach ($data['additional_costs'] as &$cost) {
+                if (isset($cost['price'])) {
+                    $cost['price'] = preg_replace('/[^0-9]/', '', $cost['price']);
+                }
+            }
+        }
+
         // Hitung total harga (harga beli + biaya tambahan)
-        $harga = floatval($data['purchase_price'] ?? 0);
+        $harga = floatval($data['purchase_price']);
         $tambahan = collect($data['additional_costs'] ?? [])
             ->sum(fn($item) => floatval($item['price'] ?? 0));
 

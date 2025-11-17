@@ -17,7 +17,7 @@ class StnkRenewalForm
         return $schema
             ->columns(2)
             ->schema([
-                // 📅 Tanggal
+                // Tanggal
                 DatePicker::make('tgl')
                     ->label('Tanggal')
                     ->default(now())
@@ -26,7 +26,7 @@ class StnkRenewalForm
                         'required' => 'Tanggal wajib diisi!',
                     ]),
 
-                // 🚘 Nomor Polisi
+                // Nomor Polisi
                 TextInput::make('license_plate')
                     ->label('Nomor Polisi')
                     ->required()
@@ -39,7 +39,7 @@ class StnkRenewalForm
                         'unique' => 'Nomor Polisi sudah ada dengan status pending atau progress!',
                     ]),
 
-                // 👤 Atas Nama STNK
+                // Atas Nama STNK
                 TextInput::make('atas_nama_stnk')
                     ->label('Atas Nama STNK')
                     ->required()
@@ -48,7 +48,7 @@ class StnkRenewalForm
                         'required' => 'Atas Nama STNK wajib diisi!',
                     ]),
 
-                // 🧍 Customer
+                // Customer
                 Select::make('customer_id')
                     ->label('Customer')
                     ->options(fn () => Customer::orderBy('name')->pluck('name', 'id')->toArray())
@@ -58,7 +58,7 @@ class StnkRenewalForm
                         'required' => 'Customer wajib dipilih!',
                     ]),
 
-                // 🧾 Jenis Pekerjaan
+                // Jenis Pekerjaan
                 Select::make('jenis_pekerjaan')
                     ->label('Jenis Pekerjaan')
                     ->options([
@@ -71,89 +71,120 @@ class StnkRenewalForm
                         'required' => 'Jenis pekerjaan wajib dipilih!',
                     ]),
 
-                // 🖼️ Upload Foto STNK
+                // Upload Foto STNK
                 FileUpload::make('foto_stnk')
                     ->label('Foto STNK')
                     ->image()
                     ->directory('uploads/stnk')
                     ->nullable(),
 
-                // 💰 Total Pajak + Jasa
+                // Total Pajak + Jasa
                 TextInput::make('total_pajak_jasa')
                     ->label('Total Pajak + Jasa')
-                    ->numeric()
-                    ->default(0)
+                    ->prefix('Rp')
                     ->reactive()
                     ->lazy()
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g,'');
+                            this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
+                        ",
+                    ])
+                    ->dehydrateStateUsing(fn($state) => (int) preg_replace('/[^0-9]/', '', $state))
                     ->afterStateUpdated(function ($state, $set, $get) {
-                        $dp = $get('dp') ?? 0;
-                        $vendor = $get('payvendor') ?? 0;
-                        $set('sisa_pembayaran', $state - $dp);
-                        $set('margin_total', $state - $vendor);
-                    }),
+                        $total  = (int) preg_replace('/[^0-9]/', '', $state ?? 0);
+                        $dp     = (int) preg_replace('/[^0-9]/', '', $get('dp') ?? 0);
+                        $vendor = (int) preg_replace('/[^0-9]/', '', $get('payvendor') ?? 0);
 
-                // 💵 DP / Dibayar
-                TextInput::make('dp')
-                    ->label('DP / Dibayar')
-                    ->integer()
-                    ->default(0)
-                    ->reactive()
-                    ->lazy()
-                    ->afterStateUpdated(function ($state, $set, $get) {
-                        $total = $get('total_pajak_jasa') ?? 0;
-                        $vendor = $get('payvendor') ?? 0;
-                        $set('sisa_pembayaran', $total - $state);
+                        $set('sisa_pembayaran', $total - $dp);
                         $set('margin_total', $total - $vendor);
                     }),
 
-                // 🏛️ Pembayaran ke Samsat
+                // DP / Dibayar
+                TextInput::make('dp')
+                    ->label('DP / Dibayar')
+                    ->prefix('Rp')
+                    ->reactive()
+                    ->lazy()
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g,'');
+                            this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
+                        ",
+                    ])
+                    ->dehydrateStateUsing(fn($state) => (int) preg_replace('/[^0-9]/', '', $state))
+                    ->afterStateUpdated(function ($state, $set, $get) {
+                        $total  = (int) preg_replace('/[^0-9]/', '', $get('total_pajak_jasa') ?? 0);
+                        $dp     = (int) preg_replace('/[^0-9]/', '', $state ?? 0);
+                        $vendor = (int) preg_replace('/[^0-9]/', '', $get('payvendor') ?? 0);
+
+                        $set('sisa_pembayaran', $total - $dp);
+                        $set('margin_total', $total - $vendor);
+                    }),
+
+                // Pembayaran ke Samsat
                 TextInput::make('pembayaran_ke_samsat')
                     ->label('Pembayaran ke Samsat')
-                    ->integer()
-                    ->default(0)
-                    ->reactive(),
+                    ->prefix('Rp')
+                    ->reactive()
+                    ->lazy()
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g,'');
+                            this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
+                        ",
+                    ])
+                    ->dehydrateStateUsing(fn($state) => (int) preg_replace('/[^0-9]/', '', $state)),
 
-                // 🧾 Nama Vendor
+                // Nama Vendor
                 TextInput::make('vendor')
                     ->label('Nama Vendor')
                     ->required()
                     ->maxLength(255)
                     ->default('-'),
 
-                // 💸 Pembayaran ke Vendor
+                // Pembayaran ke Vendor
                 TextInput::make('payvendor')
                     ->label('Pembayaran ke Vendor')
-                    ->integer()
-                    ->default(0)
+                    ->prefix('Rp')
                     ->reactive()
                     ->lazy()
+                    ->extraInputAttributes([
+                        'oninput' => "
+                            let n = this.value.replace(/[^0-9]/g,'');
+                            this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
+                        ",
+                    ])
+                    ->dehydrateStateUsing(fn($state) => (int) preg_replace('/[^0-9]/', '', $state))
                     ->afterStateUpdated(function ($state, $set, $get) {
-                        $total = $get('total_pajak_jasa') ?? 0;
-                        $set('margin_total', $total - $state);
+                        $total  = (int) preg_replace('/[^0-9]/', '', $get('total_pajak_jasa') ?? 0);
+                        $vendor = (int) preg_replace('/[^0-9]/', '', $state ?? 0);
+
+                        $set('margin_total', $total - $vendor);
                     }),
 
-                // 📉 Sisa Pembayaran
+                // Sisa Pembayaran
                 TextInput::make('sisa_pembayaran')
                     ->label('Sisa Pembayaran')
-                    ->integer()
+                    ->prefix('Rp')
                     ->disabled()
                     ->dehydrated()
-                    ->default(0),
+                    ->formatStateUsing(fn($state) => $state ? number_format((int)$state, 0, ',', '.') : '0'),
 
-                // 📈 Margin (Laba)
+                // Margin (Laba)
                 TextInput::make('margin_total')
                     ->label('Margin (Laba)')
-                    ->integer()
+                    ->prefix('Rp')
                     ->disabled()
                     ->dehydrated()
-                    ->default(0),
+                    ->formatStateUsing(fn($state) => $state ? number_format((int)$state, 0, ',', '.') : '0'),
 
-                // 📦 Tanggal Diambil
+                // Tanggal Diambil
                 DatePicker::make('diambil_tgl')
                     ->label('Tanggal Diambil')
                     ->nullable(),
 
-                // ⚙️ Status
+                // Status
                 Select::make('status')
                     ->label('Status')
                     ->options([

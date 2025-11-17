@@ -13,14 +13,15 @@ class ExpenseForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
-            ->components([
+            ->columns(1)
+            ->schema([
                 TextInput::make('description')
                     ->label(__('tables.description'))
                     ->required(),
 
                 Select::make('category_id')
                     ->label(__('tables.category_name'))
-                    ->options(Category::whereType('expense')->pluck('name', 'id'))
+                    ->options(fn() => Category::whereType('expense')->pluck('name', 'id'))
                     ->searchable()
                     ->required()
                     ->createOptionForm([
@@ -40,10 +41,17 @@ class ExpenseForm
                     }),
 
                 TextInput::make('amount')
-                    ->label(__('tables.amount'))
-                    ->required()
-                    ->numeric(),
-
+                ->label('Jumlah')
+                ->prefix('Rp')
+                ->reactive()
+                ->lazy()
+                ->extraInputAttributes([
+                    'oninput' => "
+                        let n = this.value.replace(/[^0-9]/g,'');
+                        this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
+                    ",
+                ])
+                ->dehydrateStateUsing(fn($state) => (int) str_replace('.', '', $state)),
                 DatePicker::make('expense_date')
                     ->label(__('tables.expense_date'))
                     ->required()

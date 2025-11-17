@@ -37,6 +37,24 @@ class PurchaseInfolist
                             ->formatStateUsing(fn ($state) => 'Rp ' . number_format((float)$state, 0, ',', '.')),
                     ]),
 
+                    //kendaraan 
+                TextEntry::make('vehicle.vin')
+                    ->label('Nomor Rangka (VIN)'),  
+                TextEntry::make('vehicle.engine_number')
+                    ->label('Nomor Mesin'),  
+                TextEntry::make('vehicle.license_plate')
+                    ->label('Nomor Polisi'),                
+                TextEntry::make('vehicle.bpkb_number')
+                    ->label('Nomor BPKB'),  
+                TextEntry::make('vehicle.odometer')
+                    ->label('Odometer')
+                    ->formatStateUsing(fn ($state) => number_format((float)$state, 0, ',', '.') . ' km'),       
+                TextEntry::make('vehicle.location')
+                    ->label('Lokasi Kendaraan'),
+                TextEntry::make('vehicle.notes')
+                    ->label('Catatan Kendaraan'),
+                    
+
                 // Grand total
                 TextEntry::make('grand_total')
                     ->label('Total Deal')

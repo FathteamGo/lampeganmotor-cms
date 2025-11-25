@@ -24,7 +24,6 @@ class DashboardStats extends BaseWidget
 
     protected function getStats(): array
     {
-        // ========== FILTER BULAN & TAHUN ==========
         $month = isset($this->filters['month']) && $this->filters['month']
             ? (int)$this->filters['month']
             : now()->month;
@@ -38,38 +37,124 @@ class DashboardStats extends BaseWidget
 
         $rupiah = fn($v) => 'Rp ' . number_format($v, 0, ',', '.');
         $periode = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
-
-        // ========== DATA DASAR ==========
         $totalUnit = Vehicle::where('status', 'available')->count();
 
-        // PENJUALAN
-        $salesQuery = Sale::valid()->whereYear('sale_date', $year);
+        // ========== PENJUALAN ==========
+        $salesQuery = Sale::with('vehicle')->valid()->whereYear('sale_date', $year);
         $terjualBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->count();
         $terjualTahunIni = (clone $salesQuery)->count();
-        $totalPenjualanBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->sum('sale_price');
-        $totalPenjualanTahunIni = (clone $salesQuery)->sum('sale_price');
 
-        // INCOME
+        // Ambil data sales untuk dihitung labanya
+        $salesBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->get();
+        $salesTahunIni = (clone $salesQuery)->get();
+
+        // HITUNG LABA PENJUALAN
+        $labaPenjualanBulanIni = 0;
+        $labaPenjualanTahunIni = 0;
+
+        // Hitung Laba Bulan Ini
+        foreach ($salesBulanIni as $sale) {
+            if (!$sale->vehicle) continue;
+
+            $otr = floatval($sale->sale_price ?? 0);
+            $dpPo = floatval($sale->dp_po ?? 0);
+            $dpReal = floatval($sale->dp_real ?? 0);
+            $purchasePrice = floatval($sale->vehicle->purchase_price ?? 0);
+
+            switch ($sale->payment_method) {
+                case 'credit':
+                    // Kredit: OTR - DP PO - DP REAL - Harga Pembelian
+                    $labaPenjualanBulanIni += ($otr - $dpPo - $dpReal - $purchasePrice);
+                    break;
+
+                case 'cash':
+                    // Cash: OTR - Harga Pembelian
+                    $labaPenjualanBulanIni += ($otr - $purchasePrice);
+                    break;
+
+                case 'cash_tempo':
+                    // Cash Tempo: OTR - Harga Pembelian
+                    $labaPenjualanBulanIni += ($otr - $purchasePrice);
+                    break;
+
+                case 'tukartambah':
+                    // Dana Tunai: OTR - DP PO - Pembayaran ke Nasabah
+                    $paymentToCustomer = floatval($sale->payment_to_customer ?? 0);
+                    $labaPenjualanBulanIni += ($otr - $dpPo - $paymentToCustomer);
+                    break;
+            }
+        }
+
+        // Hitung Laba Tahun Ini
+        foreach ($salesTahunIni as $sale) {
+            if (!$sale->vehicle) continue;
+
+            $otr = floatval($sale->sale_price ?? 0);
+            $dpPo = floatval($sale->dp_po ?? 0);
+            $dpReal = floatval($sale->dp_real ?? 0);
+            $purchasePrice = floatval($sale->vehicle->purchase_price ?? 0);
+
+            switch ($sale->payment_method) {
+                case 'credit':
+                    $labaPenjualanTahunIni += ($otr - $dpPo - $dpReal - $purchasePrice);
+                    break;
+
+                case 'cash':
+                    $labaPenjualanTahunIni += ($otr - $purchasePrice);
+                    break;
+
+                case 'cash_tempo':
+                    $labaPenjualanTahunIni += ($otr - $purchasePrice);
+                    break;
+
+                case 'tukartambah':
+                    $paymentToCustomer = floatval($sale->payment_to_customer ?? 0);
+                    $labaPenjualanTahunIni += ($otr - $dpPo - $paymentToCustomer);
+                    break;
+            }
+        }
+
+        // ========== CASH TEMPO TRACKING ==========
+        $cashTempoQuery = Sale::with('vehicle')->valid()
+            ->where('payment_method', 'cash_tempo')
+            ->where('remaining_payment', '>', 0)
+            ->whereYear('sale_date', $year);
+
+        $cashTempoBulanIni = (clone $cashTempoQuery)
+            ->whereMonth('sale_date', $month)
+            ->sum('remaining_payment');
+
+        $cashTempoTahunIni = (clone $cashTempoQuery)->sum('remaining_payment');
+
+        $totalCashTempoTransaksi = (clone $cashTempoQuery)->count();
+
+        // Cash Tempo Jatuh Tempo 30 hari
+        $cashTempoJatuhTempo = Sale::valid()
+            ->where('payment_method', 'cash_tempo')
+            ->where('remaining_payment', '>', 0)
+            ->whereNotNull('due_date')
+            ->where('due_date', '<=', now()->addDays(30))
+            ->sum('remaining_payment');
+
+        // ========== INCOME ==========
         $incomeQuery = Income::whereYear('income_date', $year);
         $totalIncomeBulanIni = (clone $incomeQuery)->whereMonth('income_date', $month)->sum('amount');
         $totalIncomeTahunIni = (clone $incomeQuery)->sum('amount');
 
-        // STNK
+        // ========== STNK ==========
         $stnkQuery = StnkRenewal::whereYear('tgl', $year);
 
-        // Pendapatan STNK berdasarkan margin
         $stnkIncomeBulanIni = (clone $stnkQuery)
             ->whereMonth('tgl', $month)
             ->sum('margin_total');
         $stnkIncomeTahunIni = (clone $stnkQuery)->sum('margin_total');
 
-        // Pengeluaran STNK — hanya pembayaran ke vendor
         $stnkExpenseBulanIni = (clone $stnkQuery)
             ->whereMonth('tgl', $month)
             ->sum('payvendor');
         $stnkExpenseTahunIni = (clone $stnkQuery)->sum('payvendor');
 
-        // PENGELUARAN LAINNYA
+        // ========== PENGELUARAN ==========
         $expenseQuery = Expense::whereYear('expense_date', $year);
         $totalPengeluaranBulanIni =
             (clone $expenseQuery)->whereMonth('expense_date', $month)->sum('amount')
@@ -79,15 +164,13 @@ class DashboardStats extends BaseWidget
             (clone $expenseQuery)->sum('amount')
             + $stnkExpenseTahunIni;
 
-        // TOTAL PENDAPATAN & KEUNTUNGAN
-        $totalPendapatanBulanIni = $totalPenjualanBulanIni + $totalIncomeBulanIni + $stnkIncomeBulanIni;
-        $totalPendapatanTahunIni = $totalPenjualanTahunIni + $totalIncomeTahunIni + $stnkIncomeTahunIni;
+        // ========== LABA BERSIH ==========
+        // Rumus: Laba Penjualan + Income + Income STNK - Pengeluaran
+        $labaBersihBulanIni = $labaPenjualanBulanIni + $totalIncomeBulanIni + $stnkIncomeBulanIni - $totalPengeluaranBulanIni;
+        $labaBersihTahunIni = $labaPenjualanTahunIni + $totalIncomeTahunIni + $stnkIncomeTahunIni - $totalPengeluaranTahunIni;
 
-        $keuntunganBulanIni = $totalPendapatanBulanIni - $totalPengeluaranBulanIni;
-        $keuntunganTahunIni = $totalPendapatanTahunIni - $totalPengeluaranTahunIni;
-
-        // ASET
-        $asetKendaraan = Vehicle::where('status', 'available')->sum('sale_price');
+        // ========== ASET ==========
+        $asetKendaraan = Vehicle::where('status', 'available')->sum('purchase_price');
         $asetLainnya = OtherAsset::sum('value');
         $totalAset = $asetKendaraan + $asetLainnya;
 
@@ -107,52 +190,66 @@ class DashboardStats extends BaseWidget
                 ->description("Total unit terjual sepanjang {$year}")
                 ->color('success'),
 
-            Stat::make('Total Penjualan Bulan Ini', $rupiah($totalPenjualanBulanIni))
-                ->description("Nominal penjualan bulan {$periode}")
+            // LABA PENJUALAN
+            Stat::make('Laba Penjualan Bulan Ini', $rupiah($labaPenjualanBulanIni))
+                ->description("Laba kotor penjualan {$periode}")
                 ->color('warning'),
 
-            Stat::make('Total Penjualan Tahun Ini', $rupiah($totalPenjualanTahunIni))
-                ->description("Akumulasi penjualan sepanjang {$year}")
+            Stat::make('Laba Penjualan Tahun Ini', $rupiah($labaPenjualanTahunIni))
+                ->description("Akumulasi laba penjualan {$year}")
                 ->color('warning'),
+
+            // CASH TEMPO TRACKING (BISA DIKLIK)
+            Stat::make('Cash Tempo Mengendap', $rupiah($cashTempoTahunIni))
+                ->description("Transaksi belum lunas")
+                // ->descriptionIcon('heroicon-o-arrow-right-circle')
+                ->color('warning'),
+                // ->url(route('filament.admin.resources.cash-tempo-trackings.index')),
+    
+            Stat::make('Cash Tempo Jatuh Tempo', $rupiah($cashTempoJatuhTempo))
+                ->description("Akan jatuh tempo dalam 30 hari")
+                // ->descriptionIcon('heroicon-o-arrow-right-circle')
+                ->color('danger'),
+                // ->url(route('filament.admin.resources.cash-tempo-trackings.index')) ,
 
             // INCOME
             Stat::make('Income Bulan Ini', $rupiah($totalIncomeBulanIni))
-                ->description("Pendapatan tambahan bulan {$periode}")
+                ->description("Pendapatan tambahan {$periode}")
                 ->color('info'),
 
             Stat::make('Income Tahun Ini', $rupiah($totalIncomeTahunIni))
-                ->description("Pendapatan tambahan sepanjang {$year}")
+                ->description("Pendapatan tambahan {$year}")
                 ->color('info'),
 
             Stat::make('Income STNK Bulan Ini', $rupiah($stnkIncomeBulanIni))
-                ->description("Pendapatan dari STNK bulan {$periode}")
+                ->description("Pendapatan STNK {$periode}")
                 ->color('info'),
 
             Stat::make('Income STNK Tahun Ini', $rupiah($stnkIncomeTahunIni))
-                ->description("Pendapatan STNK sepanjang {$year}")
+                ->description("Pendapatan STNK {$year}")
                 ->color('info'),
 
             // PENGELUARAN
             Stat::make('Pengeluaran Bulan Ini', $rupiah($totalPengeluaranBulanIni))
-                ->description("Biaya keluar {$periode} (termasuk vendor STNK)")
+                ->description("Total biaya keluar {$periode}")
                 ->color('danger'),
 
             Stat::make('Pengeluaran Tahun Ini', $rupiah($totalPengeluaranTahunIni))
-                ->description("Total pengeluaran sepanjang {$year}")
+                ->description("Total pengeluaran {$year}")
                 ->color('danger'),
 
-            // KEUNTUNGAN
-            Stat::make('Keuntungan Bulan Ini', $rupiah($keuntunganBulanIni))
-                ->description("Pendapatan bersih bulan {$periode}")
-                ->color($keuntunganBulanIni >= 0 ? 'success' : 'danger'),
+            // LABA BERSIH
+            Stat::make('Laba Bersih Bulan Ini', $rupiah($labaBersihBulanIni))
+                ->description("Laba - Pengeluaran {$periode}")
+                ->color($labaBersihBulanIni >= 0 ? 'success' : 'danger'),
 
-            Stat::make('Keuntungan Tahun Ini', $rupiah($keuntunganTahunIni))
-                ->description("Pendapatan bersih tahun {$year}")
-                ->color($keuntunganTahunIni >= 0 ? 'success' : 'danger'),
+            Stat::make('Laba Bersih Tahun Ini', $rupiah($labaBersihTahunIni))
+                ->description("Laba - Pengeluaran {$year}")
+                ->color($labaBersihTahunIni >= 0 ? 'success' : 'danger'),
 
             // ASET
             Stat::make('Aset Kendaraan', $rupiah($asetKendaraan))
-                ->description('Total nilai kendaraan tersedia')
+                ->description('Total nilai pembelian kendaraan tersedia')
                 ->color('primary'),
 
             Stat::make('Aset Lainnya', $rupiah($asetLainnya))

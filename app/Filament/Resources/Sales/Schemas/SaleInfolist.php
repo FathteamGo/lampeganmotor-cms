@@ -34,14 +34,42 @@ class SaleInfolist
                 ->label('Laba Bersih')
                 ->money('IDR', locale: 'id')
                 ->state(function ($record) {
-                    $pencairan = $record->pencairan ?? $record->sale_price ?? 0;
-                    $dpReal = $record->dp_real ?? 0;
-                    $beli = $record->vehicle?->purchase_price ?? 0;
-                    $cmoFee = $record->cmo_fee ?? 0;
-                    $komisi = $record->direct_commission ?? 0;
 
-                    return max(($pencairan + $dpReal) - ($beli + $cmoFee + $komisi), 0);
+                    $otr       = $record->sale_price ?? 0;
+                    $dpPo      = $record->dp_po ?? 0;
+                    $dpReal    = $record->dp_real ?? 0;
+                    $pencairan = $record->pencairan ?? 0;
+                    $hBeli     = $record->vehicle?->purchase_price ?? 0;
+
+                    switch ($record->payment_method) {
+
+                        case 'cash':
+                            $laba = $otr - $hBeli;
+                            break;
+
+                        case 'credit':
+                            $laba = $otr - $dpPo - $dpReal - $hBeli;
+                            break;
+
+                        case 'cash_tempo':
+                            $laba = $otr - $hBeli;
+                            break;
+
+                        case 'dana_tunai':
+                            $laba = $otr - $dpPo - $pencairan;
+                            break;
+
+                        default:
+                            $laba = 0;
+                    }
+
+                    // potong komisi
+                    $laba -= ($record->cmo_fee ?? 0);
+                    $laba -= ($record->direct_commission ?? 0);
+
+                    return max($laba, 0);
                 }),
+
 
             // 🔹 Komisi & CMO
             TextEntry::make('cmo')->label('CMO'),

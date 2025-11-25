@@ -77,20 +77,59 @@ class Sale extends Model
     }
 
     public function getLabaBersihAttribute()
-    {
-        $purchase = (float) optional($this->vehicle)->purchase_price;
-        $cmo = (float) ($this->cmo_fee ?? 0);
-        $komisi = (float) ($this->direct_commission ?? 0);
-        $dpPo = (float) ($this->dp_po ?? 0);
-        $dpReal = (float) ($this->dp_real ?? 0);
+{
+    $hargaBeli = (float) optional($this->vehicle)->purchase_price;
+    $otr = (float) ($this->sale_price ?? 0);
+    $dpPo = (float) ($this->dp_po ?? 0);
+    $dpReal = (float) ($this->dp_real ?? 0);
+    $pencairan = (float) ($this->pencairan ?? 0);
+    $pembayaranNasabah = (float) ($this->pencairan ?? 0);
+    $cmo = (float) ($this->cmo_fee ?? 0);
+    $komisi = (float) ($this->direct_commission ?? 0);
 
-        return (float) (optional($this->vehicle)->sale_price ?? $this->sale_price ?? 0)
-            - $dpPo
-            + $dpReal
-            - $purchase
-            - $cmo
-            - $komisi;
+    $laba = 0;
+
+    switch ($this->payment_method) {
+
+        // =======================
+        // KREDIT
+        // =======================
+        case 'credit':
+            // OTR - DP PO - DP REAL - Harga total pembelian
+            $laba = $otr - $dpPo - $dpReal - $hargaBeli;
+            break;
+
+        // =======================
+        // CASH
+        // =======================
+        case 'cash':
+            // OTR - Harga total pembelian
+            $laba = $otr - $hargaBeli;
+            break;
+
+        // =======================
+        // CASH TEMPO
+        // =======================
+        case 'cash_tempo':
+            // OTR - Harga total pembelian
+            $laba = $otr - $hargaBeli;
+            break;
+
+        // =======================
+        // DANA TUNAI
+        // =======================
+        case 'dana_tunai':
+            // OTR - DP PO - Pembayaran ke nasabah
+            $laba = $otr - $dpPo - $pembayaranNasabah;
+            break;
     }
+
+    // Kurangi biaya (cmo & komisi)
+    $laba -= ($cmo + $komisi);
+
+    return (float) $laba;
+}
+
 
     // =======================
     // MODEL EVENTS

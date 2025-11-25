@@ -18,14 +18,14 @@ class SaleForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            // 🔹 Sales
+            // Sales
             Select::make('user_id')
                 ->label('Sales')
                 ->options(User::query()->orderBy('name')->pluck('name', 'id'))
                 ->searchable()
                 ->required(),
 
-            // 🔹 Kendaraan
+            // Kendaraan
             Select::make('vehicle_id')
                 ->label('Motor')
                 ->options(function ($get, $record) {
@@ -35,6 +35,7 @@ class SaleForm
                             $q->where('status', '!=', 'cancel');
                         });
 
+                    // Allow current vehicle in edit mode
                     if ($record && $record->vehicle_id) {
                         $query->orWhere('id', $record->vehicle_id);
                     }
@@ -64,7 +65,7 @@ class SaleForm
                     }
                 }),
 
-            // 🔹 Data Customer
+            // Data Customer
             ComponentsSection::make('Data Customer')
                 ->description('Data customer akan otomatis disimpan ke master Customer')
                 ->schema([
@@ -76,7 +77,7 @@ class SaleForm
                 ])
                 ->columns(2),
 
-            // 🔹 Detail Penjualan
+            // Detail Penjualan
             DatePicker::make('sale_date')
                 ->label('Tanggal')
                 ->required()
@@ -95,9 +96,11 @@ class SaleForm
                         window.salePriceTimeout = setTimeout(() => {
                             this.dispatchEvent(new Event('change', { bubbles: true }));
                         }, 800);
-                    ",
+                    "
                 ])
-                ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null)
+                ->dehydrateStateUsing(fn($state) =>
+                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                )
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
@@ -112,7 +115,14 @@ class SaleForm
                 ])
                 ->default('cash')
                 ->required()
-                ->reactive(),
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                    if (in_array($state, ['credit', 'cash_tempo'])) {
+                        $set('remaining_payment', self::calculateRemaining($get));
+                    } else {
+                        $set('remaining_payment', 0);
+                    }
+                }),
 
             TextInput::make('dp_po')
                 ->label('DP PO')
@@ -127,9 +137,11 @@ class SaleForm
                         window.dpTimeout = setTimeout(() => {
                             this.dispatchEvent(new Event('change', { bubbles: true }));
                         }, 800);
-                    ",
+                    "
                 ])
-                ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null)
+                ->dehydrateStateUsing(fn($state) =>
+                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                )
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
@@ -147,9 +159,11 @@ class SaleForm
                         window.dpRealTimeout = setTimeout(() => {
                             this.dispatchEvent(new Event('change', { bubbles: true }));
                         }, 800);
-                    ",
+                    "
                 ])
-                ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null)
+                ->dehydrateStateUsing(fn($state) =>
+                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                )
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
@@ -159,13 +173,18 @@ class SaleForm
                 ->prefix('Rp')
                 ->readOnly()
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo']))
-                ->formatStateUsing(fn($state) => $state ? number_format($state, 0, ',', '.') : '0'),
+                ->formatStateUsing(fn($state) =>
+                    $state ? number_format($state, 0, ',', '.') : '0'
+                )
+                ->dehydrateStateUsing(fn($state) =>
+                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                ),
 
             DatePicker::make('due_date')
                 ->label('Jatuh Tempo')
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
-            // 🔹 Komisi & Info Tambahan
+            // Komisi & Info Tambahan
             TextInput::make('cmo')->label('CMO / Mediator'),
 
             TextInput::make('cmo_fee')
@@ -176,21 +195,26 @@ class SaleForm
                     'oninput' => "
                         let n = this.value.replace(/[^0-9]/g, '');
                         this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
-                    ",
+                    "
                 ])
-                ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
+                ->dehydrateStateUsing(fn($state) =>
+                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                ),
 
             TextInput::make('direct_commission')
                 ->label('Komisi Langsung')
                 ->prefix('Rp')
                 ->lazy()
+                ->default(0)
                 ->extraInputAttributes([
                     'oninput' => "
                         let n = this.value.replace(/[^0-9]/g, '');
                         this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
-                    ",
+                    "
                 ])
-                ->dehydrateStateUsing(fn($state) => $state ? preg_replace('/[^0-9]/', '', $state) : null),
+                ->dehydrateStateUsing(fn($state) =>
+                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                ),
 
             Select::make('order_source')
                 ->label('Sumber Order')
@@ -223,6 +247,10 @@ class SaleForm
                 ->default('proses')
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
+
+                    // hitung ulang remaining agar tidak null/non-numeric
+                    $set('remaining_payment', self::calculateRemaining($get));
+
                     if (!$record) return;
 
                     $vehicleId = $record->vehicle_id;
@@ -249,14 +277,23 @@ class SaleForm
         ]);
     }
 
-    /** 🔹 Hitung sisa pembayaran otomatis */
+    /** 🔢 Hitung sisa pembayaran otomatis (selalu return float valid) */
     private static function calculateRemaining(callable $get): float
-{
-    $otr = floatval(preg_replace('/[^0-9]/', '', $get('sale_price') ?? 0));
-    $dpPo = floatval(preg_replace('/[^0-9]/', '', $get('dp_po') ?? 0));
-    $dpReal = floatval(preg_replace('/[^0-9]/', '', $get('dp_real') ?? 0));
+    {
+        $rawOtr    = $get('sale_price') ?? 0;
+        $rawDpPo   = $get('dp_po') ?? 0;
+        $rawDpReal = $get('dp_real') ?? 0;
 
-    return max($otr - $dpPo + $dpReal, 0);
-}
+        $otr    = floatval(preg_replace('/[^0-9]/', '', (string)$rawOtr));
+        $dpPo   = floatval(preg_replace('/[^0-9]/', '', (string)$rawDpPo));
+        $dpReal = floatval(preg_replace('/[^0-9]/', '', (string)$rawDpReal));
 
+        $remaining = $otr - ($dpPo + $dpReal);
+
+        if (!is_finite($remaining) || is_nan($remaining)) {
+            return 0.0;
+        }
+
+        return max($remaining, 0.0);
+    }
 }

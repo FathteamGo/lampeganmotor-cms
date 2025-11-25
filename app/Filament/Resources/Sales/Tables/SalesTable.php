@@ -44,15 +44,45 @@ class SalesTable
                 TextColumn::make('laba_bersih')
                     ->label('Laba Bersih')
                     ->money('IDR', locale: 'id')
-                    ->state(fn($record) => max(
-                        ($record->pencairan ?? $record->sale_price ?? 0)
-                        + ($record->dp_real ?? 0)
-                        - ($record->vehicle?->purchase_price ?? 0)
-                        - ($record->cmo_fee ?? 0)
-                        - ($record->direct_commission ?? 0),
-                        0
-                    ))
+                    ->state(function ($record) {
+
+                        $otr       = $record->sale_price ?? 0;
+                        $dpPo      = $record->dp_po ?? 0;
+                        $dpReal    = $record->dp_real ?? 0;
+                        $pencairan = $record->pencairan ?? 0;
+                        $hBeli     = $record->vehicle?->purchase_price ?? 0;
+
+                        // rumus sesuai dashboard
+                        switch ($record->payment_method) {
+
+                            case 'cash':
+                                $laba = $otr - $hBeli;
+                                break;
+
+                            case 'credit':
+                                $laba = $otr - $dpPo - $dpReal - $hBeli;
+                                break;
+
+                            case 'cash_tempo':
+                                $laba = $otr - $hBeli;
+                                break;
+
+                            case 'dana_tunai':
+                                $laba = $otr - $dpPo - $pencairan;
+                                break;
+
+                            default:
+                                $laba = 0;
+                        }
+
+                        // potong komisi
+                        $laba -= ($record->cmo_fee ?? 0);
+                        $laba -= ($record->direct_commission ?? 0);
+
+                        return max($laba, 0);
+                    })
                     ->sortable(),
+
 
                 TextColumn::make('payment_method')
                     ->label('Metode Pembayaran')

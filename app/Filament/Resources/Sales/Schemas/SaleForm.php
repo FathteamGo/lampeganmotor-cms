@@ -277,7 +277,7 @@ class SaleForm
         ]);
     }
 
-    /** 🔢 Hitung sisa pembayaran otomatis (selalu return float valid) */
+    /** Hitung sisa pembayaran otomatis (selalu return float valid) */
     private static function calculateRemaining(callable $get): float
     {
         $rawOtr    = $get('sale_price') ?? 0;

@@ -44,45 +44,60 @@ class SalesTable
                 TextColumn::make('laba_bersih')
                     ->label('Laba Bersih')
                     ->money('IDR', locale: 'id')
-                    ->state(function ($record) {
-
+                    ->color(function ($record) {
                         $otr       = $record->sale_price ?? 0;
                         $dpPo      = $record->dp_po ?? 0;
                         $dpReal    = $record->dp_real ?? 0;
                         $pencairan = $record->pencairan ?? 0;
                         $hBeli     = $record->vehicle?->purchase_price ?? 0;
 
-                        // rumus sesuai dashboard
+                        $laba = 0;
                         switch ($record->payment_method) {
-
                             case 'cash':
                                 $laba = $otr - $hBeli;
                                 break;
-
                             case 'credit':
                                 $laba = $otr - $dpPo - $dpReal - $hBeli;
                                 break;
-
                             case 'cash_tempo':
                                 $laba = $otr - $hBeli;
                                 break;
-
                             case 'dana_tunai':
                                 $laba = $otr - $dpPo - $pencairan;
                                 break;
-
-                            default:
-                                $laba = 0;
                         }
 
-                        // potong komisi
-                        $laba -= ($record->cmo_fee ?? 0);
-                        $laba -= ($record->direct_commission ?? 0);
+                        // Laba Bersih = Laba - Pengeluaran
+                        $labaBersih = $laba - ($record->cmo_fee ?? 0) - ($record->direct_commission ?? 0);
 
-                        return max($laba, 0);
+                        return $labaBersih < 0 ? 'danger' : 'success';
                     })
-                    ->sortable(),
+                    ->state(function ($record) {
+                        $otr       = $record->sale_price ?? 0;
+                        $dpPo      = $record->dp_po ?? 0;
+                        $dpReal    = $record->dp_real ?? 0;
+                        $pencairan = $record->pencairan ?? 0;
+                        $hBeli     = $record->vehicle?->purchase_price ?? 0;
 
+                        $laba = 0;
+                        switch ($record->payment_method) {
+                            case 'cash':
+                                $laba = $otr - $hBeli;
+                                break;
+                            case 'credit':
+                                $laba = $otr - $dpPo - $dpReal - $hBeli;
+                                break;
+                            case 'cash_tempo':
+                                $laba = $otr - $hBeli;
+                                break;
+                            case 'dana_tunai':
+                                $laba = $otr - $dpPo - $pencairan;
+                                break;
+                        }
+
+                        // Laba Bersih = Laba - Pengeluaran (tidak pakai max, biar bisa minus)
+                        return $laba - ($record->cmo_fee ?? 0) - ($record->direct_commission ?? 0);
+                    }),
 
                 TextColumn::make('payment_method')
                     ->label('Metode Pembayaran')
@@ -106,6 +121,7 @@ class SalesTable
                     ->label('Tanggal')
                     ->date(),
             ])
+
             ->filters([
                 Filter::make('Bulan')
                     ->form([
@@ -125,7 +141,7 @@ class SalesTable
                                 11 => 'November',
                                 12 => 'Desember',
                             ])
-                                ->default(now()->month),
+                            ->default(now()->month),
                     ])
                     ->query(function ($query, array $data) {
                         return $query->when($data['month'], fn($q) =>
@@ -151,9 +167,11 @@ class SalesTable
                         );
                     }),
             ])
+
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+
                 Action::make('invoice_cash')
                     ->label('Invoice (Cash)')
                     ->icon('heroicon-o-document-text')
@@ -162,6 +180,7 @@ class SalesTable
                     ->url(fn($record) => route('sales.invoice.cash', $record))
                     ->openUrlInNewTab(),
             ])
+
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

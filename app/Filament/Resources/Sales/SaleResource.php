@@ -20,25 +20,25 @@ class SaleResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'notes'; // sesuaikan dengan field utama di model Sale
 
-    /** 🔹 Group Navigasi */
+    /** Group Navigasi */
     public static function getNavigationGroup(): ?string
     {
         return __('navigation.transactions');
     }
 
-    /** 🔹 Label di Sidebar */
+    /** Label di Sidebar */
     public static function getNavigationLabel(): string
     {
         return __('navigation.sales');
     }
 
-    /** 🔹 Label Jamak */
+    /** Label Jamak */
     public static function getPluralLabel(): string
     {
         return __('navigation.sales');
     }
 
-    /** 🔹 Label Tunggal */
+    /** Label Tunggal */
     public static function getLabel(): string
     {
         return __('navigation.sales');

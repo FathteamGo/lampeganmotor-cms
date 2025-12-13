@@ -59,16 +59,16 @@ use Illuminate\Support\Number;
 
                             {{-- Stempel TERJUAL di atas gambar --}}
                             @if ($isSold)
-                                <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
-                                    <span class="text-white text-4xl font-extrabold uppercase tracking-widest
-                                                 px-8 py-3 rounded-md border-4 border-white bg-white/20
-                                                 shadow-[0_0_20px_rgba(255,255,255,0.5)]
-                                                 rotate-[-18deg] select-none"
-                                          style="text-shadow: 2px 2px 8px rgba(0,0,0,0.6);">
-                                        TERJUAL
-                                    </span>
-                                </div>
-                            @endif
+    <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+        <span class="text-white text-4xl font-extrabold uppercase tracking-widest
+                     px-8 py-3 rounded-md border-4 border-white bg-white/20
+                     shadow-[0_0_20px_rgba(255,255,255,0.7)]
+                     rotate-[-18deg] select-none"
+              style="text-shadow: 2px 2px 8px rgba(0,0,0,0.6);">
+            TERJUAL
+        </span>
+    </div>
+@endif
                         </div>
 
                         {{-- Detail Kendaraan --}}

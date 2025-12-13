@@ -1,14 +1,13 @@
 <?php
-
 namespace App\Filament\Resources\Sales\Schemas;
 
+use App\Models\Sale;
 use App\Models\User;
 use App\Models\Vehicle;
-use App\Models\Sale;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section as ComponentsSection;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\ValidationException;
@@ -52,7 +51,9 @@ class SaleForm
                 ->required()
                 ->searchable()
                 ->afterStateUpdated(function ($state) {
-                    if (!$state) return;
+                    if (! $state) {
+                        return;
+                    }
 
                     $exists = Sale::where('vehicle_id', $state)
                         ->where('status', '!=', 'cancel')
@@ -96,10 +97,10 @@ class SaleForm
                         window.salePriceTimeout = setTimeout(() => {
                             this.dispatchEvent(new Event('change', { bubbles: true }));
                         }, 800);
-                    "
+                    ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
                 )
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
@@ -123,6 +124,16 @@ class SaleForm
                         $set('remaining_payment', 0);
                     }
                 }),
+            Select::make('leasing')
+                ->label('Leasing')
+                ->options([
+                    'ADIRA' => 'ADIRA FINANCE',
+                    'BAF'   => 'BAF (Bussan Auto Finance)',
+                    'MTF'   => 'Mandiri Utama Finance (MTF)',
+                ])
+                ->visible(fn($get) => $get('payment_method') === 'credit')
+                ->required(fn($get) => $get('payment_method') === 'credit')
+                ->reactive(),
 
             TextInput::make('dp_po')
                 ->label('DP PO')
@@ -137,10 +148,10 @@ class SaleForm
                         window.dpTimeout = setTimeout(() => {
                             this.dispatchEvent(new Event('change', { bubbles: true }));
                         }, 800);
-                    "
+                    ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
                 )
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
@@ -159,10 +170,10 @@ class SaleForm
                         window.dpRealTimeout = setTimeout(() => {
                             this.dispatchEvent(new Event('change', { bubbles: true }));
                         }, 800);
-                    "
+                    ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
                 )
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
@@ -177,7 +188,7 @@ class SaleForm
                     $state ? number_format($state, 0, ',', '.') : '0'
                 )
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
                 ),
 
             DatePicker::make('due_date')
@@ -195,10 +206,10 @@ class SaleForm
                     'oninput' => "
                         let n = this.value.replace(/[^0-9]/g, '');
                         this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
-                    "
+                    ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
                 ),
 
             TextInput::make('direct_commission')
@@ -210,10 +221,10 @@ class SaleForm
                     'oninput' => "
                         let n = this.value.replace(/[^0-9]/g, '');
                         this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
-                    "
+                    ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string)$state) ?: 0)
+                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
                 ),
 
             Select::make('order_source')
@@ -251,7 +262,9 @@ class SaleForm
                     // hitung ulang remaining agar tidak null/non-numeric
                     $set('remaining_payment', self::calculateRemaining($get));
 
-                    if (!$record) return;
+                    if (! $record) {
+                        return;
+                    }
 
                     $vehicleId = $record->vehicle_id;
 
@@ -284,13 +297,13 @@ class SaleForm
         $rawDpPo   = $get('dp_po') ?? 0;
         $rawDpReal = $get('dp_real') ?? 0;
 
-        $otr    = floatval(preg_replace('/[^0-9]/', '', (string)$rawOtr));
-        $dpPo   = floatval(preg_replace('/[^0-9]/', '', (string)$rawDpPo));
-        $dpReal = floatval(preg_replace('/[^0-9]/', '', (string)$rawDpReal));
+        $otr    = floatval(preg_replace('/[^0-9]/', '', (string) $rawOtr));
+        $dpPo   = floatval(preg_replace('/[^0-9]/', '', (string) $rawDpPo));
+        $dpReal = floatval(preg_replace('/[^0-9]/', '', (string) $rawDpReal));
 
         $remaining = $otr - ($dpPo + $dpReal);
 
-        if (!is_finite($remaining) || is_nan($remaining)) {
+        if (! is_finite($remaining) || is_nan($remaining)) {
             return 0.0;
         }
 

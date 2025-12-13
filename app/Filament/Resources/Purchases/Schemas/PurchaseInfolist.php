@@ -57,7 +57,7 @@ class PurchaseInfolist
 
                 // Grand total
                 TextEntry::make('grand_total')
-                    ->label('Total Deal')
+                    ->label('Harga Total Pembelian')
                     ->state(function ($record) {
                         $motor = (float) $record->total_price ?? 0;
                         $additional = $record->additionalCosts->sum('price') ?? 0;

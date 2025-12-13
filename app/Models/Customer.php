@@ -18,6 +18,10 @@ class Customer extends Model
         'tiktok',
     ];
 
+    public function cmo()
+{
+    return $this->belongsTo(User::class, 'cmo_id');
+}
     /* ----------------- Mutators ----------------- */
     public function setInstagramAttribute($value): void
     {

@@ -1,12 +1,11 @@
 <?php
-
 namespace App\Filament\Resources\StnkRenewals\Schemas;
 
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\FileUpload;
-use App\Models\Customer;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section as ComponentsSection;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rule;
 
@@ -31,12 +30,12 @@ class StnkRenewalForm
                     ->label('Nomor Polisi')
                     ->required()
                     ->maxLength(20)
-                    ->rule(fn ($record) => Rule::unique('stnk_renewals', 'license_plate')
-                        ->ignore($record)
-                        ->where(fn ($query) => $query->whereNotIn('status', ['done'])))
+                    ->rule(fn($record) => Rule::unique('stnk_renewals', 'license_plate')
+                            ->ignore($record)
+                            ->where(fn($query) => $query->whereNotIn('status', ['done'])))
                     ->validationMessages([
                         'required' => 'Nomor Polisi wajib diisi!',
-                        'unique' => 'Nomor Polisi sudah ada dengan status pending atau progress!',
+                        'unique'   => 'Nomor Polisi sudah ada dengan status pending atau progress!',
                     ]),
 
                 // Atas Nama STNK
@@ -48,22 +47,38 @@ class StnkRenewalForm
                         'required' => 'Atas Nama STNK wajib diisi!',
                     ]),
 
-                // Customer
-                Select::make('customer_id')
-                    ->label('Customer')
-                    ->options(fn () => Customer::orderBy('name')->pluck('name', 'id')->toArray())
-                    ->searchable()
-                    ->required()
-                    ->validationMessages([
-                        'required' => 'Customer wajib dipilih!',
-                    ]),
+                // =======================
+                // Section Customer (mirip CreateSale)
+                // =======================
+                ComponentsSection::make('Data Customer')
+                    ->description('Data customer akan otomatis disimpan ke master Customer')
+                    ->schema([
+                        TextInput::make('customer_name')
+                            ->label('Nama Customer')
+                            ->required() 
+                            ->maxLength(255)
+                            ->validationMessages([
+                                'required' => 'Nama customer wajib diisi!',
+                            ]),
+
+                        TextInput::make('customer_nik')->label('NIK')->maxLength(20)->nullable(),
+
+                        TextInput::make('customer_phone')->label('No. HP')->tel()->nullable(),
+
+                        TextInput::make('customer_address')->label('Alamat')->nullable(),
+
+                        TextInput::make('customer_instagram')->label('Instagram')->nullable(),
+
+                        TextInput::make('customer_tiktok')->label('TikTok')->nullable(),
+                    ])
+                    ->columns(2),
 
                 // Jenis Pekerjaan
                 Select::make('jenis_pekerjaan')
                     ->label('Jenis Pekerjaan')
                     ->options([
-                        'bbn' => 'BBN Balik Nama',
-                        'cetak_ganti' => 'Cetak Ganti STNK / Plat',
+                        'bbn'          => 'BBN Balik Nama',
+                        'cetak_ganti'  => 'Cetak Ganti STNK / Plat',
                         'perpanjangan' => 'Perpanjangan Tahunan',
                     ])
                     ->required()
@@ -169,7 +184,7 @@ class StnkRenewalForm
                     ->prefix('Rp')
                     ->disabled()
                     ->dehydrated()
-                    ->formatStateUsing(fn($state) => $state ? number_format((int)$state, 0, ',', '.') : '0'),
+                    ->formatStateUsing(fn($state) => $state ? number_format((int) $state, 0, ',', '.') : '0'),
 
                 // Margin (Laba)
                 TextInput::make('margin_total')
@@ -177,20 +192,18 @@ class StnkRenewalForm
                     ->prefix('Rp')
                     ->disabled()
                     ->dehydrated()
-                    ->formatStateUsing(fn($state) => $state ? number_format((int)$state, 0, ',', '.') : '0'),
+                    ->formatStateUsing(fn($state) => $state ? number_format((int) $state, 0, ',', '.') : '0'),
 
                 // Tanggal Diambil
-                DatePicker::make('diambil_tgl')
-                    ->label('Tanggal Diambil')
-                    ->nullable(),
+                DatePicker::make('diambil_tgl')->label('Tanggal Diambil')->nullable(),
 
                 // Status
                 Select::make('status')
                     ->label('Status')
                     ->options([
-                        'pending' => 'Pending',
+                        'pending'  => 'Pending',
                         'progress' => 'Progress',
-                        'done' => 'Done',
+                        'done'     => 'Done',
                     ])
                     ->default('pending')
                     ->required()

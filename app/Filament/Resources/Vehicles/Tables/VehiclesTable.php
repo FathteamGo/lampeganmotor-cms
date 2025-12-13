@@ -72,16 +72,17 @@ class VehiclesTable
                     ->searchable(),
 
                 TextColumn::make('status')
-                    ->label(__('tables.status'))
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'available' => 'success',
-                        'sold'      => 'danger',
-                        'in_repair' => 'warning',
-                        'hold'      => 'gray',
-                        default     => 'gray',
-                    })
-                    ->searchable(),
+    ->label(__('tables.status'))
+    ->badge()
+    ->color(fn(string $state): string => match ($state) {
+        'available' => 'success',
+        'sold'      => 'warning', // 🟡 SOLD JADI KUNING
+        'in_repair' => 'info',
+        'hold'      => 'gray',
+        default     => 'gray',
+    })
+    ->searchable(),
+    
 
                 TextColumn::make('created_at')
                     ->label(__('tables.created_at'))

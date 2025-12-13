@@ -13,7 +13,7 @@ class Sale extends Model
     protected $fillable = [
         'vehicle_id', 'customer_id', 'user_id',
         'sale_date', 'sale_price', 'payment_method',
-        'remaining_payment', 'due_date', 'cmo',
+        'leasing', 'remaining_payment', 'due_date', 'cmo',
         'cmo_fee', 'direct_commission', 'order_source',
         'branch_name', 'result', 'status', 'notes',
         'dp_po', 'dp_real',

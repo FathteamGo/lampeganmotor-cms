@@ -58,6 +58,11 @@ class User extends Authenticatable // Pastikan extend Authenticatable (yang inhe
         'hide_insight_modals' => 'boolean', // Fix: Tambah type boolean (penting untuk modal logic)
     ];
 
+    public function customers()
+{
+    return $this->hasMany(Customer::class, 'cmo_id');
+}
+
     // HAPUS method ini: protected function casts(): array { ... } – konflik dengan property!
 
     public function userCategory(): BelongsTo

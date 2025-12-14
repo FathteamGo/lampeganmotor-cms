@@ -10,7 +10,8 @@ use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\SalesSummaryExport;
-use Filament\Actions\Action as ActionsAction;
+use App\Exports\SalesDetailPerSalesExport;
+use Filament\Actions\Action;
 
 class SalesSummariesTable
 {
@@ -27,9 +28,7 @@ class SalesSummariesTable
                 TextColumn::make('sales_count')
                     ->label('Unit Terjual')
                     ->getStateUsing(function ($record, $column) {
-                        $filters = $column->getTable()->getFiltersForm()->getState()['periode'] ?? [];
-                        $month = $filters['month'] ?? now()->format('m');
-                        $year  = $filters['year'] ?? now()->format('Y');
+                        [$month, $year] = self::periode($column);
 
                         return DB::table('sales')
                             ->where('user_id', $record->id)
@@ -44,9 +43,7 @@ class SalesSummariesTable
                     ->label('Total Omzet')
                     ->money('IDR', true)
                     ->getStateUsing(function ($record, $column) {
-                        $filters = $column->getTable()->getFiltersForm()->getState()['periode'] ?? [];
-                        $month = $filters['month'] ?? now()->format('m');
-                        $year  = $filters['year'] ?? now()->format('Y');
+                        [$month, $year] = self::periode($column);
 
                         return DB::table('sales')
                             ->where('user_id', $record->id)
@@ -61,11 +58,9 @@ class SalesSummariesTable
                     ->label('Bonus')
                     ->money('IDR', true)
                     ->getStateUsing(function ($record, $column) {
-                        $filters = $column->getTable()->getFiltersForm()->getState()['periode'] ?? [];
-                        $month = $filters['month'] ?? now()->format('m');
-                        $year  = $filters['year'] ?? now()->format('Y');
+                        [$month, $year] = self::periode($column);
 
-                        $salesCount = DB::table('sales')
+                        $count = DB::table('sales')
                             ->where('user_id', $record->id)
                             ->whereNotIn('status', ['cancel'])
                             ->whereIn('result', ['ACC', 'CASH'])
@@ -73,23 +68,26 @@ class SalesSummariesTable
                             ->whereYear('sale_date', $year)
                             ->count();
 
-                        return self::calculateBonus($salesCount);
+                        return self::calculateBonus($count);
                     }),
 
                 TextColumn::make('base_salary')
                     ->label('Gaji Pokok')
                     ->money('IDR', true)
-                    ->getStateUsing(fn($record) => $record->base_salary ?? 0),
+                    ->state(fn ($record) => $record->base_salary ?? 0),
+
+                TextColumn::make('overtime')
+                    ->label('Lembur')
+                    ->money('IDR', true)
+                    ->state(fn ($record) => $record->overtime ?? 0),
 
                 TextColumn::make('total_income')
                     ->label('Total Penghasilan')
                     ->money('IDR', true)
                     ->getStateUsing(function ($record, $column) {
-                        $filters = $column->getTable()->getFiltersForm()->getState()['periode'] ?? [];
-                        $month = $filters['month'] ?? now()->format('m');
-                        $year  = $filters['year'] ?? now()->format('Y');
+                        [$month, $year] = self::periode($column);
 
-                        $salesCount = DB::table('sales')
+                        $count = DB::table('sales')
                             ->where('user_id', $record->id)
                             ->whereNotIn('status', ['cancel'])
                             ->whereIn('result', ['ACC', 'CASH'])
@@ -97,8 +95,12 @@ class SalesSummariesTable
                             ->whereYear('sale_date', $year)
                             ->count();
 
-                        $bonus = self::calculateBonus($salesCount);
-                        return ($record->base_salary ?? 0) + $bonus;
+                        $bonus = self::calculateBonus($count);
+
+                        return
+                            ($record->base_salary ?? 0)
+                            + ($record->overtime ?? 0)
+                            + $bonus;
                     }),
             ])
 
@@ -108,31 +110,59 @@ class SalesSummariesTable
                         Select::make('month')
                             ->label('Bulan')
                             ->options([
-                                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
-                                '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
-                                '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember',
+                                '01' => 'Januari',
+                                '02' => 'Februari',
+                                '03' => 'Maret',
+                                '04' => 'April',
+                                '05' => 'Mei',
+                                '06' => 'Juni',
+                                '07' => 'Juli',
+                                '08' => 'Agustus',
+                                '09' => 'September',
+                                '10' => 'Oktober',
+                                '11' => 'November',
+                                '12' => 'Desember',
                             ])
                             ->default(now()->format('m')),
 
                         Select::make('year')
                             ->label('Tahun')
-                            ->options(fn() => DB::table('sales')
-                                ->selectRaw('YEAR(sale_date) as year')
-                                ->whereNotIn('status', ['cancel'])
-                                ->groupBy('year')
-                                ->orderBy('year', 'desc')
-                                ->pluck('year', 'year')
-                                ->toArray()
+                            ->options(
+                                DB::table('sales')
+                                    ->selectRaw('YEAR(sale_date) as year')
+                                    ->distinct()
+                                    ->orderByDesc('year')
+                                    ->pluck('year', 'year')
                             )
                             ->default(now()->format('Y')),
                     ]),
             ])
 
+            ->actions([
+                Action::make('detail_export')
+                    ->label('Export Detail')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->action(function ($record, $livewire) {
+                        $filters = $livewire->filters['periode'] ?? [];
+                        $month = $filters['month'] ?? now()->format('m');
+                        $year  = $filters['year'] ?? now()->format('Y');
+
+                        /** 🔥 FIX UTAMA DI SINI */
+                        $user = User::findOrFail($record->id);
+
+                        return Excel::download(
+                            new SalesDetailPerSalesExport($user, (int)$month, (int)$year),
+                            "detail_sales_{$user->name}_{$month}_{$year}.xlsx"
+                        );
+                    }),
+            ])
+
             ->headerActions([
-                ActionsAction::make('export')
-                    ->label('Export Excel')
-                    ->icon('heroicon-s-arrow-down-tray')
-                    ->action(function ($data, $livewire) {
+                Action::make('export_all')
+                    ->label('Export Semua')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(function ($livewire) {
                         $filters = $livewire->filters['periode'] ?? [];
                         $month = $filters['month'] ?? now()->format('m');
                         $year  = $filters['year'] ?? now()->format('Y');
@@ -142,8 +172,7 @@ class SalesSummariesTable
                             "sales_summary_{$month}_{$year}.xlsx"
                         );
                     }),
-            ])
-            ->defaultSort('name', 'asc');
+            ]);
     }
 
     private static function calculateBonus(int $salesCount): int
@@ -151,7 +180,18 @@ class SalesSummariesTable
         if ($salesCount <= 0) return 0;
         if ($salesCount < 5) return 150_000 * $salesCount;
         if ($salesCount < 10) return 250_000 * $salesCount;
-        if ($salesCount == 10) return (250_000 * 10) + 500_000;
+        if ($salesCount === 10) return (250_000 * 10) + 500_000;
+
         return (250_000 * 10) + 500_000 + (150_000 * ($salesCount - 10));
+    }
+
+    private static function periode($column): array
+    {
+        $filters = $column->getTable()->getFiltersForm()->getState()['periode'] ?? [];
+
+        return [
+            $filters['month'] ?? now()->format('m'),
+            $filters['year'] ?? now()->format('Y'),
+        ];
     }
 }

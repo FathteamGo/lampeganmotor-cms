@@ -13,80 +13,138 @@ class SalesSummaryForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                ComponentsGrid::make(2)->schema([
-                    TextInput::make('base_salary')
-                        ->label('Gaji Pokok')
-                        ->numeric()
-                        ->required()
-                        ->prefix('Rp')
-                        ->placeholder('Masukkan gaji pokok'),
+        return $schema->components([
+            ComponentsGrid::make(2)->schema([
 
-                    TextInput::make('sales_count')
-                        ->label('Unit Terjual (dibayar)')
-                        ->numeric()
-                        ->disabled()
-                        ->suffix('unit')
-                        ->afterStateHydrated(function ($component, $state, $set, $record) {
-                            if (!$record) {
-                                $set('sales_count', 0);
-                                $set('bonus', 0);
-                                return;
-                            }
+                // =========================
+                // GAJI POKOK
+                // =========================
+                TextInput::make('base_salary')
+                    ->label('Gaji Pokok')
+                    ->prefix('Rp')
+                    ->type('text')
+                    ->required()
+                    ->extraInputAttributes(self::moneyOnInput())
+                    ->dehydrateStateUsing(fn ($state) =>
+                        $state ? preg_replace('/[^0-9]/', '', $state) : 0
+                    ),
 
-                            $month = $record->month ?? Carbon::now()->month;
-                            $year  = $record->year ?? Carbon::now()->year;
+                // =========================
+                // UNIT TERJUAL
+                // =========================
+                TextInput::make('sales_count')
+                    ->label('Unit Terjual (dibayar)')
+                    ->disabled()
+                    ->suffix('unit')
+                    ->afterStateHydrated(function ($set, $record) {
+                        if (!$record) {
+                            $set('sales_count', 0);
+                            $set('bonus', '0');
+                            return;
+                        }
 
-                            $count = DB::table('sales')
-                                ->where('user_id', $record->user_id ?? $record->id)
-                                ->whereNotIn('status', ['cancel'])
-                                ->whereIn('result', ['ACC', 'CASH'])
-                                ->whereMonth('sale_date', $month)
-                                ->whereYear('sale_date', $year)
-                                ->count();
+                        $month = $record->month ?? Carbon::now()->month;
+                        $year  = $record->year ?? Carbon::now()->year;
 
-                            $set('sales_count', $count);
-                            $set('bonus', self::calculateBonus($count));
-                        })
-                        ->dehydrated(false),
+                        $count = DB::table('sales')
+                            ->where('user_id', $record->user_id ?? $record->id)
+                            ->whereNotIn('status', ['cancel'])
+                            ->whereIn('result', ['ACC', 'CASH'])
+                            ->whereMonth('sale_date', $month)
+                            ->whereYear('sale_date', $year)
+                            ->count();
 
-                    TextInput::make('bonus')
-                        ->label('Bonus (otomatis / manual)')
-                        ->numeric()
-                        ->prefix('Rp')
-                        ->default(0)
-                        ->afterStateUpdated(function ($state, $set, $get, $record) {
-                            if ($state === null || $state === '') {
-                                $month = $record->month ?? Carbon::now()->month;
-                                $year  = $record->year ?? Carbon::now()->year;
+                        $set('sales_count', $count);
+                        $set('bonus', number_format(
+                            self::calculateBonus($count),
+                            0,
+                            ',',
+                            '.'
+                        ));
+                    })
+                    ->dehydrated(false),
 
-                                $count = DB::table('sales')
-                                    ->where('user_id', $record->user_id ?? $record->id)
-                                    ->whereNotIn('status', ['cancel'])
-                                    ->whereIn('result', ['ACC', 'CASH'])
-                                    ->whereMonth('sale_date', $month)
-                                    ->whereYear('sale_date', $year)
-                                    ->count();
+                // =========================
+                // BONUS
+                // =========================
+                TextInput::make('bonus')
+                    ->label('Bonus')
+                    ->prefix('Rp')
+                    ->type('text')
+                    ->extraInputAttributes(self::moneyOnInput())
+                    ->dehydrateStateUsing(fn ($state) =>
+                        $state ? preg_replace('/[^0-9]/', '', $state) : 0
+                    ),
 
-                                $set('bonus', self::calculateBonus($count));
-                            }
-                        })
-                        ->helperText('Otomatis dari unit terjual, tapi bisa diketik manual. Kosongkan untuk hitung ulang otomatis.'),
-                ]),
+                // =========================
+                // LEMBUR
+                // =========================
+                TextInput::make('overtime')
+                    ->label('Lembur')
+                    ->prefix('Rp')
+                    ->type('text')
+                    ->default('0')
+                    ->extraInputAttributes(self::moneyOnInput())
+                    ->dehydrateStateUsing(fn ($state) =>
+                        $state ? preg_replace('/[^0-9]/', '', $state) : 0
+                    ),
+            ]),
 
-                Placeholder::make('total_income')
-                    ->label('Total Penghasilan')
-                    ->content(fn($get) => 'Rp ' . number_format(($get('base_salary') ?? 0) + ($get('bonus') ?? 0), 0, ',', '.')),
-            ]);
+            // =========================
+            // TOTAL PENGHASILAN
+            // =========================
+            Placeholder::make('total_income')
+                ->label('Total Penghasilan')
+                ->content(fn ($get) =>
+                    'Rp ' . number_format(
+                        (int) preg_replace('/[^0-9]/', '', $get('base_salary') ?? 0)
+                        + (int) preg_replace('/[^0-9]/', '', $get('bonus') ?? 0)
+                        + (int) preg_replace('/[^0-9]/', '', $get('overtime') ?? 0),
+                        0,
+                        ',',
+                        '.'
+                    )
+                ),
+        ]);
     }
 
+    // =========================
+    // FORMAT REALTIME (INLINE)
+    // =========================
+    private static function moneyOnInput(): array
+    {
+        return [
+            'inputmode' => 'numeric',
+            'oninput' => "
+                const input = this;
+                const start = input.selectionStart;
+                const oldLength = input.value.length;
+
+                let raw = input.value.replace(/[^0-9]/g, '');
+                let formatted = raw
+                    ? new Intl.NumberFormat('id-ID').format(raw)
+                    : '';
+
+                input.value = formatted;
+
+                const newLength = formatted.length;
+                const diff = newLength - oldLength;
+                const newPos = Math.max(start + diff, 0);
+
+                input.setSelectionRange(newPos, newPos);
+            ",
+        ];
+    }
+
+    // =========================
+    // HITUNG BONUS
+    // =========================
     private static function calculateBonus(int $salesCount): int
     {
         if ($salesCount <= 0) return 0;
         if ($salesCount < 5) return 150_000 * $salesCount;
         if ($salesCount < 10) return 250_000 * $salesCount;
-        if ($salesCount == 10) return (250_000 * 10) + 500_000;
-        return (250_000 * 10) + 500_000 + (150_000 * ($salesCount - 10));
+        if ($salesCount === 10) return 3_000_000;
+        return 3_000_000 + (150_000 * ($salesCount - 10));
     }
 }

@@ -43,6 +43,7 @@ class User extends Authenticatable // Pastikan extend Authenticatable (yang inhe
         'image', // Tambah ini kalau dipakai di getFilamentAvatarUrl()
         'user_category_id', // Asumsi field ini ada untuk relation
         'hide_insight_modals', // Pastikan ada (dari migrasi sebelumnya)
+        'overtime', 
     ];
 
     protected $hidden = [

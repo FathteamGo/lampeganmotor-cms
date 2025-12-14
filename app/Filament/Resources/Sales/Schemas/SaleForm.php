@@ -196,7 +196,20 @@ class SaleForm
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
             // Komisi & Info Tambahan
-            TextInput::make('cmo')->label('CMO / Mediator'),
+           Select::make('cmo_id')
+                ->label('CMO / Mediator')
+                ->relationship('cmo', 'name')
+                ->searchable()
+                ->preload()
+                ->createOptionForm([
+                    TextInput::make('name')
+                        ->label('Nama CMO')
+                        ->required(),
+                ])
+                ->createOptionUsing(function (array $data) {
+                    return \App\Models\Cmo::create($data)->id;
+                }),
+
 
             TextInput::make('cmo_fee')
                 ->label('Fee CMO')

@@ -152,4 +152,10 @@ class Sale extends Model
             }
         });
     }
+
+    public function cmo()
+{
+    return $this->belongsTo(Cmo::class);
+}
+
 }

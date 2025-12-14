@@ -46,10 +46,6 @@ class StnkRenewalForm
                     ->validationMessages([
                         'required' => 'Atas Nama STNK wajib diisi!',
                     ]),
-
-                // =======================
-                // Section Customer (mirip CreateSale)
-                // =======================
                 ComponentsSection::make('Data Customer')
                     ->description('Data customer akan otomatis disimpan ke master Customer')
                     ->schema([

@@ -89,7 +89,7 @@ class SaleInfolist
                 }),
 
             // Komisi & CMO
-            TextEntry::make('cmo')->label('CMO'),
+            TextEntry::make('cmo.name')->label('CMO'),
             TextEntry::make('cmo_fee')->label('Fee CMO')->money('IDR', locale: 'id'),
             TextEntry::make('direct_commission')->label('Komisi Langsung')->money('IDR', locale: 'id'),
 

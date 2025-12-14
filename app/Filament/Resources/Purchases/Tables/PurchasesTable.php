@@ -25,12 +25,16 @@ class PurchasesTable
                     ->sortable()
                     ->searchable(),
 
+
+                TextColumn::make('vehicle.license_plate')
+                    ->label('Nomor Polisi')
+                    ->searchable(),
+
                 TextColumn::make('purchase_date')
                     ->date()
                     ->label('Tanggal Pembelian')
                     ->sortable(),
 
-                // total harga = harga motor + biaya tambahan
                 TextColumn::make('grand_total')
                     ->label('Total Harga')
                     ->formatStateUsing(fn ($record) =>

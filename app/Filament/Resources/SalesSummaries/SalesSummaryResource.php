@@ -41,7 +41,7 @@ class SalesSummaryResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('Laporan Sales');
+        return __('Laporan Sales & CMO');
     }
 
     public static function getNavigationLabel(): string

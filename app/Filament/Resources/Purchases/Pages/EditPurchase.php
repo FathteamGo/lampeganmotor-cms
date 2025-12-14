@@ -63,11 +63,13 @@ class EditPurchase extends EditRecord
             }
         }
         
-        // Format biaya tambahan juga kalau ada
+        // 🔹 Format biaya tambahan dengan BENAR (jangan sampai 200000 jadi 20.0000)
         if (!empty($data['additional_costs'])) {
             foreach ($data['additional_costs'] as &$cost) {
-                if (isset($cost['price'])) {
-                    $cost['price'] = number_format($cost['price'], 0, ',', '.');
+                if (isset($cost['price']) && is_numeric($cost['price'])) {
+                    // Pastikan angka murni dulu baru format
+                    $cleanPrice = floatval($cost['price']);
+                    $cost['price'] = number_format($cleanPrice, 0, ',', '.');
                 }
             }
         }
@@ -101,10 +103,11 @@ class EditPurchase extends EditRecord
             $vehicle->update($cleanData);
         }
 
-        // 🧹 Clean biaya tambahan
+        // 🧹 Clean biaya tambahan dengan BENAR
         if (!empty($data['additional_costs'])) {
             foreach ($data['additional_costs'] as &$cost) {
                 if (isset($cost['price'])) {
+                    // Clean angka (hilangkan titik dan koma)
                     $cost['price'] = preg_replace('/[^0-9]/', '', $cost['price']);
                 }
             }

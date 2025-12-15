@@ -64,8 +64,8 @@ class EditPurchase extends EditRecord
         }
         
         // 🔹 Format biaya tambahan dengan BENAR (jangan sampai 200000 jadi 20.0000)
-        if (!empty($data['additional_costs'])) {
-            foreach ($data['additional_costs'] as &$cost) {
+        if (!empty($data['additionalCosts'])) {
+            foreach ($data['additionalCosts'] as &$cost) {
                 if (isset($cost['price']) && is_numeric($cost['price'])) {
                     // Pastikan angka murni dulu baru format
                     $cleanPrice = floatval($cost['price']);
@@ -78,49 +78,48 @@ class EditPurchase extends EditRecord
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
-    {
-        // 🔹 Clean format ribuan dari semua field harga
-        $cleanPrice = fn($value) => isset($value) ? preg_replace('/[^0-9]/', '', $value) : null;
+{
+    $vehicle = Vehicle::find($this->record->vehicle_id);
+
+    if ($vehicle) {
+
+        $updateData = [];
         
-        $vehicle = Vehicle::find($this->record->vehicle_id);
-
-        if ($vehicle) {
-            // 🔹 Clean & update data kendaraan
-            $cleanData = [
-                'vin' => $data['vin'] ?? $vehicle->vin,
-                'engine_number' => $data['engine_number'] ?? $vehicle->engine_number,
-                'license_plate' => $data['license_plate'] ?? null,
-                'bpkb_number' => $data['bpkb_number'] ?? null,
-                'purchase_price' => $cleanPrice($data['purchase_price'] ?? $vehicle->purchase_price),
-                'sale_price' => $cleanPrice($data['sale_price'] ?? 0),
-                'down_payment' => $cleanPrice($data['down_payment'] ?? 0),
-                'odometer' => $cleanPrice($data['odometer'] ?? 0),
-                'engine_specification' => $data['engine_specification'] ?? null,
-                'notes' => $data['vehicle_notes'] ?? null,
-                'location' => $data['location'] ?? null,
-            ];
-
-            $vehicle->update($cleanData);
+        if (isset($data['license_plate'])) {
+            $updateData['license_plate'] = $data['license_plate'];
+        }
+        if (isset($data['bpkb_number'])) {
+            $updateData['bpkb_number'] = $data['bpkb_number'];
+        }
+        if (isset($data['purchase_price'])) {
+            $updateData['purchase_price'] = $data['purchase_price'];
+        }
+        if (isset($data['sale_price'])) {
+            $updateData['sale_price'] = $data['sale_price'];
+        }
+        if (isset($data['down_payment'])) {
+            $updateData['down_payment'] = $data['down_payment'];
+        }
+        if (isset($data['odometer'])) {
+            $updateData['odometer'] = $data['odometer'];
+        }
+        if (isset($data['engine_specification'])) {
+            $updateData['engine_specification'] = $data['engine_specification'];
+        }
+        if (isset($data['location'])) {
+            $updateData['location'] = $data['location'];
+        }
+        if (isset($data['vehicle_notes'])) {
+            $updateData['notes'] = $data['vehicle_notes'];
         }
 
-        // 🧹 Clean biaya tambahan dengan BENAR
-        if (!empty($data['additional_costs'])) {
-            foreach ($data['additional_costs'] as &$cost) {
-                if (isset($cost['price'])) {
-                    // Clean angka (hilangkan titik dan koma)
-                    $cost['price'] = preg_replace('/[^0-9]/', '', $cost['price']);
-                }
-            }
+        // Only update if there's data to update
+        if (!empty($updateData)) {
+            $vehicle->update($updateData);
         }
-
-        // 🔹 Update total harga purchase
-        $additionalCosts = collect($data['additional_costs'] ?? [])
-            ->sum(fn($item) => floatval($item['price'] ?? 0));
-        
-        $purchasePrice = $cleanPrice($data['purchase_price'] ?? 0);
-            
-        $data['total_price'] = floatval($purchasePrice) + $additionalCosts;
-
-        return $data;
     }
+
+    return $data;
+}
+
 }

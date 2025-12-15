@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Purchases\Tables;
 
+use Dom\Text;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -35,17 +36,45 @@ class PurchasesTable
                     ->label('Tanggal Pembelian')
                     ->sortable(),
 
-                TextColumn::make('grand_total')
-                    ->label('Total Harga')
+
+                TextColumn::make('vehicle.purchase_price')
+                    ->label('Harga Beli Motor')
                     ->formatStateUsing(fn ($record) =>
                         'Rp ' . number_format(
-                            ($record->total_price ?? 0) + ($record->additionalCosts->sum('price') ?? 0),
+                            $record->vehicle->purchase_price ?? 0,
                             0,
                             ',',
                             '.'
                         )
                     )
                     ->sortable(),
+
+                TextColumn::make('vehicle.sale_price')
+                    ->label('Harga Jual')
+                    ->formatStateUsing(fn ($record) =>
+                        'Rp ' . number_format(
+                            $record->vehicle->sale_price ?? 0,
+                            0,
+                            ',',
+                            '.'
+                        )
+                    )
+                    ->sortable(),
+
+                TextColumn::make('total_purchase')
+                    ->label('Total Pembelian')
+                    ->state(function ($record) {
+                        return 'Rp ' . number_format(
+                            ($record->vehicle?->purchase_price ?? 0)
+                            + ($record->additionalCosts?->sum('price') ?? 0),
+                            0,
+                            ',',
+                            '.'
+                        );
+                    }),
+
+
+                    
 
                 TextColumn::make('created_at')
                     ->dateTime()
@@ -72,4 +101,6 @@ class PurchasesTable
                 ]),
             ]);
     }
+
+
 }

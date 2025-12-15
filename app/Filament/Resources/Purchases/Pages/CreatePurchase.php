@@ -14,6 +14,8 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
 use Illuminate\Validation\ValidationException;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class CreatePurchase extends CreateRecord
 {
@@ -21,49 +23,43 @@ class CreatePurchase extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // 🧹 Clean format ribuan dari semua field harga
-        $data['purchase_price'] = isset($data['purchase_price']) 
-            ? preg_replace('/[^0-9]/', '', $data['purchase_price']) 
-            : 0;
-        $data['sale_price'] = isset($data['sale_price']) 
-            ? preg_replace('/[^0-9]/', '', $data['sale_price']) 
-            : 0;
-        $data['down_payment'] = isset($data['down_payment']) 
-            ? preg_replace('/[^0-9]/', '', $data['down_payment']) 
-            : 0;
-        $data['odometer'] = isset($data['odometer']) 
-            ? preg_replace('/[^0-9]/', '', $data['odometer']) 
-            : 0;
 
-        // Validasi Duplikasi VIN
+        //buatkan logic jika category addtional coasts tidak ada make default Tidak Ada
+       if (empty($data['additionalCosts'])) {
+            $data['additionalCosts'] = [
+                [
+                    'category' => 'Tidak Ada',
+                    'price' => 0,
+                ],
+            ];
+        }
+
+       
+        // 🔹 Validasi VIN dan Engine Number
         if (Vehicle::where('vin', $data['vin'])->exists()) {
             throw ValidationException::withMessages([
-                'vin' => 'Nomor rangka (VIN) ini sudah terdaftar di data kendaraan!',
+                'vin' => 'Nomor rangka sudah terdaftar',
             ]);
         }
 
-        // Validasi Duplikasi Nomor Mesin
         if (Vehicle::where('engine_number', $data['engine_number'])->exists()) {
             throw ValidationException::withMessages([
-                'engine_number' => 'Nomor mesin ini sudah terdaftar di data kendaraan!',
+                'engine_number' => 'Nomor mesin sudah terdaftar',
             ]);
         }
 
-        // 🧩 Buat entri brand dari input manual user
+        // 🔹 Buat atau ambil data master
         $brand = Brand::firstOrCreate(['name' => $data['brand_name']]);
-
-        // 🧩 Buat entri model dengan brand_id dari brand barusan
         $model = VehicleModel::firstOrCreate([
             'name' => $data['vehicle_model_name'],
             'brand_id' => $brand->id,
         ]);
 
-        // Buat entri lain (tipe, warna, tahun)
         $type = Type::firstOrCreate(['name' => $data['type_name']]);
         $color = Color::firstOrCreate(['name' => $data['color_name']]);
         $year = Year::firstOrCreate(['year' => $data['year_name']]);
 
-        // Simpan kendaraan baru
+        // 🔹 Buat Vehicle
         $vehicle = Vehicle::create([
             'vehicle_model_id' => $model->id,
             'type_id' => $type->id,
@@ -73,48 +69,52 @@ class CreatePurchase extends CreateRecord
             'engine_number' => $data['engine_number'],
             'license_plate' => $data['license_plate'] ?? null,
             'bpkb_number' => $data['bpkb_number'] ?? null,
-            'purchase_price' => $data['purchase_price'],
-            'sale_price' => $data['sale_price'],
-            'down_payment' => $data['down_payment'],
-            'odometer' => $data['odometer'],
+            'purchase_price' => $data['purchase_price'], // sudah clean number
+            'sale_price' => $data['sale_price'] ?? null,
+            'down_payment' => $data['down_payment'] ?? null,
+            'odometer' => $data['odometer'] ?? null,
             'engine_specification' => $data['engine_specification'] ?? null,
             'notes' => $data['vehicle_notes'] ?? null,
             'location' => $data['location'] ?? null,
             'status' => 'available',
         ]);
 
-        // Simpan foto kendaraan (kalau ada)
+        // 🔹 Simpan Photos ke Vehicle
         if (!empty($data['photos'])) {
-            foreach ($data['photos'] as $photo) {
-                if (!empty($photo['file'])) {
+            foreach ($data['photos'] as $photoData) {
+                if (!empty($photoData['path'])) {
                     VehiclePhoto::create([
                         'vehicle_id' => $vehicle->id,
-                        'path' => $photo['file'],
-                        'caption' => $photo['caption'] ?? null,
+                        'path' => $photoData['path'],
+                        'caption' => $photoData['caption'] ?? null,
                     ]);
                 }
             }
         }
 
-        // 🧹 Clean biaya tambahan juga
-        if (!empty($data['additional_costs'])) {
-            foreach ($data['additional_costs'] as &$cost) {
-                if (isset($cost['price'])) {
-                    $cost['price'] = preg_replace('/[^0-9]/', '', $cost['price']);
-                }
-            }
-        }
-
-        // Hitung total harga (harga beli + biaya tambahan)
-        $harga = floatval($data['purchase_price']);
-        $tambahan = collect($data['additional_costs'] ?? [])
-            ->sum(fn($item) => floatval($item['price'] ?? 0));
-
-        $data['total_price'] = $harga + $tambahan;
+        // 🔹 Set vehicle_id untuk Purchase
         $data['vehicle_id'] = $vehicle->id;
+
+        // 🔹 Hitung total_price (harga beli + biaya tambahan)
+        $data['total_price'] = intval($data['purchase_price']) +
+            collect($data['additionalCosts'] ?? [])
+                ->sum(fn ($item) => intval($item['price'] ?? 0));
+
+        // 🔹 Hapus field yang tidak perlu disimpan ke tabel purchases
+        unset($data['photos']); // sudah disimpan ke vehicle_photos
+        unset($data['brand_name']);
+        unset($data['vehicle_model_name']);
+        unset($data['type_name']);
+        unset($data['color_name']);
+        unset($data['year_name']);
+        unset($data['vehicle_notes']);
+        unset($data['engine_specification']);
+        unset($data['location']);
 
         return $data;
     }
+
+
 
     protected function getCreatedNotification(): ?Notification
     {

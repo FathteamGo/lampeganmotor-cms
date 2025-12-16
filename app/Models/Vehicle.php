@@ -71,6 +71,18 @@ class Vehicle extends Model
         return $this->hasMany(AdditionalCost::class);
     }
 
+    public function purchaseadditionalCosts()
+    {
+        return $this->hasManyThrough(
+            PurchaseAdditionalCost::class,
+            Purchase::class,
+            'vehicle_id',               // Foreign key on purchases table
+            'purchase_id',              // Foreign key on purchase_additional_costs table
+            'id',                       // Local key on vehicles table
+            'id'                        // Local key on purchases table
+        );
+    }
+
     public function sale()
     {
         return $this->hasOne(Sale::class);

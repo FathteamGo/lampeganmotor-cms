@@ -252,105 +252,112 @@ class PurchaseForm
                 ]),
 
             /* ================= FOTO KENDARAAN ================= */
-            Repeater::make('photos')
-                ->label('Foto Kendaraan')
+            Section::make('Foto Kendaraan')
+                ->description('Upload foto kendaraan yang dibeli')
+                ->description(fn ($record) => $record ? '️Kosongkan jika tidak ingin mengubah foto.' : null)
                 ->columnSpanFull()
-                ->visible(fn($record) => !$record)
                 ->schema([
-                    FileUpload::make('file')
-                        ->label('Upload Foto')
-                        ->image()
-                        ->disk('public')
-                        ->directory('vehicle-photos')
-                        ->getUploadedFileNameForStorageUsing(fn($file) => uniqid('vehicle_') . '.webp')
-                        ->nullable(),
-                    TextInput::make('caption')
-                        ->label('Keterangan Foto')
-                        ->placeholder('Tampak depan, samping kiri, dll'),
-                ])
-                ->grid(2)
-                ->createItemButtonLabel('+ Tambah Foto'),
+                    Repeater::make('vehicle_photos')
+                        ->label(false)
+                        ->grid(2)
+                        ->schema([
+                            FileUpload::make('path')
+                                ->label('Gambar')
+                                ->image()
+                                ->disk('public')
+                                ->directory('vehicle-photos')
+                                ->nullable()
+                                ->required()
+                                ->imageEditor()
+                                ->imageEditorAspectRatios([
+                                    '16:9',
+                                    '4:3',
+                                    '1:1',
+                                ])
+                                ->maxSize(5120), // 5MB
+
+                            TextInput::make('caption')
+                                ->label('Keterangan')
+                                ->placeholder('Contoh: Tampak Depan, Interior, dll'),
+                        ])
+                        ->defaultItems(0)
+                        ->addActionLabel('+ Tambah Foto')
+                        ->reorderable()
+                        ->collapsible()
+                        ->itemLabel(fn (array $state): ?string => $state['caption'] ?? 'Foto Kendaraan')
+                        ->deleteAction(fn ($action) => $action->requiresConfirmation())
+                        ->columnSpanFull(),
+                ]),
 
             /* ================= BIAYA TAMBAHAN ================= */
-    Section::make('Biaya Tambahan')
-    ->description('Kosongkan jika tidak ada biaya tambahan')
-    ->columnSpanFull()
-    ->schema([
-        Repeater::make('additionalCosts')
-            ->relationship()
-            ->label('Rincian Biaya Tambahan')
-            ->columns(2)
-            ->schema([
-                Select::make('category_id')
-                    ->label('Kategori')
-                    ->searchable()
-                    ->options(Category::pluck('name', 'id'))
-                    ->placeholder('Pilih atau buat kategori baru')
-                    ->createOptionForm([
-                        TextInput::make('name')
-                            ->placeholder('Contoh: STNK, Pajak, Service')
-                            ->required(),
-                    ])
-                    ->createOptionUsing(fn ($data) =>
-                        Category::create(['name' => $data['name']])->id
-                    )
-                    ->required(),
+            Section::make('Biaya Tambahan')
+                ->description('Kosongkan jika tidak ada biaya tambahan')
+                ->columnSpanFull()
+                ->schema([
+                    Repeater::make('additionalCosts')
+                        ->relationship()
+                        ->label('Rincian Biaya Tambahan')
+                        ->columns(2)
+                        ->schema([
+                            Select::make('category_id')
+                                ->label('Kategori')
+                                ->searchable()
+                                ->options(Category::pluck('name', 'id'))
+                                ->placeholder('Pilih atau buat kategori baru')
+                                ->createOptionForm([
+                                    TextInput::make('name')
+                                        ->placeholder('Contoh: STNK, Pajak, Service')
+                                        ->required(),
+                                ])
+                                ->createOptionUsing(fn ($data) =>
+                                    Category::create(['name' => $data['name']])->id
+                                )
+                                ->required(),
 
-                TextInput::make('price')
-                    ->label('Harga')
-                    ->prefix('Rp')
-                    ->placeholder('350.000')
-                    ->required()
+                            TextInput::make('price')
+                                ->label('Harga')
+                                ->prefix('Rp')
+                                ->placeholder('350.000')
+                                ->required()
+                                ->afterStateHydrated(function ($state, callable $set) {
+                                    if ($state === null) return;
+                                    $clean = (int) floatval($state);
+                                    $set('price', number_format($clean, 0, ',', '.'));
+                                })
+                                ->extraInputAttributes([
+                                    'oninput' => "
+                                        const input = this;
+                                        const start = input.selectionStart;
+                                        const oldLength = input.value.length;
 
-                    /**  FIX EDIT: buang .00 dari DB */
-                    ->afterStateHydrated(function ($state, callable $set) {
-                        if ($state === null) return;
+                                        let raw = input.value.replace(/[^0-9]/g, '');
+                                        let formatted = raw
+                                            ? new Intl.NumberFormat('id-ID').format(raw)
+                                            : '';
 
-                        // buang desimal .00
-                        $clean = (int) floatval($state);
+                                        input.value = formatted;
 
-                        // format ribuan
-                        $set('price', number_format($clean, 0, ',', '.'));
-                    })
+                                        const newLength = formatted.length;
+                                        const diff = newLength - oldLength;
+                                        const newPos = Math.max(start + diff, 0);
 
-                    ->extraInputAttributes([
-                        'oninput' => "
-                            const input = this;
-                            const start = input.selectionStart;
-                            const oldLength = input.value.length;
-
-                            let raw = input.value.replace(/[^0-9]/g, '');
-                            let formatted = raw
-                                ? new Intl.NumberFormat('id-ID').format(raw)
-                                : '';
-
-                            input.value = formatted;
-
-                            const newLength = formatted.length;
-                            const diff = newLength - oldLength;
-                            const newPos = Math.max(start + diff, 0);
-
-                            input.setSelectionRange(newPos, newPos);
-                        "
-                    ])
-
-                    /**  DB tetap INT, TANPA .00 */
-                    ->dehydrateStateUsing(
-                        fn ($state) => $state
-                            ? (int) preg_replace('/[^0-9]/', '', $state)
-                            : 0
-                    )
-
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                        self::updateTotals($set, $get);
-                    }),
-            ])
-            ->defaultItems(0)
-            ->createItemButtonLabel('+ Tambah Biaya')
-            ->deleteAction(fn ($action) => $action->requiresConfirmation()),
-    ]),
-
+                                        input.setSelectionRange(newPos, newPos);
+                                    "
+                                ])
+                                ->dehydrateStateUsing(
+                                    fn ($state) => $state
+                                        ? (int) preg_replace('/[^0-9]/', '', $state)
+                                        : 0
+                                )
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    self::updateTotals($set, $get);
+                                }),
+                        ])
+                        ->defaultItems(0)
+                        ->createItemButtonLabel('+ Tambah Biaya')
+                        ->deleteAction(fn ($action) => $action->requiresConfirmation()),
+                ]),
 
             /* ================= RINGKASAN PEMBAYARAN ================= */
             Section::make('Ringkasan Pembayaran')
@@ -391,7 +398,7 @@ class PurchaseForm
         ]);
     }
 
-    /** 🔹 Update semua total */
+    /** Update semua total */
     private static function updateTotals(callable $set, callable $get): void
     {
         $set('purchase_price_display', self::formatNumber($get('purchase_price')));
@@ -399,12 +406,11 @@ class PurchaseForm
         $set('total_purchase', self::formatNumber(self::calculateGrandTotal($get)));
     }
 
-    /** 🔹 Format angka ke ribuan */
+    /** Format angka ke ribuan */
     private static function formatNumber($value): string
     {
         if (!$value) return '0';
         
-        // Kalau sudah string formatted (ada titik), clean dulu
         if (is_string($value) && strpos($value, '.') !== false) {
             $value = preg_replace('/[^0-9]/', '', $value);
         }
@@ -413,7 +419,7 @@ class PurchaseForm
         return number_format((float) $clean, 0, ',', '.');
     }
 
-    /** 🔹 Hitung total biaya tambahan */
+    /** Hitung total biaya tambahan */
     private static function calculateAdditionalTotal(callable $get): float
     {
         return collect($get('additionalCosts') ?? [])
@@ -424,7 +430,7 @@ class PurchaseForm
             });
     }
 
-    /** 🔹 Hitung total harga beli + biaya tambahan */
+    /** Hitung total harga beli + biaya tambahan */
     private static function calculateGrandTotal(callable $get): float
     {
         $purchasePrice = $get('purchase_price');

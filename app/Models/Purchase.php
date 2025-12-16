@@ -49,6 +49,17 @@ class Purchase extends Model
         return $this->total_price + $extra;
     }
 
+    public function photos()
+    {
+        return $this->hasManyThrough(
+            VehiclePhoto::class,
+            Vehicle::class,
+            'id',           // Foreign key on vehicles table
+            'vehicle_id',   // Foreign key on vehicle_photos table
+            'vehicle_id',   // Local key on purchases table
+            'id'            // Local key on vehicles table
+        );
+    }
 
     // Relasi ke Supplier
     public function supplier()

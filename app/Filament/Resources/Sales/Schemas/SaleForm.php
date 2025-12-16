@@ -84,24 +84,44 @@ class SaleForm
                 ->required()
                 ->default(now()),
 
+            // Input OTR dengan format ribuan yang responsif saat ketik
             TextInput::make('sale_price')
                 ->label('OTR')
                 ->prefix('Rp')
                 ->required()
-                ->lazy()
+                ->placeholder('17.000.000')
+                // Hydrate: ambil dari DB (int) lalu format jadi ribuan untuk ditampilkan
+                ->afterStateHydrated(function ($state, callable $set) {
+                    if ($state === null) return;
+                    $clean = (int) floatval($state);
+                    $set('sale_price', number_format($clean, 0, ',', '.'));
+                })
+                // Format ribuan real-time saat user ketik
                 ->extraInputAttributes([
                     'oninput' => "
-                        clearTimeout(window.salePriceTimeout);
-                        let n = this.value.replace(/[^0-9]/g, '');
-                        this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
-                        window.salePriceTimeout = setTimeout(() => {
-                            this.dispatchEvent(new Event('change', { bubbles: true }));
-                        }, 800);
+                        const input = this;
+                        const start = input.selectionStart;
+                        const oldLength = input.value.length;
+
+                        let raw = input.value.replace(/[^0-9]/g, '');
+                        let formatted = raw
+                            ? new Intl.NumberFormat('id-ID').format(raw)
+                            : '';
+
+                        input.value = formatted;
+
+                        const newLength = formatted.length;
+                        const diff = newLength - oldLength;
+                        const newPos = Math.max(start + diff, 0);
+
+                        input.setSelectionRange(newPos, newPos);
                     ",
                 ])
+                // Dehydrate: hapus format ribuan, simpan ke DB sebagai integer
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
+                    $state ? (int) preg_replace('/[^0-9]/', '', $state) : 0
                 )
+                ->live(onBlur: true)
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
@@ -113,82 +133,162 @@ class SaleForm
                     'credit'      => 'Credit',
                     'tukartambah' => 'Tukar Tambah',
                     'cash_tempo'  => 'Cash Tempo',
+                    'dana_tunai'  => 'Dana Tunai',
                 ])
                 ->default('cash')
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                    if (in_array($state, ['credit', 'cash_tempo'])) {
+                    if (in_array($state, ['credit', 'cash_tempo', 'dana_tunai'])) {
                         $set('remaining_payment', self::calculateRemaining($get));
                     } else {
                         $set('remaining_payment', 0);
                     }
                 }),
+
             Select::make('leasing')
                 ->label('Leasing')
                 ->options([
                     'ADIRA' => 'ADIRA FINANCE',
                     'BAF'   => 'BAF (Bussan Auto Finance)',
-                    'MTF'   => 'Mandiri Utama Finance (MTF)',
+                    'MTF'   => 'Mandali Utama Finance (MTF)',
                 ])
                 ->visible(fn($get) => $get('payment_method') === 'credit')
                 ->required(fn($get) => $get('payment_method') === 'credit')
                 ->reactive(),
 
+            // DP PO dengan format ribuan
             TextInput::make('dp_po')
                 ->label('DP PO')
                 ->prefix('Rp')
-                ->lazy()
-                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo']))
+                ->placeholder('2.000.000')
+                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo', 'dana_tunai']))
+                ->afterStateHydrated(function ($state, callable $set) {
+                    if ($state === null) return;
+                    $clean = (int) floatval($state);
+                    $set('dp_po', number_format($clean, 0, ',', '.'));
+                })
                 ->extraInputAttributes([
                     'oninput' => "
-                        clearTimeout(window.dpTimeout);
-                        let n = this.value.replace(/[^0-9]/g, '');
-                        this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
-                        window.dpTimeout = setTimeout(() => {
-                            this.dispatchEvent(new Event('change', { bubbles: true }));
-                        }, 800);
+                        const input = this;
+                        const start = input.selectionStart;
+                        const oldLength = input.value.length;
+
+                        let raw = input.value.replace(/[^0-9]/g, '');
+                        let formatted = raw
+                            ? new Intl.NumberFormat('id-ID').format(raw)
+                            : '';
+
+                        input.value = formatted;
+
+                        const newLength = formatted.length;
+                        const diff = newLength - oldLength;
+                        const newPos = Math.max(start + diff, 0);
+
+                        input.setSelectionRange(newPos, newPos);
                     ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
+                    $state ? (int) preg_replace('/[^0-9]/', '', $state) : 0
                 )
+                ->live(onBlur: true)
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
 
+            // DP REAL dengan format ribuan
             TextInput::make('dp_real')
                 ->label('DP REAL')
                 ->prefix('Rp')
-                ->lazy()
+                ->placeholder('1.500.000')
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo']))
+                ->afterStateHydrated(function ($state, callable $set) {
+                    if ($state === null) return;
+                    $clean = (int) floatval($state);
+                    $set('dp_real', number_format($clean, 0, ',', '.'));
+                })
                 ->extraInputAttributes([
                     'oninput' => "
-                        clearTimeout(window.dpRealTimeout);
-                        let n = this.value.replace(/[^0-9]/g, '');
-                        this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
-                        window.dpRealTimeout = setTimeout(() => {
-                            this.dispatchEvent(new Event('change', { bubbles: true }));
-                        }, 800);
+                        const input = this;
+                        const start = input.selectionStart;
+                        const oldLength = input.value.length;
+
+                        let raw = input.value.replace(/[^0-9]/g, '');
+                        let formatted = raw
+                            ? new Intl.NumberFormat('id-ID').format(raw)
+                            : '';
+
+                        input.value = formatted;
+
+                        const newLength = formatted.length;
+                        const diff = newLength - oldLength;
+                        const newPos = Math.max(start + diff, 0);
+
+                        input.setSelectionRange(newPos, newPos);
                     ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
+                    $state ? (int) preg_replace('/[^0-9]/', '', $state) : 0
                 )
+                ->live(onBlur: true)
                 ->afterStateUpdated(fn($state, callable $set, callable $get) =>
                     $set('remaining_payment', self::calculateRemaining($get))
                 ),
 
+            // Pembayaran ke Nasabah (khusus Dana Tunai)
+            TextInput::make('payment_to_customer')
+                ->label('Pembayaran ke Nasabah')
+                ->prefix('Rp')
+                ->placeholder('14.000.000')
+                ->visible(fn($get) => $get('payment_method') === 'dana_tunai')
+                ->helperText('Jumlah yang dibayarkan ke nasabah')
+                ->afterStateHydrated(function ($state, callable $set) {
+                    if ($state === null) return;
+                    $clean = (int) floatval($state);
+                    $set('payment_to_customer', number_format($clean, 0, ',', '.'));
+                })
+                ->extraInputAttributes([
+                    'oninput' => "
+                        const input = this;
+                        const start = input.selectionStart;
+                        const oldLength = input.value.length;
+
+                        let raw = input.value.replace(/[^0-9]/g, '');
+                        let formatted = raw
+                            ? new Intl.NumberFormat('id-ID').format(raw)
+                            : '';
+
+                        input.value = formatted;
+
+                        const newLength = formatted.length;
+                        const diff = newLength - oldLength;
+                        const newPos = Math.max(start + diff, 0);
+
+                        input.setSelectionRange(newPos, newPos);
+                    ",
+                ])
+                ->dehydrateStateUsing(fn($state) =>
+                    $state ? (int) preg_replace('/[^0-9]/', '', $state) : 0
+                )
+                ->live(onBlur: true)
+                ->afterStateUpdated(fn($state, callable $set, callable $get) =>
+                    $set('remaining_payment', self::calculateRemaining($get))
+                ),
+
+            // Sisa Pembayaran (readonly, auto-calculated)
             TextInput::make('remaining_payment')
-                ->label('Sisa Pembayaran')
+                ->label(fn($get) => $get('payment_method') === 'dana_tunai' ? 'Laba Penjualan' : 'Sisa Pembayaran')
                 ->prefix('Rp')
                 ->readOnly()
-                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo']))
+                ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo', 'dana_tunai']))
+                ->helperText(fn($get) => $get('payment_method') === 'dana_tunai' 
+                    ? 'OTR - DP PO - Pembayaran ke Nasabah' 
+                    : null)
                 ->formatStateUsing(fn($state) =>
                     $state ? number_format($state, 0, ',', '.') : '0'
                 )
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
+                    $state ? (int) preg_replace('/[^0-9]/', '', $state) : 0
                 ),
 
             DatePicker::make('due_date')
@@ -196,7 +296,7 @@ class SaleForm
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo'])),
 
             // Komisi & Info Tambahan
-           Select::make('cmo_id')
+            Select::make('cmo_id')
                 ->label('CMO / Mediator')
                 ->relationship('cmo', 'name')
                 ->searchable()
@@ -210,34 +310,73 @@ class SaleForm
                     return \App\Models\Cmo::create($data)->id;
                 }),
 
-
+            // Fee CMO dengan format ribuan
             TextInput::make('cmo_fee')
                 ->label('Fee CMO')
                 ->prefix('Rp')
-                ->lazy()
+                ->placeholder('500.000')
+                ->afterStateHydrated(function ($state, callable $set) {
+                    if ($state === null) return;
+                    $clean = (int) floatval($state);
+                    $set('cmo_fee', number_format($clean, 0, ',', '.'));
+                })
                 ->extraInputAttributes([
                     'oninput' => "
-                        let n = this.value.replace(/[^0-9]/g, '');
-                        this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
+                        const input = this;
+                        const start = input.selectionStart;
+                        const oldLength = input.value.length;
+
+                        let raw = input.value.replace(/[^0-9]/g, '');
+                        let formatted = raw
+                            ? new Intl.NumberFormat('id-ID').format(raw)
+                            : '';
+
+                        input.value = formatted;
+
+                        const newLength = formatted.length;
+                        const diff = newLength - oldLength;
+                        const newPos = Math.max(start + diff, 0);
+
+                        input.setSelectionRange(newPos, newPos);
                     ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
+                    $state ? (int) preg_replace('/[^0-9]/', '', $state) : 0
                 ),
 
+            // Komisi Langsung dengan format ribuan
             TextInput::make('direct_commission')
                 ->label('Komisi Langsung')
                 ->prefix('Rp')
-                ->lazy()
                 ->default(0)
+                ->placeholder('300.000')
+                ->afterStateHydrated(function ($state, callable $set) {
+                    if ($state === null) return;
+                    $clean = (int) floatval($state);
+                    $set('direct_commission', number_format($clean, 0, ',', '.'));
+                })
                 ->extraInputAttributes([
                     'oninput' => "
-                        let n = this.value.replace(/[^0-9]/g, '');
-                        this.value = n ? new Intl.NumberFormat('id-ID').format(n) : '';
+                        const input = this;
+                        const start = input.selectionStart;
+                        const oldLength = input.value.length;
+
+                        let raw = input.value.replace(/[^0-9]/g, '');
+                        let formatted = raw
+                            ? new Intl.NumberFormat('id-ID').format(raw)
+                            : '';
+
+                        input.value = formatted;
+
+                        const newLength = formatted.length;
+                        const diff = newLength - oldLength;
+                        const newPos = Math.max(start + diff, 0);
+
+                        input.setSelectionRange(newPos, newPos);
                     ",
                 ])
                 ->dehydrateStateUsing(fn($state) =>
-                    floatval(preg_replace('/[^0-9]/', '', (string) $state) ?: 0)
+                    $state ? (int) preg_replace('/[^0-9]/', '', $state) : 0
                 ),
 
             Select::make('order_source')
@@ -272,7 +411,7 @@ class SaleForm
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
 
-                    // hitung ulang remaining agar tidak null/non-numeric
+                    // Hitung ulang remaining agar tidak null/non-numeric
                     $set('remaining_payment', self::calculateRemaining($get));
 
                     if (! $record) {
@@ -303,19 +442,43 @@ class SaleForm
         ]);
     }
 
-    /** Hitung sisa pembayaran otomatis (selalu return float valid) */
+    /**
+     * Hitung sisa pembayaran otomatis (selalu return float valid)
+     * 
+     * Rumus berdasarkan metode pembayaran:
+     * - Credit / Cash Tempo: OTR - (DP PO + DP REAL) = Sisa Pembayaran
+     * - Dana Tunai: OTR - DP PO - Pembayaran ke Nasabah = Laba Penjualan
+     * - Cash / Tukar Tambah: Tidak ada sisa pembayaran
+     * 
+     * Sisa pembayaran ini yang nantinya masuk ke:
+     * - Tunggakan konsumen (untuk Cash Tempo)
+     * - Pembayaran dari leasing (untuk Credit)
+     * - Laba Penjualan (untuk Dana Tunai)
+     */
     private static function calculateRemaining(callable $get): float
     {
-        $rawOtr    = $get('sale_price') ?? 0;
-        $rawDpPo   = $get('dp_po') ?? 0;
-        $rawDpReal = $get('dp_real') ?? 0;
+        $paymentMethod = $get('payment_method');
+        $rawOtr        = $get('sale_price') ?? 0;
+        $rawDpPo       = $get('dp_po') ?? 0;
+        $rawDpReal     = $get('dp_real') ?? 0;
+        $rawPaymentCustomer = $get('payment_to_customer') ?? 0;
 
-        $otr    = floatval(preg_replace('/[^0-9]/', '', (string) $rawOtr));
-        $dpPo   = floatval(preg_replace('/[^0-9]/', '', (string) $rawDpPo));
-        $dpReal = floatval(preg_replace('/[^0-9]/', '', (string) $rawDpReal));
+        // Clean semua input dari format ribuan
+        $otr             = floatval(preg_replace('/[^0-9]/', '', (string) $rawOtr));
+        $dpPo            = floatval(preg_replace('/[^0-9]/', '', (string) $rawDpPo));
+        $dpReal          = floatval(preg_replace('/[^0-9]/', '', (string) $rawDpReal));
+        $paymentCustomer = floatval(preg_replace('/[^0-9]/', '', (string) $rawPaymentCustomer));
 
-        $remaining = $otr - ($dpPo + $dpReal);
+        // Perhitungan berbeda untuk Dana Tunai
+        if ($paymentMethod === 'dana_tunai') {
+            // Rumus: OTR - DP PO - Pembayaran ke Nasabah = Laba
+            $remaining = $otr - $dpPo - $paymentCustomer;
+        } else {
+            // Rumus: OTR - (DP PO + DP REAL)
+            $remaining = $otr - ($dpPo + $dpReal);
+        }
 
+        // Validasi hasil perhitungan
         if (! is_finite($remaining) || is_nan($remaining)) {
             return 0.0;
         }

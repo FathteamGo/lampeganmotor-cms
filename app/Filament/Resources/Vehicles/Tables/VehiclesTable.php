@@ -19,82 +19,133 @@ class VehiclesTable
                 TextColumn::make('vehicleModel.name')
                     ->label(__('tables.model'))
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('type.name')
                     ->label(__('tables.type'))
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('color.name')
                     ->label(__('tables.color'))
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('year.year')
                     ->label(__('tables.year'))
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('vin')
                     ->label(__('tables.vin'))
-                    ->searchable(),
+                    ->searchable()
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('engine_number')
                     ->label(__('tables.engine_number'))
-                    ->searchable(),
+                    ->searchable()
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('license_plate')
                     ->label(__('tables.license_plate'))
-                    ->searchable(),
+                    ->searchable()
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('bpkb_number')
                     ->label(__('tables.bpkb_number'))
                     ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
+                // HARGA BELI MOTOR (Purchase Price saja)
                 TextColumn::make('purchase_price')
-                    ->label(__('tables.purchase_price'))
+                    ->label('Harga Beli Motor')
                     ->numeric()
                     ->sortable()
-                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.')),
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
+
+                // TOTAL HARGA PEMBELIAN (Purchase Price + Rekondisi)
+                 TextColumn::make('total_purchase')
+                    ->label('Total Pembelian')
+                    ->state(function ($record) {
+                        return 'Rp ' . number_format(
+                            ($record->purchase_price ?? 0)
+                            + ($record->purchaseadditionalCosts?->sum('price') ?? 0),
+                            0,
+                            ',',
+                            '.'
+                        );
+                    })
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('sale_price')
-                    ->label(__('tables.sale_price'))
+                    ->label('Harga Jual')
                     ->numeric()
                     ->sortable()
-                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.')),
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state ?? 0, 0, ',', '.'))
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('odometer')
                     ->label(__('tables.odometer'))
                     ->numeric()
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
+
+              
+                // TextColumn::make('stock')
+                //     ->label('Stok')
+                //     ->badge()
+                //     ->getStateUsing(fn($record) => $record->status === 'sold' ? 0 : 1)
+                //     ->color(fn($state) => $state === 0 ? 'danger' : 'success')
+                //     ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                //     ->description('0 = Terjual, 1 = Tersedia'),
 
                 TextColumn::make('status')
-                ->label(__('tables.status'))
-                ->badge()
-                ->color(fn(string $state): string => match ($state) {
-                    'available' => 'success',
-                    'sold'      => 'warning', 
-                    'in_repair' => 'info',
-                    'hold'      => 'gray',
-                    default     => 'gray',
-                })
-                ->searchable(),
-    
+                    ->label(__('tables.status'))
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'available' => 'success',
+                        'sold'      => 'danger', 
+                        'in_repair' => 'info',
+                        'hold'      => 'gray',
+                        default     => 'gray',
+                    })
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->searchable(),
 
                 TextColumn::make('created_at')
                     ->label(__('tables.created_at'))
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
                 TextColumn::make('updated_at')
                     ->label(__('tables.updated_at'))
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
+                    ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -104,7 +155,8 @@ class VehiclesTable
                         'sold'      => 'Sold',
                         'in_repair' => 'In Repair',
                         'hold'      => 'Hold',
-                    ]),
+                    ])
+                    ->multiple(),
             ])
             ->recordActions([
                 ViewAction::make()->label(__('tables.view')),
@@ -114,6 +166,7 @@ class VehiclesTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->label(__('tables.delete')),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

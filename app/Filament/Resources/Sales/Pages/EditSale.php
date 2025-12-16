@@ -26,14 +26,6 @@ class EditSale extends EditRecord
         $data['customer_tiktok']    = $this->record->customer->tiktok;
     }
 
-    // --- FORMAT FIELD NOMINAL ---
-    $nominalFields = ['sale_price', 'dp_po', 'dp_real', 'cmo_fee', 'direct_commission'];
-    foreach ($nominalFields as $field) {
-        if (isset($data[$field]) && $data[$field] !== null) {
-            $data[$field] = number_format($data[$field], 0, ',', '.'); // 1000000 -> 1.000.000
-        }
-    }
-
     return $data;
 }
 

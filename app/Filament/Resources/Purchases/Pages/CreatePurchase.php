@@ -16,6 +16,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Validation\ValidationException;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Illuminate\Support\Facades\Log; //  TAMBAHKAN INI
 
 class CreatePurchase extends CreateRecord
 {
@@ -23,9 +24,16 @@ class CreatePurchase extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        //  LOG 1: Data mentah dari form
+        Log::info('=== DATA MENTAH DARI FORM ===', [
+            'all_keys' => array_keys($data),
+            'vehicle_photos_exists' => isset($data['vehicle_photos']),
+            'vehicle_photos_count' => isset($data['vehicle_photos']) ? count($data['vehicle_photos']) : 0,
+            'full_data' => $data,
+        ]);
 
-        //buatkan logic jika category addtional coasts tidak ada make default Tidak Ada
-       if (empty($data['additionalCosts'])) {
+        // Buatkan logic jika category additional costs tidak ada make default Tidak Ada
+        if (empty($data['additionalCosts'])) {
             $data['additionalCosts'] = [
                 [
                     'category' => 'Tidak Ada',
@@ -34,87 +42,178 @@ class CreatePurchase extends CreateRecord
             ];
         }
 
-       
-        // 🔹 Validasi VIN dan Engine Number
-        if (Vehicle::where('vin', $data['vin'])->exists()) {
-            throw ValidationException::withMessages([
-                'vin' => 'Nomor rangka sudah terdaftar',
+        //  LOG 2: Sebelum validasi
+        Log::info('=== SEBELUM VALIDASI VIN/ENGINE ===');
+
+        try {
+            // Validasi VIN dan Engine Number
+            if (Vehicle::where('vin', $data['vin'])->exists()) {
+                Log::warning('VIN sudah terdaftar', ['vin' => $data['vin']]);
+                throw ValidationException::withMessages([
+                    'vin' => 'Nomor rangka sudah terdaftar',
+                ]);
+            }
+
+            if (Vehicle::where('engine_number', $data['engine_number'])->exists()) {
+                Log::warning('Engine number sudah terdaftar', ['engine_number' => $data['engine_number']]);
+                throw ValidationException::withMessages([
+                    'engine_number' => 'Nomor mesin sudah terdaftar',
+                ]);
+            }
+
+            //  LOG 3: Sebelum create master data
+            Log::info('=== MULAI CREATE MASTER DATA ===');
+
+            // Buat atau ambil data master
+            $brand = Brand::firstOrCreate(['name' => $data['brand_name']]);
+            Log::info('Brand created/found', ['id' => $brand->id, 'name' => $brand->name]);
+
+            $model = VehicleModel::firstOrCreate([
+                'name' => $data['vehicle_model_name'],
+                'brand_id' => $brand->id,
             ]);
-        }
+            Log::info('Model created/found', ['id' => $model->id, 'name' => $model->name]);
 
-        if (Vehicle::where('engine_number', $data['engine_number'])->exists()) {
-            throw ValidationException::withMessages([
-                'engine_number' => 'Nomor mesin sudah terdaftar',
+            $type = Type::firstOrCreate(['name' => $data['type_name']]);
+            $color = Color::firstOrCreate(['name' => $data['color_name']]);
+            $year = Year::firstOrCreate(['year' => $data['year_name']]);
+
+            //  LOG 4: Sebelum create vehicle
+            Log::info('=== MULAI CREATE VEHICLE ===', [
+                'vehicle_data' => [
+                    'vehicle_model_id' => $model->id,
+                    'type_id' => $type->id,
+                    'color_id' => $color->id,
+                    'year_id' => $year->id,
+                    'vin' => $data['vin'],
+                    'engine_number' => $data['engine_number'],
+                ]
             ]);
-        }
 
-        // 🔹 Buat atau ambil data master
-        $brand = Brand::firstOrCreate(['name' => $data['brand_name']]);
-        $model = VehicleModel::firstOrCreate([
-            'name' => $data['vehicle_model_name'],
-            'brand_id' => $brand->id,
-        ]);
+            // Buat Vehicle
+            $vehicle = Vehicle::create([
+                'vehicle_model_id' => $model->id,
+                'type_id' => $type->id,
+                'color_id' => $color->id,
+                'year_id' => $year->id,
+                'vin' => $data['vin'],
+                'engine_number' => $data['engine_number'],
+                'license_plate' => $data['license_plate'] ?? null,
+                'bpkb_number' => $data['bpkb_number'] ?? null,
+                'purchase_price' => $data['purchase_price'],
+                'sale_price' => $data['sale_price'] ?? null,
+                'down_payment' => $data['down_payment'] ?? null,
+                'odometer' => $data['odometer'] ?? null,
+                'engine_specification' => $data['engine_specification'] ?? null,
+                'notes' => $data['vehicle_notes'] ?? null,
+                'location' => $data['location'] ?? null,
+                'status' => 'available',
+            ]);
 
-        $type = Type::firstOrCreate(['name' => $data['type_name']]);
-        $color = Color::firstOrCreate(['name' => $data['color_name']]);
-        $year = Year::firstOrCreate(['year' => $data['year_name']]);
+            Log::info('Vehicle created successfully', ['vehicle_id' => $vehicle->id]);
 
-        // 🔹 Buat Vehicle
-        $vehicle = Vehicle::create([
-            'vehicle_model_id' => $model->id,
-            'type_id' => $type->id,
-            'color_id' => $color->id,
-            'year_id' => $year->id,
-            'vin' => $data['vin'],
-            'engine_number' => $data['engine_number'],
-            'license_plate' => $data['license_plate'] ?? null,
-            'bpkb_number' => $data['bpkb_number'] ?? null,
-            'purchase_price' => $data['purchase_price'], // sudah clean number
-            'sale_price' => $data['sale_price'] ?? null,
-            'down_payment' => $data['down_payment'] ?? null,
-            'odometer' => $data['odometer'] ?? null,
-            'engine_specification' => $data['engine_specification'] ?? null,
-            'notes' => $data['vehicle_notes'] ?? null,
-            'location' => $data['location'] ?? null,
-            'status' => 'available',
-        ]);
+            //  LOG 5: Sebelum simpan foto
+            Log::info('=== MULAI SIMPAN FOTO ===', [
+                'has_vehicle_photos' => !empty($data['vehicle_photos']),
+                'photo_count' => !empty($data['vehicle_photos']) ? count($data['vehicle_photos']) : 0,
+                'photos_data' => $data['vehicle_photos'] ?? null,
+            ]);
 
-        // 🔹 Simpan Photos ke Vehicle
-        if (!empty($data['photos'])) {
-            foreach ($data['photos'] as $photoData) {
-                if (!empty($photoData['path'])) {
-                    VehiclePhoto::create([
-                        'vehicle_id' => $vehicle->id,
-                        'path' => $photoData['path'],
+            if (!empty($data['vehicle_photos'])) {
+                foreach ($data['vehicle_photos'] as $index => $photoData) {
+                    Log::info("Processing photo #{$index}", [
+                        'has_path' => !empty($photoData['path']),
+                        'path' => $photoData['path'] ?? null,
                         'caption' => $photoData['caption'] ?? null,
                     ]);
+
+                    if (!empty($photoData['path'])) {
+                        $photo = VehiclePhoto::create([
+                            'vehicle_id' => $vehicle->id,
+                            'path' => $photoData['path'],
+                            'caption' => $photoData['caption'] ?? null,
+                        ]);
+                        Log::info("Photo #{$index} saved", ['photo_id' => $photo->id]);
+                    }
                 }
             }
-        }
 
-        // 🔹 Set vehicle_id untuk Purchase
-        $data['vehicle_id'] = $vehicle->id;
+            // Set vehicle_id untuk Purchase
+            $data['vehicle_id'] = $vehicle->id;
 
-        // 🔹 Hitung total_price (harga beli + biaya tambahan)
-        $data['total_price'] = intval($data['purchase_price']) +
-            collect($data['additionalCosts'] ?? [])
+            //  LOG 6: Hitung total
+            $additionalTotal = collect($data['additionalCosts'] ?? [])
                 ->sum(fn ($item) => intval($item['price'] ?? 0));
 
-        // 🔹 Hapus field yang tidak perlu disimpan ke tabel purchases
-        unset($data['photos']); // sudah disimpan ke vehicle_photos
-        unset($data['brand_name']);
-        unset($data['vehicle_model_name']);
-        unset($data['type_name']);
-        unset($data['color_name']);
-        unset($data['year_name']);
-        unset($data['vehicle_notes']);
-        unset($data['engine_specification']);
-        unset($data['location']);
+            Log::info('=== CALCULATE TOTAL ===', [
+                'purchase_price' => $data['purchase_price'],
+                'additional_total' => $additionalTotal,
+            ]);
+
+            // Hitung total_price (harga beli + biaya tambahan)
+            $data['total_price'] = intval($data['purchase_price']) + $additionalTotal;
+
+            //  LOG 7: Sebelum unset fields
+            Log::info('=== SEBELUM UNSET FIELDS ===', [
+                'all_keys_before' => array_keys($data),
+            ]);
+
+            // Hapus field yang tidak perlu disimpan ke tabel purchases
+            unset($data['vehicle_photos']);
+            unset($data['brand_name']);
+            unset($data['vehicle_model_name']);
+            unset($data['type_name']);
+            unset($data['color_name']);
+            unset($data['year_name']);
+            unset($data['vehicle_notes']);
+            unset($data['engine_specification']);
+            unset($data['location']);
+            unset($data['odometer']);
+            unset($data['vin']);
+            unset($data['engine_number']);
+            unset($data['license_plate']);
+            unset($data['bpkb_number']);
+
+            //  LOG 8: Data final yang akan disimpan ke purchases
+            Log::info('=== DATA FINAL UNTUK PURCHASES ===', [
+                'all_keys_after' => array_keys($data),
+                'final_data' => $data,
+            ]);
+
+        } catch (\Exception $e) {
+            //  LOG ERROR
+            Log::error('=== ERROR SAAT CREATE PURCHASE ===', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            throw $e;
+        }
 
         return $data;
     }
 
+    //  LOG 9: Setelah berhasil create
+    protected function afterCreate(): void
+    {
+        Log::info('=== PURCHASE CREATED SUCCESSFULLY ===', [
+            'purchase_id' => $this->record->id,
+            'vehicle_id' => $this->record->vehicle_id,
+        ]);
+    }
 
+    //  LOG 10: Jika ada validation error
+    protected function onValidationError(\Illuminate\Validation\ValidationException $exception): void
+    {
+        Log::error('=== VALIDATION ERROR ===', [
+            'errors' => $exception->errors(),
+            'message' => $exception->getMessage(),
+        ]);
+
+        parent::onValidationError($exception);
+    }
 
     protected function getCreatedNotification(): ?Notification
     {

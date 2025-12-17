@@ -4,10 +4,11 @@ namespace App\Filament\Resources\CmoSummaries;
 
 use App\Filament\Resources\CmoSummaries\Pages\ListCmoSummaries;
 use App\Filament\Resources\CmoSummaries\Pages\EditCmoSummaries;
+use App\Filament\Resources\CmoSummaries\Schemas\CmoSummariesForm;
 use App\Filament\Resources\CmoSummaries\Tables\CmoSummariesTable;
 use App\Models\Cmo;
 use Filament\Resources\Resource;
-use Filament\Tables\Table;
+use Filament\Schemas\Schema;use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 
 class CmoSummariesResource extends Resource
@@ -32,6 +33,11 @@ class CmoSummariesResource extends Resource
         return CmoSummariesTable::configure($table);
     }
 
+    public static function form(Schema $schema): Schema
+    {
+        return CmoSummariesForm::configure($schema);
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return __('Laporan Sales & CMO');
@@ -51,7 +57,7 @@ class CmoSummariesResource extends Resource
     {
         return [
             'index' => ListCmoSummaries::route('/'),
-            // 'edit'  => EditCmoSummaries::route('/{record}/edit'),
+            'edit'  => EditCmoSummaries::route('/{record}/edit'),
         ];
     }
 }

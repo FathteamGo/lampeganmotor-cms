@@ -65,7 +65,7 @@ class DashboardStats extends BaseWidget
             switch ($sale->payment_method) {
                 case 'credit':
                     // Kredit: OTR - DP PO - DP REAL - Harga Pembelian
-                    $labaPenjualanBulanIni += ($otr - $dpPo - $dpReal - $purchasePrice);
+                    $labaPenjualanBulanIni += ($otr - $dpPo + $dpReal - $purchasePrice);
                     break;
 
                 case 'cash':
@@ -180,10 +180,16 @@ class DashboardStats extends BaseWidget
         $labaBersihTahunIni = $labaPenjualanTahunIni + $totalIncomeTahunIni + $stnkIncomeTahunIni - $totalPengeluaranTahunIni;
 
         // ========== ASET ==========
-        $asetKendaraan = Vehicle::where('status', 'available')->sum('purchase_price');
+        $asetKendaraan = Vehicle::with('additionalCosts')
+            ->whereIn('status', ['available', 'in_repair'])
+            ->get()
+            ->sum(fn ($v) =>
+                floatval($v->purchase_price ?? 0)
+                + floatval($v->additionalCosts?->sum('price') ?? 0)
+            );
+
         $asetLainnya = OtherAsset::sum('value');
         $totalAset = $asetKendaraan + $asetLainnya;
-
         // ========== RETURN STATISTICS ==========
         return [
             // UNIT
@@ -265,7 +271,7 @@ class DashboardStats extends BaseWidget
 
             // PENGELUARAN
             Stat::make('Pengeluaran Bulan Ini', $rupiah($totalPengeluaranBulanIni))
-                ->description("Total biaya keluar {$periode}")
+                ->description("Total biaya keluar {$periode} sudah termasuk biaya lain")
                 ->descriptionIcon('heroicon-o-arrow-right-circle')
                 ->color('danger')
                 ->url(route('filament.admin.resources.expenses.index')),

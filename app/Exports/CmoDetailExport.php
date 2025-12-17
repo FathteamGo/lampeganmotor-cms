@@ -20,7 +20,7 @@ use PhpOffice\PhpSpreadsheet\Style\{
 };
 use Maatwebsite\Excel\Events\AfterSheet;
 
-class AllCmoSummaryExport implements
+class CmoDetailExport implements
     FromCollection,
     WithHeadings,
     WithStyles,
@@ -32,30 +32,31 @@ class AllCmoSummaryExport implements
     protected Collection $rows;
 
     public function __construct(
+        protected Cmo $cmo,
         protected int $month,
         protected int $year
     ) {}
 
-    public function collection(): Collection
+    public function collection()
     {
-        $this->rows = Cmo::all()->map(function ($cmo) {
-            $sales = $cmo->sales()
-                ->whereNotIn('status', ['cancel'])
-                ->whereMonth('sale_date', $this->month)
-                ->whereYear('sale_date', $this->year);
+        $sales = $this->cmo->sales()
+            ->with('customer', 'vehicle.vehicleModel')
+            ->whereNotIn('status', ['cancel'])
+            ->whereMonth('sale_date', $this->month)
+            ->whereYear('sale_date', $this->year)
+            ->orderBy('sale_date')
+            ->get();
 
-            $count = $sales->count();
-            $fee   = (int) $sales->sum('cmo_fee');
+        $this->totalTransaksi = $sales->count();
+        $this->totalFee       = $sales->sum('cmo_fee');
 
-            $this->totalTransaksi += $count;
-            $this->totalFee       += $fee;
-
-            return [
-                $cmo->name,
-                $count,
-                $fee,
-            ];
-        });
+        $this->rows = $sales->map(fn ($sale) => [
+            $sale->sale_date->format('d M Y'),
+            $sale->customer->name,
+            optional($sale->vehicle?->vehicleModel)->name ?? '-',
+            $sale->vehicle?->license_plate ?? '-',   
+            (int) $sale->cmo_fee,
+        ]);
 
         return $this->rows;
     }
@@ -63,36 +64,40 @@ class AllCmoSummaryExport implements
     public function headings(): array
     {
         return [
-            'Nama CMO',
-            'Total Transaksi',
-            'Total Fee CMO',
+            'Tanggal',
+            'Customer',
+            'Unit / Motor',
+            'No. Polisi',
+            'Fee CMO',
         ];
     }
 
     /* ===============================
-     * STYLING HEADER & INFO
+     * STYLING HEADER
      * =============================== */
     public function styles(Worksheet $sheet)
     {
-        $sheet->insertNewRowBefore(1, 3);
+        $sheet->insertNewRowBefore(1, 4);
 
         // TITLE
-        $sheet->setCellValue('A1', 'REKAP PENJUALAN SEMUA CMO');
-        $sheet->mergeCells('A1:C1');
+        $sheet->setCellValue('A1', 'LAPORAN DETAIL CMO');
+        $sheet->mergeCells('A1:E1');
         $sheet->getStyle('A1')->applyFromArray([
             'font' => ['bold' => true, 'size' => 14],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // PERIODE
-        $sheet->setCellValue('A2', "Periode: {$this->month} / {$this->year}");
-        $sheet->mergeCells('A2:C2');
-        $sheet->getStyle('A2')->applyFromArray([
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-        ]);
+        // INFO
+        $sheet->setCellValue('A2', 'Nama CMO');
+        $sheet->setCellValue('B2', $this->cmo->name);
+
+        $sheet->setCellValue('A3', 'Periode');
+        $sheet->setCellValue('B3', "{$this->month} / {$this->year}");
+
+        $sheet->getStyle('A2:A3')->getFont()->setBold(true);
 
         // TABLE HEADER
-        $sheet->getStyle('A4:C4')->applyFromArray([
+        $sheet->getStyle('A5:E5')->applyFromArray([
             'font' => ['bold' => true],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
@@ -108,8 +113,8 @@ class AllCmoSummaryExport implements
             ],
         ]);
 
-        // AUTO WIDTH
-        foreach (range('A', 'C') as $col) {
+        // AUTO SIZE
+        foreach (range('A', 'E') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -122,12 +127,12 @@ class AllCmoSummaryExport implements
     public function columnFormats(): array
     {
         return [
-            'C' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+            'E' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
         ];
     }
 
     /* ===============================
-     * FOOTER TOTAL & BORDER
+     * FOOTER & BORDER
      * =============================== */
     public function registerEvents(): array
     {
@@ -135,30 +140,28 @@ class AllCmoSummaryExport implements
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                $dataStart = 5;
-                $dataEnd   = $dataStart + $this->rows->count() - 1;
+                $dataStartRow = 6;
+                $dataEndRow   = $dataStartRow + $this->rows->count() - 1;
 
                 // BORDER TABLE
-                $sheet->getStyle("A4:C{$dataEnd}")
+                $sheet->getStyle("A5:E{$dataEndRow}")
                     ->getBorders()
                     ->getAllBorders()
                     ->setBorderStyle(Border::BORDER_THIN);
 
-                // TOTAL
-                $totalRow = $dataEnd + 2;
+                // SUMMARY
+                $summaryRow = $dataEndRow + 2;
 
-                $sheet->setCellValue("A{$totalRow}", 'TOTAL');
-                $sheet->setCellValue("B{$totalRow}", $this->totalTransaksi);
-                $sheet->setCellValue("C{$totalRow}", $this->totalFee);
+                $sheet->setCellValue("A{$summaryRow}", 'Total Transaksi');
+                $sheet->setCellValue("B{$summaryRow}", $this->totalTransaksi);
 
-                $sheet->getStyle("A{$totalRow}:C{$totalRow}")->applyFromArray([
-                    'font' => ['bold' => true],
-                    'borders' => [
-                        'top' => ['borderStyle' => Border::BORDER_THICK],
-                    ],
-                ]);
+                $sheet->setCellValue("A".($summaryRow + 1), 'Total Fee CMO');
+                $sheet->setCellValue("B".($summaryRow + 1), $this->totalFee);
 
-                $sheet->getStyle("C{$totalRow}")
+                $sheet->getStyle("A{$summaryRow}:A".($summaryRow + 1))
+                    ->getFont()->setBold(true);
+
+                $sheet->getStyle("B".($summaryRow + 1))
                     ->getNumberFormat()
                     ->setFormatCode(NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1);
             },

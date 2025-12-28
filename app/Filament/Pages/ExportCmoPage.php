@@ -11,7 +11,7 @@ use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 
-class CmoIncomeReport extends Page implements Tables\Contracts\HasTable
+class ExportCmoPage extends Page implements Tables\Contracts\HasTable
 {
     use Tables\Concerns\InteractsWithTable;
 

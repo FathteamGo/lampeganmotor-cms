@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\MasterData\UserCategory;
-use Filament\Models\Contracts\FilamentUser ;
+use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -26,7 +26,7 @@ use App\Models\WhatsAppNumber; // Tambah import ini
  * @method bool hasAnyRole(string|array $roles)
  * @method bool can(string $permission)
  */
-class User extends Authenticatable // Pastikan extend Authenticatable (yang inherit Model)
+class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, HasRoles; // Tambah HasRoles ke use (kalau belum)
 
@@ -43,7 +43,7 @@ class User extends Authenticatable // Pastikan extend Authenticatable (yang inhe
         'image', // Tambah ini kalau dipakai di getFilamentAvatarUrl()
         'user_category_id', // Asumsi field ini ada untuk relation
         'hide_insight_modals', // Pastikan ada (dari migrasi sebelumnya)
-        'overtime', 
+        'overtime',
     ];
 
     protected $hidden = [

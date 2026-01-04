@@ -17,6 +17,15 @@ class ExportCmoPage extends Page implements Tables\Contracts\HasTable
 
     protected string $view = 'filament.pages.export-cmo-page';
 
+    public static function getNavigationIcon(): ?string
+    {
+        return 'heroicon-o-arrow-down-tray';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Export CMO';
+    }
 
     public function exportExcel()
     {

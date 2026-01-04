@@ -37,7 +37,10 @@ class DashboardStats extends BaseWidget
 
         $rupiah = fn($v) => 'Rp ' . number_format($v, 0, ',', '.');
         $periode = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
-        $totalUnit = Vehicle::where('status', 'available')->count();
+        // Total Unit Tersedia - Exclude sold out / terjual units
+        $totalUnit = Vehicle::where('status', 'available')
+            ->whereDoesntHave('sale')
+            ->count();
         $totalUnitTerjual = Sale::valid()->whereYear('sale_date', $year)->count();
 
         // ========== PENJUALAN ==========
@@ -237,7 +240,7 @@ class DashboardStats extends BaseWidget
                 ->descriptionIcon('heroicon-o-arrow-right-circle')
                 ->color('warning')
                 ->url(route('filament.admin.resources.cash-tempo-trackings.index')),
-    
+
             Stat::make('Cash Tempo Jatuh Tempo', $rupiah($cashTempoJatuhTempo))
                 ->description("Akan jatuh tempo dalam 30 hari")
                 ->descriptionIcon('heroicon-o-arrow-right-circle')

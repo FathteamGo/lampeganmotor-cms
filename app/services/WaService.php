@@ -9,68 +9,79 @@ use Illuminate\Support\Str;
 class WaService
 {
     /**
-     * Kirim teks via gateway fath.my.id
+     * Kirim teks via gateway wa2.fath.my.id dengan Basic Auth
      */
     public function sendText(string $phone, string $text): bool
     {
-     
-        $url    = config('services.wa_gateway.url');
-        $apiKey = config('services.wa_gateway.api_key');
-        $sender = config('services.wa_gateway.sender');
-        // Ambil nomor sender dari DB dulu, fallback ke .env
-        $phone = WhatsAppNumber::where('is_active', true)
-                    ->where('is_report_gateway', true)
-                    ->value('number') ?? config('services.wa_gateway.sender');
+        $url      = config('services.wa_gateway.url');
+        $username = config('services.wa_gateway.username');
+        $password = config('services.wa_gateway.password');
 
-        if (! $url || ! $apiKey || ! $sender || ! $phone || trim($text) === '') {
+        // Ambil nomor penerima dari DB (nomor gateway)
+        $recipientNumber = WhatsAppNumber::where('is_active', true)
+                    ->where('is_report_gateway', true)
+                    ->value('number');
+
+        if (!$url || !$username || !$password || !$recipientNumber || trim($text) === '') {
             $msg = "WA Service: Konfigurasi tidak lengkap atau data kosong.";
             \Log::warning($msg, [
-                'url'    => $url,
-                'apiKey' => $apiKey ? 'SET' : 'EMPTY',
-                'sender' => $sender ?: 'EMPTY',
-                'phone'  => $phone,
+                'url'      => $url,
+                'username' => $username ? 'SET' : 'EMPTY',
+                'password' => $password ? 'SET' : 'EMPTY',
+                'recipientNumber' => $recipientNumber ?: 'EMPTY',
             ]);
-            echo $msg . "\n";
             return false;
         }
 
+        // Siapkan payload JSON untuk endpoint wa2.fath.my.id
         $payload = [
-            'api_key' => $apiKey,
-            'sender'  => $this->normalize($sender),
-            'number'  => $phone,
+            'phone' => $recipientNumber,
             'message' => $text,
         ];
 
-        // Kirim request
-        $res = Http::asForm()->post($url, $payload);
+        try {
+            // Kirim request dengan Basic Auth
+            $res = Http::withBasicAuth($username, $password)
+                       ->withHeaders(['Content-Type' => 'application/json'])
+                       ->post($url, $payload);
 
-        // Debug: log & echo payload + response
-        \Log::info('WA Payload Debug', $payload);
-        \Log::info('WA Response Debug', ['status' => $res->status(), 'body' => $res->body()]);
-        echo "Payload: " . json_encode($payload, JSON_UNESCAPED_UNICODE) . "\n";
-        echo "Response: " . $res->body() . "\n";
+            // Log untuk debugging
+            \Log::info('WA Send Request', [
+                'url' => $url,
+                'phone' => $recipientNumber,
+                'status' => $res->status(),
+            ]);
+            \Log::info('WA Response', ['body' => $res->body()]);
 
-        if ($res->successful()) {
-            $body = $res->body();
-            $json = json_decode($body, true);
+            // Cek response
+            if ($res->successful()) {
+                $responseBody = $res->json();
 
-            if (is_array($json)) {
-                $status = strtolower((string)($json['status'] ?? ''));
-                if (in_array($status, ['success', 'ok', 'sent', 'true'])) {
-                    return true;
+                // Cek status dalam response (sesuaikan dengan response format API)
+                if (is_array($responseBody)) {
+                    $status = strtolower((string)($responseBody['code'] ?? $responseBody['status'] ?? ''));
+                    if (in_array($status, ['success', 'ok', 'sent', 'true', '200'])) {
+                        return true;
+                    }
                 }
-            }
 
-            // fallback: kalau bukan JSON tapi ada body → sukses
-            if (! empty($body)) {
+                // Fallback: jika 2xx response dianggap sukses
                 return true;
             }
+
+            \Log::error('WA Service: gagal mengirim', [
+                'status' => $res->status(),
+                'response' => $res->body(),
+            ]);
+
+            return false;
+        } catch (\Throwable $e) {
+            \Log::error('WA Service Exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return false;
         }
-
-        echo "❌ Gagal mengirim WA\n";
-        \Log::error('WA Service: gagal mengirim', ['payload' => $payload, 'response' => $res->body()]);
-
-        return false;
     }
 
     /**

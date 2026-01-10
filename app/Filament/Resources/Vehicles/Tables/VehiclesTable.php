@@ -16,6 +16,11 @@ class VehiclesTable
     {
         return $table
             ->columns([
+                TextColumn::make('row_index')
+                    ->label('No')
+                    ->rowIndex()
+                    ->alignCenter(),
+
                 TextColumn::make('vehicleModel.name')
                     ->label(__('tables.model'))
                     ->sortable()
@@ -109,7 +114,7 @@ class VehiclesTable
                     ->weight(fn($record) => $record->status === 'sold' ? 'bold' : 'normal')
                     ->color(fn($record) => $record->status === 'sold' ? 'danger' : null),
 
-              
+
                 // TextColumn::make('stock')
                 //     ->label('Stok')
                 //     ->badge()
@@ -123,7 +128,7 @@ class VehiclesTable
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'available' => 'success',
-                        'sold'      => 'danger', 
+                        'sold'      => 'danger',
                         'in_repair' => 'info',
                         'hold'      => 'gray',
                         default     => 'gray',
@@ -167,6 +172,7 @@ class VehiclesTable
                     DeleteBulkAction::make()->label(__('tables.delete')),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->paginationPageOptions([10, 25, 50, 100, 200]);
     }
 }

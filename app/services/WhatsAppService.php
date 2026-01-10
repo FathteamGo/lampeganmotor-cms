@@ -8,36 +8,52 @@ use Illuminate\Support\Str;
 class WhatsAppService
 {
     /**
-     * Kirim teks via gateway fath.my.id
+     * Kirim teks via gateway wa2.fath.my.id dengan Basic Auth
      */
     public function sendText(string $phone, string $text): bool
     {
-        $phone  = $this->normalize($phone);
-        $url    = config('services.wa_gateway.url');
-        $apiKey = config('services.wa_gateway.api_key');
-        $sender = config('services.wa_gateway.sender');
+        $phone    = $this->normalize($phone);
+        $url      = config('services.wa_gateway.url');
+        $username = config('services.wa_gateway.username');
+        $password = config('services.wa_gateway.password');
 
-        if (! $url || ! $apiKey || ! $sender || ! $phone || trim($text) === '') {
+        if (!$url || !$username || !$password || !$phone || trim($text) === '') {
             return false;
         }
 
-        // API ini menerima POST (form-url-encoded). (GET juga ada, tapi kita pakai POST.)
+        // Siapkan payload JSON untuk endpoint wa2.fath.my.id
         $payload = [
-            'api_key' => $apiKey,
-            'sender'  => $sender,
-            'number'  => $phone,
+            'phone'   => $phone,
             'message' => $text,
         ];
 
-        $res = Http::asForm()->post($url, $payload);
+        try {
+            // Kirim request dengan Basic Auth
+            $res = Http::withBasicAuth($username, $password)
+                       ->withHeaders(['Content-Type' => 'application/json'])
+                       ->post($url, $payload);
 
-        // Banyak gateway balikin { status: "success" } — tapi kita anggap 2xx = sukses.
-        if ($res->successful()) {
-            $json = $res->json();
-            return is_array($json) ? (strtolower((string)($json['status'] ?? 'success')) === 'success') : true;
+            // Cek response sukses
+            if ($res->successful()) {
+                $responseBody = $res->json();
+
+                // Cek status dalam response
+                if (is_array($responseBody)) {
+                    $status = strtolower((string)($responseBody['code'] ?? $responseBody['status'] ?? ''));
+                    if (in_array($status, ['success', 'ok', 'sent', 'true', '200'])) {
+                        return true;
+                    }
+                }
+
+                // Fallback: jika 2xx response dianggap sukses
+                return true;
+            }
+
+            return false;
+        } catch (\Throwable $e) {
+            \Log::error('WhatsApp Service Exception: ' . $e->getMessage());
+            return false;
         }
-
-        return false;
     }
 
     /**

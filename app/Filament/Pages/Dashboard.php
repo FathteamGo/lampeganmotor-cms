@@ -67,7 +67,11 @@ class Dashboard extends BaseDashboard
                 ->label('Run Report AI Agent')
                 ->icon('heroicon-o-bolt')
                 ->color('success')
-                ->action(fn() => $this->runSample()),
+                ->requiresConfirmation()
+                ->modalHeading('Generate & Send Report?')
+                ->modalDescription('Sistem akan membuat laporan mingguan dengan AI insight dan mengirimnya via WhatsApp.')
+                ->modalSubmitActionLabel('Ya, Kirim Sekarang')
+                ->action('runSample'),
 
             Action::make('weeklyReportNotif')
                 ->label('Ada Insight Terbaru')
@@ -87,7 +91,7 @@ class Dashboard extends BaseDashboard
         ];
     }
 
-    protected function runSample(): void
+    public function runSample(): void
     {
         try {
             $report = app(\App\Services\ReportService::class)

@@ -22,43 +22,51 @@ class SalesTable
                 TextColumn::make('no')
                     ->label('No')
                     ->rowIndex()
+                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null)
                     ->sortable(),
 
                 TextColumn::make('customer.name')
                     ->label('Nama')
+                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null)
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('vehicle.vehicleModel.name')
                     ->label('Jenis Motor')
+                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null)
                     ->sortable(),
 
                 // Harga Total Pembelian (ambil dari purchases.grand_total)
                 TextColumn::make('total_pembelian')
                     ->label('H-Total Pembelian')
                     ->money('IDR', locale: 'id')
+                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null)
                     ->state(function ($record) {
                         // Coba ambil dari purchase.grand_total dulu
                         $purchase = \App\Models\Purchase::where('vehicle_id', $record->vehicle_id)->first();
                         $grandTotal = $purchase ? $purchase->grand_total : 0;
-                        
+
                         // Kalau grand_total = 0, fallback ke vehicle.purchase_price
                         if ($grandTotal == 0) {
                             return $record->vehicle?->purchase_price ?? 0;
                         }
-                        
+
                         return $grandTotal;
                     }),
 
                 TextColumn::make('sale_price')
                     ->label('OTR')
-                    ->money('IDR', locale: 'id'),
-                    
+                    ->money('IDR', locale: 'id')
+                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null),
+
                 TextColumn::make('laba_kotor')
                     ->label('Laba Kotor')
                     ->money('IDR', locale: 'id')
-                    ->color(fn($state) => $state < 0 ? 'danger' : 'success')
+                    ->color(fn($state, $record) => $record->status === 'cancel' ? 'danger' : ($state < 0 ? 'danger' : 'success'))
                     ->state(function ($record) {
+                        if ($record->status === 'cancel') {
+                            return 0;
+                        }
                         return self::calculateLabaKotor($record);
                     }),
 
@@ -66,20 +74,24 @@ class SalesTable
                 TextColumn::make('laba_bersih')
                     ->label('Laba Bersih')
                     ->money('IDR', locale: 'id')
-                    ->color(fn($state) => $state < 0 ? 'danger' : 'success')
+                    ->color(fn($state, $record) => $record->status === 'cancel' ? 'danger' : ($state < 0 ? 'danger' : 'success'))
                     ->state(function ($record) {
+                        if ($record->status === 'cancel') {
+                            return 0;
+                        }
                         // Hitung Laba Kotor dulu
                         $labaKotor = self::calculateLabaKotor($record);
-                        
+
                         // Hitung Pengeluaran
                         $pengeluaran = ($record->cmo_fee ?? 0) + ($record->direct_commission ?? 0);
-                        
+
                         // Laba Bersih = Laba Kotor - Pengeluaran
                         return $labaKotor - $pengeluaran;
                     }),
 
                 TextColumn::make('payment_method')
                     ->label('Metode Pembayaran')
+                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null)
                     ->formatStateUsing(function ($state) {
                         return match($state) {
                             'cash' => 'Cash',
@@ -107,6 +119,7 @@ class SalesTable
 
                 TextColumn::make('sale_date')
                     ->label('Tanggal')
+                    ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null)
                     ->date(),
             ])
 
@@ -197,28 +210,28 @@ class SalesTable
 
     /**
      * Hitung Laba Kotor berdasarkan metode pembayaran
-     * 
+     *
      * RUMUS PER METODE PEMBAYARAN:
-     * 
+     *
      * CATATAN PENTING:
      * Harga Total Pembelian diambil dari purchases.grand_total
      * (sudah termasuk harga motor + semua biaya tambahan seperti STNK, pajak, service, dll)
      * Kalau data purchase tidak ada atau 0, pakai vehicle.purchase_price
-     * 
+     *
      * 1. CREDIT (Kredit via Leasing):
      *    Laba Kotor = OTR - DP PO - DP REAL - Harga Total Pembelian
      *    Catatan: Sisa pembayaran (OTR - DP PO - DP REAL) masuk ke leasing
-     * 
+     *
      * 2. CASH (Tunai):
      *    Laba Kotor = OTR - Harga Total Pembelian
-     * 
+     *
      * 3. CASH TEMPO (Tempo dari Customer):
      *    Laba Kotor = OTR - Harga Total Pembelian
      *    Catatan: Sisa pembayaran masuk tunggakan customer (dicatat sebagai aset)
-     * 
+     *
      * 4. TUKAR TAMBAH:
      *    Laba Kotor = OTR - Harga Total Pembelian
-     * 
+     *
      * LABA BERSIH = Laba Kotor - Pengeluaran (Fee CMO + Komisi Langsung)
      */
     private static function calculateLabaKotor($record): float
@@ -226,13 +239,13 @@ class SalesTable
         $otr = $record->sale_price ?? 0;
         $dpPo = $record->dp_po ?? 0;
         $dpReal = $record->dp_real ?? 0;
-        
+
         // Ambil purchase berdasarkan vehicle_id
         $purchase = \App\Models\Purchase::where('vehicle_id', $record->vehicle_id)->first();
-        
+
         // Gunakan grand_total attribute (total_price + additional costs)
         $hargaTotalPembelian = $purchase ? $purchase->grand_total : 0;
-        
+
         // Fallback: kalau grand_total = 0, pakai vehicle.purchase_price
         if ($hargaTotalPembelian == 0) {
             $hargaTotalPembelian = $record->vehicle?->purchase_price ?? 0;
@@ -242,17 +255,17 @@ class SalesTable
         return match($record->payment_method) {
             // Credit: OTR - DP PO - DP REAL - Harga Total Pembelian
             'credit' => $otr - $dpPo + $dpReal - $hargaTotalPembelian,
-            
+
             // Cash: OTR - Harga Total Pembelian
             'cash' => $otr - $hargaTotalPembelian,
-            
+
             // Cash Tempo: OTR - Harga Total Pembelian
             // Sisa pembayaran masuk ke tunggakan customer (aset)
             'cash_tempo' => $otr - $hargaTotalPembelian,
-            
+
             // Tukar Tambah: OTR - Harga Total Pembelian
             'tukartambah' => $otr - $hargaTotalPembelian,
-            
+
             // Default untuk metode lain
             default => $otr - $hargaTotalPembelian
         };

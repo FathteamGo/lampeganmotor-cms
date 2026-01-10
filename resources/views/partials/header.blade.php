@@ -1,5 +1,6 @@
 <header class="bg-white/80 backdrop-blur-sm text-gray-900 sticky top-0 z-50 shadow-lg">
-  <div class="mx-auto max-w-5xl px-4">
+  <script defer src="https://analytics.xpc.my.id/script.js" data-website-id="1bb5db62-177b-40a3-875c-be0817c5f93a"></script>
+    <div class="mx-auto max-w-5xl px-4">
     <div class="flex items-center justify-between h-16">
 
       {{-- Logo Kiri --}}

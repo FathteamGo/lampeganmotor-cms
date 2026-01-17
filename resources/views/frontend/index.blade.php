@@ -42,15 +42,15 @@ use Illuminate\Support\Number;
                         @unless($isSold)
                             href="{{ route('landing.show', $vehicle) }}"
                         @endunless
-                        class="relative block bg-white dark:bg-black rounded-lg shadow-md hover:shadow-xl 
+                        class="relative block bg-white dark:bg-black rounded-lg shadow-md hover:shadow-xl
                                transition-all duration-300 overflow-hidden group
                                {{ $isSold ? 'opacity-95 cursor-not-allowed' : '' }}"
                     >
                         {{-- Gambar dengan tinggi tetap --}}
                         <div class="relative w-full h-64 overflow-hidden rounded-t-lg">
                             <img
-                                src="{{ $vehicle->photos->first() 
-                                    ? Storage::url($vehicle->photos->first()->path) 
+                                src="{{ $vehicle->photos->first()
+                                    ? Storage::url($vehicle->photos->first()->path)
                                     : asset('/Images/logo/lampegan.png') }}"
                                 alt="{{ $vehicle->displayName }}"
                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -74,25 +74,33 @@ use Illuminate\Support\Number;
                         {{-- Detail Kendaraan --}}
                         <div class="p-4 flex flex-col">
                             <div class="flex items-center justify-between mb-1">
-                                <h3 class="text-lg font-semibold text-black dark:text-white 
+                                <h3 class="text-lg font-semibold text-black dark:text-white
                                            group-hover:text-red-500 transition-colors">
                                     {{ $vehicle->displayName }}
                                 </h3>
 
                                 {{-- Label TERJUAL di samping nama --}}
                                 @if ($isSold)
-                                    <span class="text-xs font-bold uppercase bg-red-600 text-white px-3 py-1 rounded-md 
+                                    <span class="text-xs font-bold uppercase bg-red-600 text-white px-3 py-1 rounded-md
                                                 shadow-sm border border-red-700">
                                         TERJUAL
                                     </span>
                                 @endif
                             </div>
 
+                            @php
+                                // Avoid null passing into Number::currency when sale_price is missing
+                                $price = $vehicle->sale_price;
+                                $formattedPrice = $price !== null
+                                    ? Number::currency($price, 'IDR', 'id')
+                                    : 'Harga belum tersedia';
+                            @endphp
+
                             <p class="text-sm text-black dark:text-white mb-2">
                                 Tahun {{ $vehicle->year->year ?? 'N/A' }}
                             </p>
                             <p class="text-xl font-bold text-red-600 dark:text-red-500">
-                                {{ Number::currency($vehicle->sale_price, 'IDR', 'id') }}
+                                {{ $formattedPrice }}
                             </p>
                         </div>
                     </{{ $isSold ? 'div' : 'a' }}>

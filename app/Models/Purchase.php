@@ -70,11 +70,14 @@ class Purchase extends Model
   protected static function booted()
     {
         static::saved(function ($purchase) {
-            if ($purchase->vehicle && $purchase->vehicle->status === 'hold') {
-                $purchase->vehicle->update(['status' => 'available']); // atau 'active'
+            // Ketika purchase disimpan, pastikan kendaraan berada pada status 'available' di dealer.
+            // Sebelumnya hanya mengubah jika status === 'hold'. Untuk mengakomodir kasus
+            // kendaraan yang sebelumnya 'sold' (dikembalikan/dibeli lagi), kita set ke 'available'
+            // jika status saat ini bukan 'available'.
+            if ($purchase->vehicle && $purchase->vehicle->status !== 'available') {
+                $purchase->vehicle->update(['status' => 'available']);
             }
         });
     }
 }
 
-    

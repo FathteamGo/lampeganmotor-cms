@@ -46,19 +46,22 @@ class CreatePurchase extends CreateRecord
         Log::info('=== SEBELUM VALIDASI VIN/ENGINE ===');
 
         try {
+            $exist = false;
             // Validasi VIN dan Engine Number
             if (Vehicle::where('vin', $data['vin'])->exists()) {
-                Log::warning('VIN sudah terdaftar', ['vin' => $data['vin']]);
-                throw ValidationException::withMessages([
-                    'vin' => 'Nomor rangka sudah terdaftar',
-                ]);
+                $exist = true;
+                // Log::warning('VIN sudah terdaftar', ['vin' => $data['vin']]);
+                // throw ValidationException::withMessages([
+                //     'vin' => 'Nomor rangka sudah terdaftar',
+                // ]);
             }
 
             if (Vehicle::where('engine_number', $data['engine_number'])->exists()) {
-                Log::warning('Engine number sudah terdaftar', ['engine_number' => $data['engine_number']]);
-                throw ValidationException::withMessages([
-                    'engine_number' => 'Nomor mesin sudah terdaftar',
-                ]);
+                 $exist = true;
+                // Log::warning('Engine number sudah terdaftar', ['engine_number' => $data['engine_number']]);
+                // throw ValidationException::withMessages([
+                //     'engine_number' => 'Nomor mesin sudah terdaftar',
+                // ]);
             }
 
             //  LOG 3: Sebelum create master data
@@ -90,8 +93,9 @@ class CreatePurchase extends CreateRecord
                 ]
             ]);
 
+            if($exist == false) {
             // Buat Vehicle
-            $vehicle = Vehicle::create([
+                $vehicle = Vehicle::create([
                 'vehicle_model_id' => $model->id,
                 'type_id' => $type->id,
                 'color_id' => $color->id,
@@ -108,7 +112,13 @@ class CreatePurchase extends CreateRecord
                 'notes' => $data['vehicle_notes'] ?? null,
                 'location' => $data['location'] ?? null,
                 'status' => 'available',
-            ]);
+                ]);
+            } else {
+                // Jika ada duplikat, ambil data kendaraan yang sudah ada
+                $vehicle = Vehicle::where('vin', $data['vin'])
+                            ->orWhere('engine_number', $data['engine_number'])
+                            ->first();
+            }
 
             Log::info('Vehicle created successfully', ['vehicle_id' => $vehicle->id]);
 
@@ -188,7 +198,7 @@ class CreatePurchase extends CreateRecord
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             throw $e;
         }
 

@@ -144,7 +144,10 @@ class SalesSummariesTable
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
                     ->action(function ($record, $livewire) {
-                        $filters = $livewire->filters['periode'] ?? [];
+                        // FIX: Ambil filter dari tableFilters, bukan properti filters manual
+                        $filters = $livewire->tableFilters['periode'] ?? [];
+                        
+                        // Cek apakah filter ada isinya, jika tidak pakai default
                         $month = $filters['month'] ?? now()->format('m');
                         $year  = $filters['year'] ?? now()->format('Y');
 

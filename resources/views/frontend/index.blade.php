@@ -8,7 +8,7 @@ use Illuminate\Support\Number;
 @section('title', 'Galeri Motor - Lampegan Motor')
 
 @section('content')
-<div class="bg-white text-black dark:text-white pb-20">
+<div class="bg-white text-black dark:text-white pb-20 md:pb-8">
 
     {{-- Hero Slider --}}
     @include('partials.hero-slider')
@@ -26,13 +26,13 @@ use Illuminate\Support\Number;
     @include('partials.filter')
 
     {{-- Konten Galeri --}}
-    <div class="mx-auto max-w-sm px-4">
+    <div class="mx-auto w-full px-4 md:px-8">
         @if ($vehicles->isEmpty())
             <p class="text-center text-lg text-black dark:text-white">
                 Tidak ada motor yang ditemukan dengan filter yang dipilih.
             </p>
         @else
-            <div class="grid grid-cols-1 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 @foreach ($vehicles as $vehicle)
                     @php
                         $isSold = $vehicle->status === 'sold';

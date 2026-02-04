@@ -4,7 +4,7 @@
 
 @if($slides->isNotEmpty())
 <div id="hero-slider" 
-     class="relative w-full max-w-lg mx-auto h-[250px] overflow-hidden rounded-xl shadow-md my-4">
+     class="relative w-full h-[250px] md:h-[400px] lg:h-[500px] overflow-hidden shadow-md mb-8">
 
     @foreach ($slides as $slide)
         <div class="hero-slide {{ $loop->first ? 'slide-active' : 'slide-inactive' }} 
@@ -15,7 +15,7 @@
                             ? (isset($slide->image[0]) ? Storage::url($slide->image[0]) : asset('images/no-image.png')) 
                             : ($slide->image ? Storage::url($slide->image) : asset('images/no-image.png')) }}" 
                  alt="{{ $slide->title ?? 'Slide' }}" 
-                 class="w-full h-full object-cover rounded-xl">
+                 class="w-full h-full object-cover">
 
             {{-- Overlay teks --}}
             <div class="absolute inset-0 bg-black/40 flex items-center justify-center">

@@ -3,8 +3,8 @@
     $whatsappLink = '#';
 @endphp
 
-{{-- NAVIGASI BAWAH (MOBILE-FIRST) --}}
-<nav class="fixed bottom-0 left-0 right-0 z-50">
+{{-- NAVIGASI BAWAH (MOBILE-FIRST) - Hidden on desktop --}}
+<nav class="fixed bottom-0 left-0 right-0 z-50 md:hidden">
     <div class="mx-auto max-w-sm bg-black border-t border-black shadow-lg">
         <div class="flex justify-around items-center h-16">
 

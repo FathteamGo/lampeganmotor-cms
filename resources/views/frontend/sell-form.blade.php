@@ -18,7 +18,7 @@ $fieldClass = "mt-1 block w-full rounded-lg
 
 @section('content')
 <div class="bg-white text-black dark:text-white pb-24 pt-6">
-    <div class="mx-auto max-w-sm px-4">
+    <div class="mx-auto w-full max-w-sm md:max-w-3xl px-4">
 
         {{-- Judul --}}
         <h2 class="text-2xl font-extrabold text-black text-center mb-6 border-b-4 border-yellow-400 inline-block pb-1">

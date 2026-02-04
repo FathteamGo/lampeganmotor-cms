@@ -27,15 +27,15 @@
 </head>
 <body class="bg-gray-50 font-sans">
 
-    <!-- Seluruh app dikunci 384px (seperti HP) -->
-    <div class="mx-auto min-h-screen bg-white shadow-lg max-w-sm" id="app">
+    <!-- Seluruh app dikunci 384px (seperti HP) di mobile, tapi lebar di desktop -->
+    <div class="mx-auto min-h-screen bg-white shadow-lg w-full" id="app">
 
         {{-- Header --}}
         @include('partials.header')
 
-        {{-- Konten halaman: wrapper global max-w-sm + padding --}}
-        <main id="main-content" class="px-4">
-            <div class="mx-auto max-w-sm">
+        {{-- Konten halaman --}}
+        <main id="main-content" class="">
+            <div class="w-full">
                 @yield('content')
             </div>
         </main>

@@ -1,12 +1,13 @@
-<div class="container mx-auto px-2 py-12">
+<div class="w-full px-4 md:px-8 py-8 md:py-12">
     <h2 class="text-2xl font-extrabold text-center text-black mb-6 inline-block border-b-4 border-yellow-400 px-2">
         Blog Terbaru
     </h2>
 
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     @forelse($blogs as $blog)
-        <div class="py-4">
+        <div class="py-4 md:py-0 text-left">
             <a href="{{ route('blog.show', $blog->slug) }}" 
-               class="bg-white rounded-xl shadow hover:shadow-lg overflow-hidden transition border border-gray-100 flex flex-col">
+               class="bg-white rounded-xl shadow hover:shadow-lg overflow-hidden transition border border-gray-100 flex flex-col h-full">
                 @if($blog->cover_image)
                     <img src="{{ asset('storage/'.$blog->cover_image) }}" 
                          alt="{{ $blog->title }}" 
@@ -14,7 +15,7 @@
                 @endif
                 <div class="p-4 flex flex-col flex-1">
                     @if(isset($blog->category->name))
-                        <span class="inline-block bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow mb-3">
+                        <span class="inline-block bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow mb-3 w-fit">
                             {{ $blog->category->name }}
                         </span>
                     @endif
@@ -29,8 +30,11 @@
             </a>
         </div>
     @empty
-        <p class="text-gray-500 text-center mt-6">Tidak ada blog untuk saat ini.</p>
+        <div class="col-span-full">
+            <p class="text-gray-500 text-center mt-6">Tidak ada blog untuk saat ini.</p>
+        </div>
     @endforelse
+    </div>
 
     {{-- Lihat Semua Button - Only show if there are more than 3 blogs --}}
     @if($blogs->count() >= 3)

@@ -1,6 +1,6 @@
 <!-- Filter Section -->
 <section id="filter-section" class="bg-white py-8">
-  <div class="mx-auto max-w-sm px-4">
+  <div class="mx-auto w-full max-w-sm md:max-w-7xl px-4">
 
     {{-- Judul --}}
     <h2 class="text-2xl font-extrabold text-center text-black mb-6 inline-block border-b-4 border-yellow-400 px-2">
@@ -9,7 +9,7 @@
 
     {{-- Form filter --}}
     <form action="{{ route('landing.index') }}" method="GET"
-          class="grid grid-cols-2 gap-4 items-end bg-white p-4 rounded-lg shadow-md">
+          class="grid grid-cols-2 md:grid-cols-5 gap-4 items-end bg-white p-4 rounded-lg shadow-md">
 
       {{-- Merek --}}
       <div>
@@ -94,8 +94,8 @@
 
       {{-- Tombol --}}
       <button type="submit"
-              class="col-span-2 mt-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-md
-                     transition-transform hover:scale-105 shadow-md">
+              class="col-span-2 md:col-span-1 mt-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-md
+                     transition-transform hover:scale-105 shadow-md h-11 border border-red-700">
         Cari
       </button>
     </form>

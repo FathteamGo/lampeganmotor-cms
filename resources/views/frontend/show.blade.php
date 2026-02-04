@@ -18,7 +18,7 @@ $fallbackImage = asset('Images/logo/lampegan.png'); // pastikan folder di server
 @section('title', $pageTitle)
 
 @section('content')
-<div class="bg-white text-black dark:text-white min-h-screen pb-24 pt-4">
+<div class="bg-white text-black dark:text-white min-h-screen pb-24 md:pb-12 pt-4">
 
   {{-- Back link --}}
   <a href="{{ route('landing.index') }}"
@@ -29,7 +29,7 @@ $fallbackImage = asset('Images/logo/lampegan.png'); // pastikan folder di server
     Kembali ke Beranda
   </a>
 
-  <div class="grid grid-cols-1 gap-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
 
     {{-- Slider Foto --}}
     @if($photos->isNotEmpty())

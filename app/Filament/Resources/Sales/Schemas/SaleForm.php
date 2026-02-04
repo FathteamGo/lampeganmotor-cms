@@ -31,7 +31,7 @@ class SaleForm
                     $query = Vehicle::with(['vehicleModel', 'color'])
                         ->where('status', 'available')
                         ->whereDoesntHave('sale', function ($q) {
-                            $q->where('status', '!=', 'cancel');
+                            $q->whereIn('status', ['proses', 'kirim']);
                         });
 
                     // Allow current vehicle in edit mode
@@ -56,7 +56,7 @@ class SaleForm
                     }
 
                     $exists = Sale::where('vehicle_id', $state)
-                        ->where('status', '!=', 'cancel')
+                        ->whereIn('status', ['proses', 'kirim'])
                         ->exists();
 
                     if ($exists) {

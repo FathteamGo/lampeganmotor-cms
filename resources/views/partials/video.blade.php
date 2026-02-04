@@ -1,11 +1,11 @@
 <!-- Video Section (konsisten max-w-sm) -->
 <section class="bg-white py-8">
-  <div class="mx-auto max-w-sm px-4">
+  <div class="w-full px-4 md:px-8">
     <h2 class="text-2xl font-extrabold text-center text-black mb-6 inline-block border-b-4 border-yellow-400">
         Video Review
     </h2>
 
-    <div class="w-full bg-white dark:bg-black rounded-lg shadow-xl overflow-hidden">
+    <div class="w-full bg-white dark:bg-black overflow-hidden">
       <div class="relative" style="padding-top:56.25%;">
         @if ($video && $video->youtube_url)
           @php

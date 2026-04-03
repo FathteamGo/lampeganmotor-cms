@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class Sale extends Model
 {
@@ -114,7 +115,7 @@ class Sale extends Model
     // Kurangi biaya (cmo & komisi)
     $laba -= ($cmo + $komisi);
 
-    return max($laba, 0); 
+    return max($laba, 0);
 }
 
 
@@ -124,33 +125,54 @@ class Sale extends Model
     protected static function booted()
     {
         static::created(function ($sale) {
-            if ($sale->status !== 'cancel' && $sale->vehicle && $sale->vehicle->status !== 'sold') {
-                $sale->vehicle->update(['status' => 'sold']);
-            }
+            self::syncVehicleStatus($sale->vehicle_id);
         });
 
         static::updated(function ($sale) {
-            // ke cancel -> available
-            if ($sale->isDirty('status') && $sale->status === 'cancel' && $sale->vehicle) {
-                $sale->vehicle->update(['status' => 'available']);
-            }
-
-            // dari cancel -> aktif lagi -> sold
-            if (
-                $sale->isDirty('status') &&
-                $sale->getOriginal('status') === 'cancel' &&
-                $sale->status !== 'cancel' &&
-                $sale->vehicle
-            ) {
-                $sale->vehicle->update(['status' => 'sold']);
+            if ($sale->isDirty('status')) {
+                self::syncVehicleStatus($sale->vehicle_id);
             }
         });
 
         static::deleted(function ($sale) {
-            if ($sale->vehicle && $sale->vehicle->status === 'sold') {
-                $sale->vehicle->update(['status' => 'available']);
-            }
+            self::syncVehicleStatus($sale->vehicle_id);
         });
+    }
+
+    /**
+     * Sinkronisasi status vehicle berdasarkan sales records
+     *
+     * Logic:
+     * - Jika ada 1+ sale dengan status bukan 'cancel' → vehicle status = 'sold'
+     * - Jika semua sales 'cancel' atau tidak ada sales → vehicle status = 'available'
+     * - Jika ada multiple non-cancel sales → vehicle status = 'available' (conflict/ambiguous)
+     */
+    public static function syncVehicleStatus($vehicleId)
+    {
+        try {
+            $vehicle = Vehicle::find($vehicleId);
+            if (!$vehicle) {
+                return;
+            }
+
+            // Hitung berapa sales yang active (bukan cancel)
+            $activeSalesCount = Sale::where('vehicle_id', $vehicleId)
+                ->where('status', '!=', 'cancel')
+                ->count();
+
+            // Tentukan status berdasarkan jumlah active sales
+            $newStatus = $activeSalesCount === 1 ? 'sold' : 'available';
+
+            // Update hanya jika status berbeda
+            if ($vehicle->status !== $newStatus) {
+                $vehicle->update(['status' => $newStatus]);
+            }
+        } catch (\Exception $e) {
+            // Log error tapi jangan throw - hindari transaction failure
+            Log::error("Failed to sync vehicle status for vehicle_id: {$vehicleId}", [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function cmo()

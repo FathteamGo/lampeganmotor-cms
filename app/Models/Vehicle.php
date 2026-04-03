@@ -83,9 +83,19 @@ class Vehicle extends Model
         );
     }
 
-    public function sale()
+    public function sales()
     {
-        return $this->hasOne(Sale::class);
+        return $this->hasMany(Sale::class);
+    }
+
+    /**
+     * Get the latest active (non-cancelled) sale
+     */
+    public function activeSale()
+    {
+        return $this->hasOne(Sale::class)
+            ->where('status', '!=', 'cancel')
+            ->latest('id');
     }
 
     // =======================

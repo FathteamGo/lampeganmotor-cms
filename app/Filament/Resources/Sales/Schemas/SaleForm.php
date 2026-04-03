@@ -30,8 +30,8 @@ class SaleForm
                 ->options(function ($get, $record) {
                     $query = Vehicle::with(['vehicleModel', 'color'])
                         ->where('status', 'available')
-                        ->whereDoesntHave('sale', function ($q) {
-                            $q->whereIn('status', ['proses', 'kirim']);
+                        ->whereDoesntHave('sales', function ($q) {
+                            $q->where('status', '!=', 'cancel');
                         });
 
                     // Allow current vehicle in edit mode
@@ -281,8 +281,8 @@ class SaleForm
                 ->prefix('Rp')
                 ->readOnly()
                 ->visible(fn($get) => in_array($get('payment_method'), ['credit', 'cash_tempo', 'dana_tunai']))
-                ->helperText(fn($get) => $get('payment_method') === 'dana_tunai' 
-                    ? 'OTR - DP PO - Pembayaran ke Nasabah' 
+                ->helperText(fn($get) => $get('payment_method') === 'dana_tunai'
+                    ? 'OTR - DP PO - Pembayaran ke Nasabah'
                     : null)
                 ->formatStateUsing(fn($state) =>
                     $state ? number_format($state, 0, ',', '.') : '0'
@@ -444,12 +444,12 @@ class SaleForm
 
     /**
      * Hitung sisa pembayaran otomatis (selalu return float valid)
-     * 
+     *
      * Rumus berdasarkan metode pembayaran:
      * - Credit / Cash Tempo: OTR - (DP PO + DP REAL) = Sisa Pembayaran
      * - Dana Tunai: OTR - DP PO - Pembayaran ke Nasabah = Laba Penjualan
      * - Cash / Tukar Tambah: Tidak ada sisa pembayaran
-     * 
+     *
      * Sisa pembayaran ini yang nantinya masuk ke:
      * - Tunggakan konsumen (untuk Cash Tempo)
      * - Pembayaran dari leasing (untuk Credit)

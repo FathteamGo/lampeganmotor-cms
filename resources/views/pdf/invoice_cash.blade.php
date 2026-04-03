@@ -5,34 +5,34 @@
     <title>Invoice #{{ $sale->id }}</title>
     <style>
         /* ===== BASE STYLES ===== */
-        body { 
-            font-family: 'DejaVu Sans', sans-serif; 
-            font-size: 11px; 
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 11px;
             color: #333;
             margin: 0;
             padding: 15px;
         }
-        
+
         /* ===== HEADER SECTION ===== */
-        .header { 
+        .header {
             display: table;
             width: 100%;
-            border-bottom: 2px solid #000; 
-            padding-bottom: 12px; 
-            margin-bottom: 15px; 
+            border-bottom: 2px solid #000;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
         }
-        
+
         .header-left {
             display: table-cell;
-            width: 100px;
+            width: 110px;
             vertical-align: middle;
             padding-right: 15px;
         }
 
-        .header-left img { 
-            width: 85px;
-            height: 85px;
-            object-fit: cover;
+        .header-left img {
+            width: 100px;
+            height: auto;
+            max-height: 100px;
             display: block;
             border-radius: 8px;
         }
@@ -42,17 +42,17 @@
             vertical-align: middle;
             padding-left: 5px;
         }
-        
-        .header-right h2 { 
-            margin: 0 0 4px 0; 
+
+        .header-right h2 {
+            margin: 0 0 4px 0;
             font-size: 17px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
-        .header-right p { 
-            margin: 2px 0; 
+
+        .header-right p {
+            margin: 2px 0;
             font-size: 10px;
             line-height: 1.4;
         }
@@ -73,8 +73,8 @@
             margin-bottom: 10px;
         }
 
-        .info-table td { 
-            padding: 3px 6px; 
+        .info-table td {
+            padding: 3px 6px;
             vertical-align: top;
             font-size: 11px;
         }
@@ -89,7 +89,7 @@
             border-collapse: collapse;
             margin: 10px 0;
         }
-        
+
         .detail-table th,
         .detail-table td {
             border: 1px solid #aaa;
@@ -97,8 +97,8 @@
             text-align: left;
             font-size: 11px;
         }
-        
-        .detail-table th { 
+
+        .detail-table th {
             background-color: #f0f0f0;
             font-weight: bold;
             width: 35%;
@@ -119,7 +119,7 @@
             width: 100%;
             margin-top: 30px;
         }
-        
+
         .signature table {
             width: 100%;
             border-collapse: collapse;
@@ -166,7 +166,7 @@
     <!-- Header Section -->
     <div class="header">
         <div class="header-left">
-            <img src="{{ public_path('images/logo/lampeganmtrbdg.jpg') }}" alt="Logo Lampegan Motor">
+            <img src="{{ public_path('Images/logo/lampegan.png') }}" alt="Logo Lampegan Motor">
         </div>
         <div class="header-right">
             <h2>LAMPEGAN MOTOR BDG</h2>
@@ -182,31 +182,31 @@
     <table class="info-table">
         <tr>
             <td>
-                <strong>No. Invoice:</strong> 
+                <strong>No. Invoice:</strong>
                 INV-{{ str_pad($sale->id, 4, '0', STR_PAD_LEFT) }}
             </td>
             <td>
-                <strong>Tanggal:</strong> 
+                <strong>Tanggal:</strong>
                 {{ $sale->sale_date->format('d M Y') }}
             </td>
         </tr>
         <tr>
             <td>
-                <strong>Nama Customer:</strong> 
+                <strong>Nama Customer:</strong>
                 {{ $sale->customer->name ?? '-' }}
             </td>
             <td>
-                <strong>No. Telepon:</strong> 
+                <strong>No. Telepon:</strong>
                 {{ $sale->customer->phone ?? '-' }}
             </td>
         </tr>
         <tr>
             <td>
-                <strong>Alamat:</strong> 
+                <strong>Alamat:</strong>
                 {{ $sale->customer->address ?? '-' }}
             </td>
             <td>
-                <strong>Sales:</strong> 
+                <strong>Sales:</strong>
                 {{ $sale->user->name ?? '-' }}
             </td>
         </tr>
@@ -217,7 +217,7 @@
         <tr>
             <th>Jenis Motor</th>
             <td>
-                {{ $sale->vehicle->vehicleModel->brand->name ?? '-' }} 
+                {{ $sale->vehicle->vehicleModel->brand->name ?? '-' }}
                 {{ $sale->vehicle->vehicleModel->name ?? '-' }}
             </td>
         </tr>
@@ -274,7 +274,7 @@
     <!-- Footer -->
     <div class="footer">
         <p>
-            Terima kasih telah mempercayakan pembelian kendaraan Anda di 
+            Terima kasih telah mempercayakan pembelian kendaraan Anda di
             <strong>LAMPEGAN MOTOR BDG</strong>.
         </p>
     </div>

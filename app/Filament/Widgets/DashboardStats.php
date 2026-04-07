@@ -39,7 +39,7 @@ class DashboardStats extends BaseWidget
         $periode = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
         // Total Unit Tersedia - Exclude sold out / terjual units
         $totalUnit = Vehicle::where('status', 'available')
-            ->whereDoesntHave('sale')
+            ->whereDoesntHave('activeSale')
             ->count();
         $totalUnitTerjual = Sale::valid()->whereYear('sale_date', $year)->count();
 

@@ -43,7 +43,7 @@ class ReportService
         $pengeluaran = Expense::whereBetween('expense_date', [$start, $end])->sum('amount');
         $saldo       = $pemasukan - $pengeluaran;
 
-        $stok = Vehicle::doesntHave('sale')->count();
+        $stok = Vehicle::doesntHave('activeSale')->count();
         $stnk = StnkRenewal::whereBetween('tgl', [$start, $end])->count();
 
         return [

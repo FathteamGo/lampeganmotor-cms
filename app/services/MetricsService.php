@@ -26,7 +26,7 @@ class MetricsService
         $pengeluaran = Expense::whereBetween('created_at', [$start, $end])->sum('amount');
         $saldo       = $pemasukan - $pengeluaran;
 
-        $stok = Vehicle::doesntHave('sale')->count();
+        $stok = Vehicle::doesntHave('activeSale')->count();
         $stnk = StnkRenewal::whereBetween('renewal_date', [$start, $end])->count();
 
         return [

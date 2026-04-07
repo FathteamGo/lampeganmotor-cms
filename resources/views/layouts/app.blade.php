@@ -38,7 +38,7 @@
             <div class="w-full">
                 @yield('content')
             </div>
-        </main>
+        </main>    
         
 
         {{-- Footer --}}

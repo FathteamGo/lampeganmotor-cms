@@ -129,9 +129,7 @@ class Sale extends Model
         });
 
         static::updated(function ($sale) {
-            if ($sale->isDirty('status')) {
-                self::syncVehicleStatus($sale->vehicle_id);
-            }
+            self::syncVehicleStatus($sale->vehicle_id);
         });
 
         static::deleted(function ($sale) {
@@ -161,7 +159,8 @@ class Sale extends Model
                 ->count();
 
             // Tentukan status berdasarkan jumlah active sales
-            $newStatus = $activeSalesCount === 1 ? 'sold' : 'available';
+            // Jika ada minimal 1 active sale → sold, jika tidak → available
+            $newStatus = $activeSalesCount >= 1 ? 'sold' : 'available';
 
             // Update hanya jika status berbeda
             if ($vehicle->status !== $newStatus) {

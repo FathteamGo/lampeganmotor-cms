@@ -27,9 +27,8 @@ class AvailableUnitsTable extends BaseWidget
     {
         return $table
             ->query(
-                Vehicle::query()
+                Vehicle::availableUnits()
                     ->with(['vehicleModel.brand', 'type', 'year'])
-                    ->where('status', 'available')
                     ->when($this->filters['from'], fn($q, $date) => $q->whereDate('purchase_date', '>=', $date))
                     ->when($this->filters['until'], fn($q, $date) => $q->whereDate('purchase_date', '<=', $date))
             )

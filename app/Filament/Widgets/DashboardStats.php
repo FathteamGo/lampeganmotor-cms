@@ -38,9 +38,7 @@ class DashboardStats extends BaseWidget
         $rupiah = fn($v) => 'Rp ' . number_format($v, 0, ',', '.');
         $periode = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
         // Total Unit Tersedia - Exclude sold out / terjual units
-        $totalUnit = Vehicle::where('status', 'available')
-            ->whereDoesntHave('activeSale')
-            ->count();
+        $totalUnit = Vehicle::availableUnits()->count();
         $totalUnitTerjual = Sale::valid()->whereYear('sale_date', $year)->count();
 
         // ========== PENJUALAN ==========

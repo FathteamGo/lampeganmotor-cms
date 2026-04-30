@@ -98,6 +98,15 @@ class Vehicle extends Model
             ->latest('id');
     }
 
+    /**
+     * Scope for truly available vehicles (status is 'available' AND no active sale)
+     */
+    public function scopeAvailableUnits($query)
+    {
+        return $query->where('status', 'available')
+            ->whereDoesntHave('activeSale');
+    }
+
     // =======================
     // ACCESSOR
     // =======================

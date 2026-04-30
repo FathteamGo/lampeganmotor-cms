@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Sales\Pages;
 
 use App\Filament\Resources\Sales\SaleResource;
 use App\Models\Customer;
+use App\Models\Sale;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 
@@ -23,8 +24,25 @@ class CreateSale extends CreateRecord
                 ->body('Nama customer wajib diisi')
                 ->danger()
                 ->send();
-            
+
             $this->halt();
+        }
+
+        // Validasi: kendaraan tidak boleh punya active sale
+        if (!empty($data['vehicle_id'])) {
+            $hasActiveSale = Sale::where('vehicle_id', $data['vehicle_id'])
+                ->whereIn('status', ['proses', 'kirim', 'selesai'])
+                ->exists();
+
+            if ($hasActiveSale) {
+                Notification::make()
+                    ->title('Error!')
+                    ->body('Kendaraan ini sudah ada penjualan aktif.')
+                    ->danger()
+                    ->send();
+
+                $this->halt();
+            }
         }
 
         // Create atau update customer

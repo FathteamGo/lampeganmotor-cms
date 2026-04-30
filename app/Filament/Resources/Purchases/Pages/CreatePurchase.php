@@ -116,27 +116,29 @@ class CreatePurchase extends CreateRecord
             } else {
                 // Jika ada duplikat, ambil data kendaraan yang sudah ada
                 $vehicle = Vehicle::where('vin', $data['vin'])
-                            // ->orWhere('engine_number', $data['engine_number']) // Lebih aman based on VIN saja untuk menghindari ambiguitas, atau tetap biarkan dual check jika business logic memerlukannya. Mari kita pertahankan logika asli tapi tambahkan update.
                             ->orWhere('engine_number', $data['engine_number'])
                             ->first();
 
+                // Cek apakah kendaraan masih punya active sale (non-cancel)
+                // Jika ada, JANGAN rubah status - kendaraan masih dalam proses penjualan
+                $hasActiveSale = \App\Models\Sale::where('vehicle_id', $vehicle->id)
+                    ->where('status', '!=', 'cancel')
+                    ->exists();
+
                 // UPDATE DATA KENDARAAN EXISTING (BUYBACK / RESTOCK)
-                // Ini penting agar status 'sold' berubah kembali menjadi 'available'
-                // dan data-data baru (harga beli baru, km baru, dll) terupdate.
-                $vehicle->update([
-                    'status' => 'available', // KUNCI UTAMA PERBAIKAN: Aktifkan kembali stok
-                    
+                // Hanya ubah status ke 'available' jika tidak ada active sale
+                $updateData = [
                     // Update spesifikasi fisik (jika ada perubahan/koreksi input)
                     'vehicle_model_id' => $model->id,
                     'type_id' => $type->id,
                     'color_id' => $color->id,
                     'year_id' => $year->id,
-                    
+
                     // Update data transaksional & kondisi
                     'purchase_price' => $data['purchase_price'], // Update harga beli terbaru
                     'sale_price' => $data['sale_price'] ?? null, // Reset/Update harga jual
                     'down_payment' => $data['down_payment'] ?? null,
-                    
+
                     // Update identitas legal & kondisi fisik
                     'license_plate' => $data['license_plate'] ?? $vehicle->license_plate,
                     'bpkb_number' => $data['bpkb_number'] ?? $vehicle->bpkb_number,
@@ -144,9 +146,24 @@ class CreatePurchase extends CreateRecord
                     'engine_specification' => $data['engine_specification'] ?? $vehicle->engine_specification,
                     'location' => $data['location'] ?? $vehicle->location,
                     'notes' => $data['vehicle_notes'] ?? $vehicle->notes,
-                ]);
-                
-                Log::info('Vehicle updated for buyback', ['vehicle_id' => $vehicle->id, 'old_status' => 'sold', 'new_status' => 'available']);
+                ];
+
+                // Hanya set available jika tidak ada active sale
+                if (!$hasActiveSale) {
+                    $updateData['status'] = 'available';
+                    Log::info('Vehicle buyback approved - status set to available', [
+                        'vehicle_id' => $vehicle->id,
+                        'license_plate' => $vehicle->license_plate
+                    ]);
+                } else {
+                    Log::info('Vehicle buyback blocked - has active sale', [
+                        'vehicle_id' => $vehicle->id,
+                        'license_plate' => $vehicle->license_plate,
+                        'status' => 'sold'
+                    ]);
+                }
+
+                $vehicle->update($updateData);
             }
 
             Log::info('Vehicle created successfully', ['vehicle_id' => $vehicle->id]);

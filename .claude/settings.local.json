@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "PowerShell(cd D:\\\\01_WEB\\\\01_Projects\\\\lampeganmotor-cms; php artisan tinker --execute=\"use App\\\\Models\\\\Vehicle; use App\\\\Models\\\\Sale; \\\\$inconsistent = Vehicle::where\\('status', 'available'\\)->whereHas\\('sales', function\\(\\\\$q\\) { \\\\$q->where\\('status', '!=', 'cancel'\\); }\\)->with\\(['activeSale', 'sales']\\)->get\\(\\); echo 'Jumlah: ' . \\\\$inconsistent->count\\(\\) . ' unit\\\\n\\\\n'; foreach \\(\\\\$inconsistent as \\\\$v\\) { echo 'ID: ' . \\\\$v->id . ' | Nopol: ' . \\(\\\\$v->license_plate ?? '-'\\) . ' | Status: ' . \\\\$v->status . '\\\\n'; foreach \\(\\\\$v->sales->where\\('status', '!=', 'cancel'\\) as \\\\$sale\\) { echo '  Sale#' . \\\\$sale->id . ' | Status: ' . \\\\$sale->status . '\\\\n'; } echo '\\\\n'; }\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}

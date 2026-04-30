@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 
+use App\Models\Sale;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -70,12 +71,18 @@ class Purchase extends Model
   protected static function booted()
     {
         static::saved(function ($purchase) {
-            // Ketika purchase disimpan, pastikan kendaraan berada pada status 'available' di dealer.
-            // Sebelumnya hanya mengubah jika status === 'hold'. Untuk mengakomodir kasus
-            // kendaraan yang sebelumnya 'sold' (dikembalikan/dibeli lagi), kita set ke 'available'
-            // jika status saat ini bukan 'available'.
+            // Pastikan kendaraan dalam status 'available' JIKA tidak ada active sale
+            // Jika kendaraan punya active sale (sedang dalam proses penjualan),
+            // biarkan status tetap 'sold'
             if ($purchase->vehicle && $purchase->vehicle->status !== 'available') {
-                $purchase->vehicle->update(['status' => 'available']);
+                $hasActiveSale = Sale::where('vehicle_id', $purchase->vehicle->id)
+                    ->where('status', '!=', 'cancel')
+                    ->exists();
+
+                // Hanya set available jika tidak ada active sale
+                if (!$hasActiveSale) {
+                    $purchase->vehicle->update(['status' => 'available']);
+                }
             }
         });
     }

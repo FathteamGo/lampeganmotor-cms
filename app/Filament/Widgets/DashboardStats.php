@@ -47,83 +47,13 @@ class DashboardStats extends BaseWidget
         $terjualTahunIni = (clone $salesQuery)->count();
 
         // Ambil data sales untuk dihitung labanya
+        // Gunakan laba_kotor dari model Sale — sumber kebenaran tunggal (sama dengan P&L Report)
         $salesBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->get();
         $salesTahunIni = (clone $salesQuery)->get();
 
-        // HITUNG LABA PENJUALAN
-        $labaPenjualanBulanIni = 0;
-        $labaPenjualanTahunIni = 0;
-
-        // Hitung Laba Bulan Ini
-        foreach ($salesBulanIni as $sale) {
-            if (!$sale->vehicle) continue;
-
-            $otr = floatval($sale->sale_price ?? 0);
-            $dpPo = floatval($sale->dp_po ?? 0);
-            $dpReal = floatval($sale->dp_real ?? 0);
-            $purchasePrice = floatval($sale->vehicle->purchase_price ?? 0);
-
-            switch ($sale->payment_method) {
-                case 'credit':
-                    // Kredit: OTR - DP PO - DP REAL - Harga Pembelian
-                    $labaPenjualanBulanIni += ($otr - $dpPo - $dpReal - $purchasePrice);
-                    break;
-
-                case 'cash':
-                    // Cash: OTR - Harga Pembelian
-                    $labaPenjualanBulanIni += ($otr - $purchasePrice);
-                    break;
-
-                case 'cash_tempo':
-                    // Cash Tempo: OTR - Harga Pembelian
-                    $labaPenjualanBulanIni += ($otr - $purchasePrice);
-                    break;
-
-                case 'dana_tunai':
-                    // Dana Tunai: OTR - DP PO - Pembayaran ke Nasabah
-                    $paymentToCustomer = floatval($sale->payment_to_customer ?? 0);
-                    $labaPenjualanBulanIni += ($otr - $dpPo - $paymentToCustomer);
-                    break;
-
-                case 'tukartambah':
-                    // Tukar Tambah: OTR - Harga Pembelian
-                    $labaPenjualanBulanIni += ($otr - $purchasePrice);
-                    break;
-            }
-        }
-
-        // Hitung Laba Tahun Ini
-        foreach ($salesTahunIni as $sale) {
-            if (!$sale->vehicle) continue;
-
-            $otr = floatval($sale->sale_price ?? 0);
-            $dpPo = floatval($sale->dp_po ?? 0);
-            $dpReal = floatval($sale->dp_real ?? 0);
-            $purchasePrice = floatval($sale->vehicle->purchase_price ?? 0);
-
-            switch ($sale->payment_method) {
-                case 'credit':
-                    $labaPenjualanTahunIni += ($otr - $dpPo - $dpReal - $purchasePrice);
-                    break;
-
-                case 'cash':
-                    $labaPenjualanTahunIni += ($otr - $purchasePrice);
-                    break;
-
-                case 'cash_tempo':
-                    $labaPenjualanTahunIni += ($otr - $purchasePrice);
-                    break;
-
-                case 'dana_tunai':
-                    $paymentToCustomer = floatval($sale->payment_to_customer ?? 0);
-                    $labaPenjualanTahunIni += ($otr - $dpPo - $paymentToCustomer);
-                    break;
-
-                case 'tukartambah':
-                    $labaPenjualanTahunIni += ($otr - $purchasePrice);
-                    break;
-            }
-        }
+        // HITUNG LABA PENJUALAN — pakai laba_kotor attribute agar identik dengan P&L Report
+        $labaPenjualanBulanIni = $salesBulanIni->sum('laba_kotor');
+        $labaPenjualanTahunIni = $salesTahunIni->sum('laba_kotor');
 
         // ========== CASH TEMPO TRACKING ==========
         $cashTempoQuery = Sale::with('vehicle')->valid()

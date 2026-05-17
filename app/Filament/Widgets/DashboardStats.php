@@ -66,7 +66,7 @@ class DashboardStats extends BaseWidget
             switch ($sale->payment_method) {
                 case 'credit':
                     // Kredit: OTR - DP PO - DP REAL - Harga Pembelian
-                    $labaPenjualanBulanIni += ($otr - $dpPo + $dpReal - $purchasePrice);
+                    $labaPenjualanBulanIni += ($otr - $dpPo - $dpReal - $purchasePrice);
                     break;
 
                 case 'cash':

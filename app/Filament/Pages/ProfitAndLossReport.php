@@ -95,11 +95,12 @@ class ProfitAndLossReport extends Page
     {
         $range = [$this->dateStart, $this->dateEnd];
 
-        // SALES
-        $this->totalSales = (float) Sale::query()
-            ->where('status', '!=', 'CANCEL')
+        // SALES (Laba Kotor)
+        $this->totalSales = (float) Sale::valid()
+            ->with('vehicle')
             ->whereBetween('sale_date', $range)
-            ->sum('sale_price');
+            ->get()
+            ->sum('laba_kotor');
 
         // INCOME
         $this->totalIncomes = (float) Income::query()

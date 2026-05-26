@@ -75,6 +75,52 @@ Route::get('/set-locale/{locale}', function ($locale) {
 
 Route::get('/test-report', [TesReportInsight::class, 'index']);
 
+Route::get('/debug-queue', function () {
+    return [
+        'queue_connection_env' => env('QUEUE_CONNECTION'),
+        'queue_connection_config' => config('queue.default'),
+        'db_connection' => config('database.default'),
+    ];
+});
+
+Route::get('/test3', function () {
+    $start = microtime(true);
+    \App\Jobs\GenerateWeeklyReportJob::dispatch();
+    $time = microtime(true) - $start;
+    return "Job Dispatched in {$time} seconds! Check the terminal worker now.";
+});
+
+Route::get('/test1', function () {
+    // Generate a weekly report asynchronously in the background via queue
+    \App\Jobs\GenerateWeeklyReportJob::dispatch();
+
+    return response('Hana AI sedang mempersiapkan laporan mingguan Lampegan Motor di latar belakang, Bos! Laporan akan segera dikirimkan ke nomor WhatsApp Anda. Silakan ditunggu ya, Bos! 🌸');
+});
+
+Route::get('/test2', function () {
+    // Generate a 30-day strategic recap asynchronously in the background via queue
+    \App\Jobs\Generate30DayInsightJob::dispatch();
+
+    return response('Hana AI sedang memproses analisis bisnis mendalam selama 30 hari ke belakang. Insight strategis akan segera mendarat di WhatsApp Bos! 🌸');
+});
+
+// Route untuk cron job - menjalankan weekly report + 30-day insight sekaligus
+Route::get('/send_report_ai_agent', function () {
+    // Dispatch weekly report job
+    \App\Jobs\GenerateWeeklyReportJob::dispatch();
+
+    // Dispatch 30-day insight job (delayed 30 seconds to avoid rate limiting on AI/WA)
+    \App\Jobs\Generate30DayInsightJob::dispatch()->delay(now()->addSeconds(30));
+
+    \Illuminate\Support\Facades\Log::info('Cron: send_report_ai_agent triggered - both jobs dispatched.');
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Weekly report dan 30-day insight telah di-dispatch ke queue.',
+        'dispatched_at' => now()->toDateTimeString(),
+    ]);
+});
+
 
 Route::post('/weekly-report/{report}/dismiss', [WeeklyReportController::class, 'dismiss'])
     ->name('weekly-report.dismiss')

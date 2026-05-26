@@ -17,10 +17,8 @@ class WaService
         $username = config('services.wa_gateway.username');
         $password = config('services.wa_gateway.password');
 
-        // Ambil nomor penerima dari DB (nomor gateway)
-        $recipientNumber = WhatsAppNumber::where('is_active', true)
-                    ->where('is_report_gateway', true)
-                    ->value('number');
+        // Gunakan nomor yang diberikan atau fallback ke env WHATSAPP_NUMBER
+        $recipientNumber = $phone ?: env('WHATSAPP_NUMBER');
 
         if (!$url || !$username || !$password || !$recipientNumber || trim($text) === '') {
             $msg = "WA Service: Konfigurasi tidak lengkap atau data kosong.";

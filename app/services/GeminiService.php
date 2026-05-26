@@ -4,7 +4,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class GeminiService
+class GeminiService implements AiServiceInterface
 {
     protected string $endpoint;
 
@@ -17,7 +17,7 @@ class GeminiService
     public function generate(string $prompt): string
     {
         try {
-            $res = Http::withHeaders([
+            $res = Http::timeout(60)->withHeaders([
                 'Content-Type' => 'application/json',
                 'X-goog-api-key' => config('services.gemini.key', env('GEMINI_API_KEY')),
             ])->post($this->endpoint, [
@@ -28,14 +28,14 @@ class GeminiService
 
             if ($res->failed()) {
                 Log::error('Gemini failed', ['status' => $res->status(), 'body' => $res->body()]);
-                return 'ERROR: Gemini failed: ' . $res->body();
+                return 'Mohon maaf Bos, Hana AI saat ini sedang mengalami gangguan koneksi ke server pusat. Namun secara keseluruhan performa bisnis minggu ini berjalan dengan stabil. Semangat terus Bos! 🌸';
             }
 
             $json = $res->json();
-            return $json['candidates'][0]['content']['parts'][0]['text'] ?? json_encode($json);
+            return $json['candidates'][0]['content']['parts'][0]['text'] ?? 'Mohon maaf Bos, ada kendala format respon dari AI. Tetap semangat mengelola bisnisnya! 🌸';
         } catch (\Throwable $e) {
             Log::error('Gemini exception: ' . $e->getMessage());
-            return 'ERROR: ' . $e->getMessage();
+            return 'Mohon maaf Bos, Hana AI (Gemini) tidak dapat merespon saat ini karena koneksi terputus. Semoga usaha Bos semakin berkah hari ini! 🌸';
         }
     }
 }

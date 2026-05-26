@@ -40,13 +40,16 @@ class VisitorStats extends BaseWidget
             ->whereBetween('visited_at', [$startDate, $endDate])
             ->count();
 
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
         $bulanIni = DB::table('visitors')
-            ->whereMonth('visited_at', Carbon::now()->month)
-            ->whereYear('visited_at', Carbon::now()->year)
+            ->whereBetween('visited_at', [$startOfMonth, $endOfMonth])
             ->count();
 
+        $startOfYear = Carbon::now()->startOfYear();
+        $endOfYear = Carbon::now()->endOfYear();
         $tahunIni = DB::table('visitors')
-            ->whereYear('visited_at', Carbon::now()->year)
+            ->whereBetween('visited_at', [$startOfYear, $endOfYear])
             ->count();
 
         return [

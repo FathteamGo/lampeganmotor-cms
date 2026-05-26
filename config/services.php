@@ -41,6 +41,14 @@ return [
         'password' => env('WA_GATEWAY_PASSWORD', '126126'),
     ],
 
+    // OpenRouter configuration
+    'openrouter' => [
+        'endpoint' => env('OPENROUTER_ENDPOINT', 'https://openrouter.ai/api/v1/chat/completions'),
+        'api_key'   => env('OPENROUTER_API_KEY'),
+        // Default model can be overridden via env OPENROUTER_MODEL if needed
+        'model'     => env('OPENROUTER_MODEL', 'meta-llama/Meta-Llama-3.1-8B-Instruct'),
+    ],
+
     // di file config/services.php (tambah di array return)
     'gemini' => [
         'key'   => env('GEMINI_API_KEY', 'AIzaSyAPPtRju7KNXD30PJLJWdLMIHCOL0uJtN8'),

@@ -13,9 +13,11 @@ class VisitorChart extends ChartWidget
     protected function getData(): array
     {
         $currentYear = now()->year;
+        $startOfYear = \Carbon\Carbon::create($currentYear)->startOfYear();
+        $endOfYear = \Carbon\Carbon::create($currentYear)->endOfYear();
 
         $data = Visitor::selectRaw('MONTH(visited_at) as bulan, COUNT(*) as total')
-            ->whereYear('visited_at', $currentYear)
+            ->whereBetween('visited_at', [$startOfYear, $endOfYear])
             ->groupBy('bulan')
             ->orderBy('bulan')
             ->get()

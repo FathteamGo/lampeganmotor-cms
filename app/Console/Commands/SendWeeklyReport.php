@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\ReportService;
-use App\Services\GeminiService;
+use App\Services\OpenRouterService;
 use App\Services\WaService;
 use Illuminate\Support\Number;
 use App\Models\WhatsAppNumber;
@@ -17,11 +17,11 @@ class SendWeeklyReport extends Command
 
     public function handle(
         ReportService $reportService,
-        GeminiService $gemini,
+        OpenRouterService $openRouter,
         WaService $wa
     ) {
         // Simpan laporan minggu ini (dengan insight AI)
-        $report = $reportService->saveWeeklyReport($gemini);
+        $report = $reportService->saveWeeklyReport($openRouter);
 
         // Cari laporan minggu lalu
         $lastWeek = WeeklyReport::where('end_date', '<', $report->start_date)

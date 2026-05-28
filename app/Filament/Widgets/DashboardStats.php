@@ -42,7 +42,7 @@ class DashboardStats extends BaseWidget
         $totalUnitTerjual = Sale::valid()->whereYear('sale_date', $year)->count();
 
         // ========== PENJUALAN ==========
-        $salesQuery = Sale::with('vehicle')->valid()->whereYear('sale_date', $year);
+        $salesQuery = Sale::with(['vehicle', 'purchase.additionalCosts'])->valid()->whereYear('sale_date', $year);
         $terjualBulanIni = (clone $salesQuery)->whereMonth('sale_date', $month)->count();
         $terjualTahunIni = (clone $salesQuery)->count();
 

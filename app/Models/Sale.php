@@ -41,6 +41,7 @@ class Sale extends Model
     public function user() { return $this->belongsTo(User::class, 'user_id'); }
     public function incomes() { return $this->hasMany(Income::class, 'sale_id'); }
     public function expenses() { return $this->hasMany(Expense::class, 'sale_id'); }
+    public function purchase() { return $this->hasOne(Purchase::class, 'vehicle_id', 'vehicle_id'); }
 
     // =======================
     // SCOPES
@@ -79,29 +80,22 @@ class Sale extends Model
 
   public function getLabaKotorAttribute()
   {
-      $hargaBeli = (float) optional($this->vehicle)->purchase_price;
       $otr = (float) ($this->sale_price ?? 0);
       $dpPo = (float) ($this->dp_po ?? 0);
       $dpReal = (float) ($this->dp_real ?? 0);
-      $pencairan = (float) ($this->pencairan ?? 0);
-  
-      $laba = 0;
-  
-      switch ($this->payment_method) {
-          case 'credit':
-              $laba = $otr - $dpPo - $dpReal - $hargaBeli;
-              break;
-          case 'cash':
-          case 'cash_tempo':
-          case 'tukartambah':
-              $laba = $otr - $hargaBeli;
-              break;
-          case 'dana_tunai':
-              $laba = $otr - $dpPo - $pencairan;
-              break;
+      
+      $purchase = $this->purchase;
+      $hargaTotalPembelian = $purchase ? (float) $purchase->grand_total : 0;
+      
+      if ($hargaTotalPembelian == 0) {
+          $hargaTotalPembelian = (float) optional($this->vehicle)->purchase_price;
       }
-  
-      return max($laba, 0);
+      
+      return match($this->payment_method) {
+          'credit' => $otr - $dpPo + $dpReal - $hargaTotalPembelian,
+          'cash', 'cash_tempo', 'tukartambah' => $otr - $hargaTotalPembelian,
+          default => $otr - $hargaTotalPembelian
+      };
   }
 
   public function getLabaBersihAttribute()
@@ -113,7 +107,7 @@ class Sale extends Model
     // Kurangi biaya (cmo & komisi)
     $laba -= ($cmo + $komisi);
 
-    return max($laba, 0);
+    return $laba;
 }
 
 

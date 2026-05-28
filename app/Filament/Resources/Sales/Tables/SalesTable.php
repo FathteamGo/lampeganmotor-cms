@@ -68,7 +68,21 @@ class SalesTable
                             return 0;
                         }
                         return self::calculateLabaKotor($record);
-                    }),
+                    })
+                    ->summarize(
+                        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                            ->using(function (\Illuminate\Database\Query\Builder $query) {
+                                $ids = $query->pluck('sales.id');
+                                return \App\Models\Sale::with(['vehicle', 'purchase.additionalCosts'])
+                                    ->whereIn('sales.id', $ids)
+                                    ->get()
+                                    ->sum(function ($record) {
+                                        if ($record->status === 'cancel') return 0;
+                                        return self::calculateLabaKotor($record);
+                                    });
+                            })
+                            ->money('IDR', locale: 'id')
+                    ),
 
                 // Kolom Laba Bersih dengan rumus yang benar
                 TextColumn::make('laba_bersih')
@@ -87,7 +101,23 @@ class SalesTable
 
                         // Laba Bersih = Laba Kotor - Pengeluaran
                         return $labaKotor - $pengeluaran;
-                    }),
+                    })
+                    ->summarize(
+                        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                            ->using(function (\Illuminate\Database\Query\Builder $query) {
+                                $ids = $query->pluck('sales.id');
+                                return \App\Models\Sale::with(['vehicle', 'purchase.additionalCosts'])
+                                    ->whereIn('sales.id', $ids)
+                                    ->get()
+                                    ->sum(function ($record) {
+                                        if ($record->status === 'cancel') return 0;
+                                        $labaKotor = self::calculateLabaKotor($record);
+                                        $pengeluaran = ($record->cmo_fee ?? 0) + ($record->direct_commission ?? 0);
+                                        return $labaKotor - $pengeluaran;
+                                    });
+                            })
+                            ->money('IDR', locale: 'id')
+                    ),
 
                 TextColumn::make('payment_method')
                     ->label('Metode Pembayaran')
@@ -188,6 +218,17 @@ class SalesTable
                     }),
             ])
 
+            ->headerActions([
+                Action::make('export_excel')
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->action(function ($livewire) {
+                        $records = $livewire->getFilteredTableQuery()->with(['customer', 'vehicle.vehicleModel', 'purchase.additionalCosts'])->get();
+                        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SalesListExport($records), 'Data_Penjualan_'.date('YmdHis').'.xlsx');
+                    })
+            ])
+
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
@@ -236,38 +277,6 @@ class SalesTable
      */
     private static function calculateLabaKotor($record): float
     {
-        $otr = $record->sale_price ?? 0;
-        $dpPo = $record->dp_po ?? 0;
-        $dpReal = $record->dp_real ?? 0;
-
-        // Ambil purchase berdasarkan vehicle_id
-        $purchase = \App\Models\Purchase::where('vehicle_id', $record->vehicle_id)->first();
-
-        // Gunakan grand_total attribute (total_price + additional costs)
-        $hargaTotalPembelian = $purchase ? $purchase->grand_total : 0;
-
-        // Fallback: kalau grand_total = 0, pakai vehicle.purchase_price
-        if ($hargaTotalPembelian == 0) {
-            $hargaTotalPembelian = $record->vehicle?->purchase_price ?? 0;
-        }
-
-        // Hitung laba kotor berdasarkan metode pembayaran
-        return match($record->payment_method) {
-            // Credit: OTR - DP PO - DP REAL - Harga Total Pembelian
-            'credit' => $otr - $dpPo + $dpReal - $hargaTotalPembelian,
-
-            // Cash: OTR - Harga Total Pembelian
-            'cash' => $otr - $hargaTotalPembelian,
-
-            // Cash Tempo: OTR - Harga Total Pembelian
-            // Sisa pembayaran masuk ke tunggakan customer (aset)
-            'cash_tempo' => $otr - $hargaTotalPembelian,
-
-            // Tukar Tambah: OTR - Harga Total Pembelian
-            'tukartambah' => $otr - $hargaTotalPembelian,
-
-            // Default untuk metode lain
-            default => $otr - $hargaTotalPembelian
-        };
+        return (float) $record->laba_kotor;
     }
 }

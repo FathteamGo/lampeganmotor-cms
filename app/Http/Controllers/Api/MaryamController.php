@@ -268,11 +268,12 @@ class MaryamController extends Controller
 
     /**
      * Check API key access — only Cecep & Bos Iqbal
+     * Accepts header X-API-Key OR query param ?key=
      * ABORTS with 401 if unauthorized
      */
     private function checkAccess(Request $request): string
     {
-        $apiKey = $request->header('X-API-Key');
+        $apiKey = $request->header('X-API-Key') ?? $request->query('key');
         $validKeys = [
             'lampegan-maryam-2026' => 'cecep',      // Prof. Cecep
             'lampegan-iqbal-2026' => 'iqbal',        // Bos Iqbal

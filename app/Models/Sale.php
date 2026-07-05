@@ -81,21 +81,18 @@ class Sale extends Model
   public function getLabaKotorAttribute()
   {
       $otr = (float) ($this->sale_price ?? 0);
-      $dpPo = (float) ($this->dp_po ?? 0);
-      $dpReal = (float) ($this->dp_real ?? 0);
-      
+
       $purchase = $this->purchase;
       $hargaTotalPembelian = $purchase ? (float) $purchase->grand_total : 0;
-      
+
       if ($hargaTotalPembelian == 0) {
           $hargaTotalPembelian = (float) optional($this->vehicle)->purchase_price;
       }
-      
-      return match($this->payment_method) {
-          'credit' => $otr - $dpPo + $dpReal - $hargaTotalPembelian,
-          'cash', 'cash_tempo', 'tukartambah' => $otr - $hargaTotalPembelian,
-          default => $otr - $hargaTotalPembelian
-      };
+
+      // Laba Kotor = OTR - Modal (untuk semua metode pembayaran)
+      // DP (dp_po, dp_real) adalah informasi pembayaran customer ke leasing,
+      // bukan biaya dealer — tidak mempengaruhi laba kotor.
+      return $otr - $hargaTotalPembelian;
   }
 
   public function getLabaBersihAttribute()

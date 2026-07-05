@@ -76,7 +76,7 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
         // 🔹 Hitung Pencairan sesuai metode pembayaran
         $pencairan = match ($sale->payment_method) {
             'cash', 'tukartambah' => $salePrice,
-            'credit', 'cash_tempo' => $dpReal + ($sale->remaining_payment ?? 0),
+            'credit', 'cash_tempo' => $salePrice, // leasing bayar full OTR ke dealer
             default => $salePrice
         };
 

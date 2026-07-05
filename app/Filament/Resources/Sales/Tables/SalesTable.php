@@ -252,26 +252,16 @@ class SalesTable
     /**
      * Hitung Laba Kotor berdasarkan metode pembayaran
      *
-     * RUMUS PER METODE PEMBAYARAN:
+     * RUMUS (semua metode pembayaran):
+     * Laba Kotor = OTR - Harga Total Pembelian
+     *
+     * DP (dp_po, dp_real) adalah informasi pembayaran customer ke leasing,
+     * bukan biaya dealer — tidak mempengaruhi laba kotor.
      *
      * CATATAN PENTING:
      * Harga Total Pembelian diambil dari purchases.grand_total
      * (sudah termasuk harga motor + semua biaya tambahan seperti STNK, pajak, service, dll)
      * Kalau data purchase tidak ada atau 0, pakai vehicle.purchase_price
-     *
-     * 1. CREDIT (Kredit via Leasing):
-     *    Laba Kotor = OTR - DP PO - DP REAL - Harga Total Pembelian
-     *    Catatan: Sisa pembayaran (OTR - DP PO - DP REAL) masuk ke leasing
-     *
-     * 2. CASH (Tunai):
-     *    Laba Kotor = OTR - Harga Total Pembelian
-     *
-     * 3. CASH TEMPO (Tempo dari Customer):
-     *    Laba Kotor = OTR - Harga Total Pembelian
-     *    Catatan: Sisa pembayaran masuk tunggakan customer (dicatat sebagai aset)
-     *
-     * 4. TUKAR TAMBAH:
-     *    Laba Kotor = OTR - Harga Total Pembelian
      *
      * LABA BERSIH = Laba Kotor - Pengeluaran (Fee CMO + Komisi Langsung)
      */

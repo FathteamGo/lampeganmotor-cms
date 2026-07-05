@@ -157,11 +157,13 @@ class SaleInfolist
 
     /**
      * Hitung Laba Kotor berdasarkan metode pembayaran
-     * 
-     * RUMUS:
-     * - Credit: OTR - DP PO - DP REAL - Modal
-     * - Cash/Cash Tempo/Tukar Tambah: OTR - Modal
-     * 
+     *
+     * RUMUS (semua metode):
+     * Laba Kotor = OTR - Modal
+     *
+     * DP (dp_po, dp_real) adalah informasi pembayaran customer ke leasing,
+     * bukan biaya dealer — tidak mempengaruhi laba kotor.
+     *
      * Modal = Harga motor + biaya tambahan (STNK, pajak, dll)
      * Kalau data purchase tidak ada atau 0, pakai vehicle.purchase_price
      * Laba Bersih = Laba Kotor - Fee CMO - Komisi Langsung
@@ -169,22 +171,17 @@ class SaleInfolist
     private static function calculateLabaKotor($record): float
     {
         $otr = $record->sale_price ?? 0;
-        $dpPo = $record->dp_po ?? 0;
-        $dpReal = $record->dp_real ?? 0;
-        
+
         // Ambil modal (harga motor + biaya tambahan)
         $purchase = \App\Models\Purchase::where('vehicle_id', $record->vehicle_id)->first();
         $modal = $purchase ? $purchase->grand_total : 0;
-        
+
         // Fallback: kalau grand_total = 0, pakai vehicle.purchase_price
         if ($modal == 0) {
             $modal = $record->vehicle?->purchase_price ?? 0;
         }
 
-        // Hitung laba kotor
-        return match($record->payment_method) {
-            'credit' => $otr - $dpPo + $dpReal - $modal,
-            default => $otr - $modal
-        };
+        // Laba Kotor = OTR - Modal (semua metode pembayaran sama)
+        return $otr - $modal;
     }
 }

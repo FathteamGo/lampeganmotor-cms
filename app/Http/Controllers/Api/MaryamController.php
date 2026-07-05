@@ -268,8 +268,9 @@ class MaryamController extends Controller
 
     /**
      * Check API key access — only Cecep & Bos Iqbal
+     * ABORTS with 401 if unauthorized
      */
-    private function checkAccess(Request $request)
+    private function checkAccess(Request $request): string
     {
         $apiKey = $request->header('X-API-Key');
         $validKeys = [
@@ -278,13 +279,11 @@ class MaryamController extends Controller
         ];
 
         if (!isset($validKeys[$apiKey])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized — akses hanya untuk Cecep & Bos Iqbal',
-            ], 401);
+            abort(401, 'Unauthorized — akses hanya untuk Cecep & Bos Iqbal');
         }
 
         // Store who's asking for audit
         $request->merge(['_access_by' => $validKeys[$apiKey]]);
+        return $validKeys[$apiKey];
     }
 }

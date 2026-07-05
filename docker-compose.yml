@@ -1,0 +1,58 @@
+services:
+  app:
+    image: php:8.2-cli
+    container_name: lampegan-app
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./storage:/app/storage
+    ports:
+      - "9091:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:9091
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: lampeganmotor
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    command: >
+      sh -c "
+        apt-get update -qq &&
+        apt-get install -y -qq git unzip default-mysql-client libpng-dev libjpeg-dev libfreetype6-dev libonig-dev libzip-dev libxml2-dev libcurl4-openssl-dev pkg-config libssl-dev libicu-dev &&
+        docker-php-ext-configure gd --with-freetype --with-jpeg &&
+        docker-php-ext-configure intl &&
+        docker-php-ext-install -j$(nproc) pdo pdo_mysql mbstring xml curl zip gd bcmath intl &&
+        curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer &&
+        git config --global --add safe.directory /app &&
+        composer install --no-interaction --no-progress --prefer-dist &&
+        php artisan key:generate &&
+        php artisan migrate --force &&
+        php artisan storage:link &&
+        php artisan serve --host=0.0.0.0 --port=8000
+      "
+
+  mysql:
+    image: mariadb:11
+    container_name: lampegan-mysql
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: lampeganmotor
+      MARIADB_USER: lampegan
+      MARIADB_PASSWORD: lampegan
+    ports:
+      - "3307:3306"
+    volumes:
+      - lampegan_mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  lampegan_mysqldata:

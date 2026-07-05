@@ -16,17 +16,11 @@ use Carbon\Carbon;
 class MaryamController extends Controller
 {
     /**
-     * Middleware: simple API key check
-     * Header: X-API-Key: lampegan-maryam-2026
-     */
-
-    /**
      * GET /api/maryam/dashboard
      * Ringkasan dashboard untuk CS
      */
     public function dashboard(Request $request)
     {
-        $this->checkAccess($request);
 
         $today = Carbon::now();
         $startOfWeek = $today->copy()->startOfWeek(Carbon::MONDAY);
@@ -87,8 +81,6 @@ class MaryamController extends Controller
      */
     public function sales(Request $request)
     {
-        $this->checkAccess($request);
-
         $query = Sale::where('status', '!=', 'cancel')
             ->with(['vehicle.vehicleModel.brand', 'customer'])
             ->orderByDesc('sale_date');
@@ -125,8 +117,6 @@ class MaryamController extends Controller
      */
     public function vehicles(Request $request)
     {
-        $this->checkAccess($request);
-
         $query = Vehicle::where('status', 'tersedia')
             ->with(['vehicleModel.brand', 'color'])
             ->orderByDesc('created_at');
@@ -159,8 +149,6 @@ class MaryamController extends Controller
      */
     public function weeklyReport(Request $request)
     {
-        $this->checkAccess($request);
-
         $report = WeeklyReport::orderByDesc('end_date')->first();
 
         if (!$report) {
@@ -198,8 +186,6 @@ class MaryamController extends Controller
      */
     public function weeklySummary(Request $request)
     {
-        $this->checkAccess($request);
-
         $today = Carbon::now();
 
         // Default: minggu lalu (Senin-Minggu)
@@ -266,25 +252,4 @@ class MaryamController extends Controller
         ]);
     }
 
-    /**
-     * Check API key access — only Cecep & Bos Iqbal
-     * Accepts header X-API-Key OR query param ?key=
-     * ABORTS with 401 if unauthorized
-     */
-    private function checkAccess(Request $request): string
-    {
-        $apiKey = $request->header('X-API-Key') ?? $request->query('key');
-        $validKeys = [
-            'lampegan-maryam-2026' => 'cecep',      // Prof. Cecep
-            'lampegan-iqbal-2026' => 'iqbal',        // Bos Iqbal
-        ];
-
-        if (!isset($validKeys[$apiKey])) {
-            abort(401, 'Unauthorized — akses hanya untuk Cecep & Bos Iqbal');
-        }
-
-        // Store who's asking for audit
-        $request->merge(['_access_by' => $validKeys[$apiKey]]);
-        return $validKeys[$apiKey];
-    }
 }

@@ -73,15 +73,12 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             $salePrice = $dpPo = $dpReal = $cmoFee = $directCommission = 0;
         }
 
-        // 🔹 Hitung Pencairan sesuai metode pembayaran
-        $pencairan = match ($sale->payment_method) {
-            'cash', 'tukartambah' => $salePrice,
-            'credit', 'cash_tempo' => $salePrice, // leasing bayar full OTR ke dealer
-            default => $salePrice
-        };
+        // 🔹 Hitung Harga Total Penjualan (rumus Bos Iqbal)
+        $hargaTotalPenjualan = $salePrice - $dpPo + $dpReal;
+        $pencairan = $hargaTotalPenjualan; // untuk kolom export
 
-        // 🔹 Hitung Laba Bersih
-        $labaBersih = $pencairan - $purchasePrice - $cmoFee - $directCommission;
+        // 🔹 Hitung Laba Bersih = Harga Total Penjualan - Modal - CMO - Sales
+        $labaBersih = $hargaTotalPenjualan - $purchasePrice - $cmoFee - $directCommission;
 
         return [
             $this->rowNumber,

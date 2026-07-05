@@ -31,7 +31,7 @@ class Sale extends Model
         'dp_real' => 'decimal:2',
     ];
 
-    protected $appends = ['pencairan', 'laba_bersih'];
+    protected $appends = ['pencairan', 'harga_total_penjualan', 'laba_bersih'];
 
     // =======================
     // RELASI
@@ -78,34 +78,60 @@ class Sale extends Model
             : (float) ($this->sale_price ?? 0);
     }
 
-  public function getLabaKotorAttribute()
-  {
-      $otr = (float) ($this->sale_price ?? 0);
+    /**
+     * Harga Total Penjualan (Revenue Dealer)
+     *
+     * Rumus Bos Iqbal:
+     * HARGA TOTAL PENJUALAN = OTR - DP PO + DP REAL
+     *
+     * Penjelasan:
+     * - OTR = Harga jual ke customer (termasuk DP + cicilan)
+     * - DP PO = Down payment yang sudah dibayarkan ke CMO/mediator
+     * - DP REAL = Down payment yang diterima dealer dari customer
+     * - Sisa Pembayaran = OTR - DP PO (otomatis, dari leasing)
+     */
+    public function getHargaTotalPenjualanAttribute(): float
+    {
+        $otr = (float) ($this->sale_price ?? 0);
+        $dpPo = (float) ($this->dp_po ?? 0);
+        $dpReal = (float) ($this->dp_real ?? 0);
 
-      $purchase = $this->purchase;
-      $hargaTotalPembelian = $purchase ? (float) $purchase->grand_total : 0;
+        return $otr - $dpPo + $dpReal;
+    }
 
-      if ($hargaTotalPembelian == 0) {
-          $hargaTotalPembelian = (float) optional($this->vehicle)->purchase_price;
-      }
+    /**
+     * Laba Kotor = Harga Total Penjualan - Harga Total Pembelian
+     *
+     * Rumus Bos Iqbal:
+     * LABA KOTOR = HARGA TOTAL PENJUALAN - HARGA TOTAL PEMBELIAN
+     */
+    public function getLabaKotorAttribute()
+    {
+        $hargaTotalPenjualan = $this->harga_total_penjualan;
 
-      // Laba Kotor = OTR - Modal (untuk semua metode pembayaran)
-      // DP (dp_po, dp_real) adalah informasi pembayaran customer ke leasing,
-      // bukan biaya dealer — tidak mempengaruhi laba kotor.
-      return $otr - $hargaTotalPembelian;
-  }
+        $purchase = $this->purchase;
+        $hargaTotalPembelian = $purchase ? (float) $purchase->grand_total : 0;
+        if ($hargaTotalPembelian == 0) {
+            $hargaTotalPembelian = (float) optional($this->vehicle)->purchase_price;
+        }
 
-  public function getLabaBersihAttribute()
-{
-    $laba = $this->laba_kotor;
-    $cmo = (float) ($this->cmo_fee ?? 0);
-    $komisi = (float) ($this->direct_commission ?? 0);
+        return $hargaTotalPenjualan - $hargaTotalPembelian;
+    }
 
-    // Kurangi biaya (cmo & komisi)
-    $laba -= ($cmo + $komisi);
+    /**
+     * Laba Bersih = Laba Kotor - CMO - Sales (Komisi Langsung)
+     *
+     * Rumus Bos Iqbal:
+     * LABA BERSIH = KEUNTUNGAN - CMO - SALES
+     */
+    public function getLabaBersihAttribute()
+    {
+        $laba = $this->laba_kotor;
+        $cmo = (float) ($this->cmo_fee ?? 0);
+        $komisi = (float) ($this->direct_commission ?? 0);
 
-    return $laba;
-}
+        return $laba - ($cmo + $komisi);
+    }
 
 
     // =======================

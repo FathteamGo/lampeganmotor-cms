@@ -53,6 +53,5 @@ Schedule::call(function () {
         \Log::info('✅ Weekly report & 30-day insight scheduler berhasil dijalankan.');
     })
     ->onFailure(function () {
-        \\Log::error('❌ Weekly report & 30-day insight scheduler gagal dieksekusi.');
+        \Log::error('❌ Weekly report & 30-day insight scheduler gagal dieksekusi.');
     });
-

@@ -156,12 +156,12 @@ class SaleInfolist
     }
 
     /**
-     * Hitung Laba Kotor berdasarkan rumus Bos Iqbal
+     * Hitung Laba Kotor berdasarkan rumus Bos Iqbal (DIPERBARUI)
      *
-     * HARGA TOTAL PENJUALAN = OTR - DP PO + DP REAL
-     * SISA PEMBAYARAN = OTR - DP PO (otomatis)
-     * LABA KOTOR = HARGA TOTAL PENJUALAN - HARGA TOTAL PEMBELIAN
-     * LABA BERSIH = KEUNTUNGAN - CMO - SALES
+     * - CREDIT (ada DP PO/CMO): HTP = OTR - DP PO + DP REAL
+     * - CASH / CASH_TEMPO (tanpa CMO): HTP = OTR
+     * LABA KOTOR = HTP - MODAL
+     * LABA BERSIH = LABA KOTOR - CMO - SALES
      */
     private static function calculateLabaKotor($record): float
     {
@@ -169,8 +169,13 @@ class SaleInfolist
         $dpPo = $record->dp_po ?? 0;
         $dpReal = $record->dp_real ?? 0;
 
-        // Harga Total Penjualan = OTR - DP PO + DP REAL
-        $hargaTotalPenjualan = $otr - $dpPo + $dpReal;
+        // Credit dengan CMO: HTP = OTR - DP PO + DP REAL
+        // Cash/Cash Tempo (tanpa CMO): HTP = OTR
+        if ($dpPo > 0) {
+            $hargaTotalPenjualan = $otr - $dpPo + $dpReal;
+        } else {
+            $hargaTotalPenjualan = $otr;
+        }
 
         // Ambil modal (harga motor + biaya tambahan)
         $purchase = \App\Models\Purchase::where('vehicle_id', $record->vehicle_id)->first();

@@ -81,14 +81,17 @@ class Sale extends Model
     /**
      * Harga Total Penjualan (Revenue Dealer)
      *
-     * Rumus Bos Iqbal:
-     * HARGA TOTAL PENJUALAN = OTR - DP PO + DP REAL
+     * Rumus Bos Iqbal (DIPERBARUI):
+     * - CREDIT (ada DP PO/CMO): HTP = OTR - DP PO + DP REAL
+     * - CASH / CASH_TEMPO (tanpa CMO): HTP = OTR
      *
      * Penjelasan:
-     * - OTR = Harga jual ke customer (termasuk DP + cicilan)
-     * - DP PO = Down payment yang sudah dibayarkan ke CMO/mediator
+     * - OTR = Harga jual ke customer
+     * - DP PO = Komisi CMO/mediator (hanya ada di credit)
      * - DP REAL = Down payment yang diterima dealer dari customer
-     * - Sisa Pembayaran = OTR - DP PO (otomatis, dari leasing)
+     *
+     * Untuk CASH/CASH_TEMPO: DP REAL adalah bagian dari OTR, bukan revenue tambahan.
+     * Jadi HTP = OTR saja.
      */
     public function getHargaTotalPenjualanAttribute(): float
     {
@@ -96,7 +99,13 @@ class Sale extends Model
         $dpPo = (float) ($this->dp_po ?? 0);
         $dpReal = (float) ($this->dp_real ?? 0);
 
-        return $otr - $dpPo + $dpReal;
+        // Credit dengan CMO: HTP = OTR - DP PO + DP REAL
+        // Cash/Cash Tempo (tanpa CMO): HTP = OTR
+        if ($dpPo > 0) {
+            return $otr - $dpPo + $dpReal;
+        }
+
+        return $otr;
     }
 
     /**

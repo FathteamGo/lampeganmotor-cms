@@ -268,8 +268,13 @@ class SalesTable
         $dpPo = (float) ($record->dp_po ?? 0);
         $dpReal = (float) ($record->dp_real ?? 0);
 
-        // Harga Total Penjualan = OTR - DP PO + DP REAL
-        $hargaTotalPenjualan = $otr - $dpPo + $dpReal;
+        // Credit dengan CMO: HTP = OTR - DP PO + DP REAL
+        // Cash/Cash Tempo (tanpa CMO): HTP = OTR (sisa = uang mengendap)
+        if ($dpPo > 0) {
+            $hargaTotalPenjualan = $otr - $dpPo + $dpReal;
+        } else {
+            $hargaTotalPenjualan = $otr;
+        }
 
         // Ambil modal (harga motor + biaya tambahan)
         $purchase = \App\Models\Purchase::where('vehicle_id', $record->vehicle_id)->first();

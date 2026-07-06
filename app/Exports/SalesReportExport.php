@@ -73,8 +73,14 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             $salePrice = $dpPo = $dpReal = $cmoFee = $directCommission = 0;
         }
 
-        // 🔹 Hitung Harga Total Penjualan (rumus Bos Iqbal)
-        $hargaTotalPenjualan = $salePrice - $dpPo + $dpReal;
+        // 🔹 Hitung Harga Total Penjualan
+        // Credit (ada DP PO/CMO): HTP = OTR - DP PO + DP REAL
+        // Cash/Cash Tempo (tanpa CMO): HTP = OTR (sisa = uang mengendap)
+        if ($dpPo > 0) {
+            $hargaTotalPenjualan = $salePrice - $dpPo + $dpReal;
+        } else {
+            $hargaTotalPenjualan = $salePrice;
+        }
         $pencairan = $hargaTotalPenjualan; // untuk kolom export
 
         // 🔹 Hitung Laba Bersih = Harga Total Penjualan - Modal - CMO - Sales

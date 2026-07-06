@@ -17,8 +17,8 @@ class WaService
         $username = config('services.wa_gateway.username');
         $password = config('services.wa_gateway.password');
 
-        // Gunakan nomor yang diberikan atau fallback ke env WHATSAPP_NUMBER
-        $recipientNumber = $phone ?: env('WHATSAPP_NUMBER');
+        // Normalisasi nomor HP (08xxxx -> 62xxxx) + fallback ke config
+        $recipientNumber = $phone ? $this->normalize($phone) : config('services.wa_gateway.number', '6281394510605');
 
         if (!$url || !$username || !$password || !$recipientNumber || trim($text) === '') {
             $msg = "WA Service: Konfigurasi tidak lengkap atau data kosong.";

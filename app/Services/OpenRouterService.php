@@ -12,9 +12,9 @@ class OpenRouterService implements AiServiceInterface
 
     public function __construct()
     {
-        $this->endpoint = config('services.openrouter.endpoint', env('OPENROUTER_ENDPOINT', 'https://openrouter.ai/api/v1/chat/completions'));
-        $this->apiKey = config('services.openrouter.api_key', env('OPENROUTER_API_KEY'));
-        $this->model = config('services.openrouter.model', env('OPENROUTER_MODEL', 'nvidia/llama-3.1-nemotron-70b-instruct'));
+        $this->endpoint = config('services.openrouter.endpoint');
+        $this->apiKey = config('services.openrouter.api_key');
+        $this->model = config('services.openrouter.model');
     }
 
     /**

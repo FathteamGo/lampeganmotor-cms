@@ -11,16 +11,7 @@
              try {
                  await $wire.runWeeklyReport();
              } catch (e) {
-                 try {
-                     const res = await fetch('/test1');
-                     if (res.ok) {
-                         alert('✅ Hana AI sedang bekerja! Laporan mingguan sedang dipersiapkan di latar belakang.');
-                     } else {
-                         alert('❌ Gagal: Server merespon dengan error.');
-                     }
-                 } catch (fetchErr) {
-                     alert('❌ Gagal mengirim request. Pastikan server berjalan.');
-                 }
+                 alert('❌ Gagal: ' + (e.message || 'Tidak dapat menghubungi server. Coba lagi nanti.'));
              } finally {
                  this.loadingReport = false;
              }
@@ -34,20 +25,11 @@
              try {
                  await $wire.run30DayInsight();
              } catch (e) {
-                 try {
-                     const res = await fetch('/test2');
-                     if (res.ok) {
-                         alert('✅ Hana AI sedang merangkum! Insight 30 hari sedang dipersiapkan di latar belakang.');
-                     } else {
-                         alert('❌ Gagal: Server merespon dengan error.');
-                     }
-                 } catch (fetchErr) {
-                     alert('❌ Gagal mengirim request. Pastikan server berjalan.');
-                 }
+                 alert('❌ Gagal: ' + (e.message || 'Tidak dapat menghubungi server. Coba lagi nanti.'));
              } finally {
                  this.loadingInsight = false;
              }
-         }
+         },
      }">
 
     <div class="hana-ai-card-header">

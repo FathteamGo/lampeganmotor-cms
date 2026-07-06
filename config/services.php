@@ -39,14 +39,14 @@ return [
         'url'      => env('WA_GATEWAY_URL', 'https://wa2.fath.my.id/send/message'),
         'username' => env('WA_GATEWAY_USERNAME', 'cecep'),
         'password' => env('WA_GATEWAY_PASSWORD', '126126'),
+        'number'   => env('WHATSAPP_NUMBER', '6281394510605'),
     ],
 
-    // OpenRouter configuration
+    // AI Model — Primary: ZA126 via 9router, Fallback: mimo-v2.5
     'openrouter' => [
-        'endpoint' => env('OPENROUTER_ENDPOINT', 'https://openrouter.ai/api/v1/chat/completions'),
-        'api_key'   => env('OPENROUTER_API_KEY'),
-        // Default model can be overridden via env OPENROUTER_MODEL if needed
-        'model'     => env('OPENROUTER_MODEL', 'meta-llama/Meta-Llama-3.1-8B-Instruct'),
+        'endpoint' => env('OPENROUTER_ENDPOINT', 'http://72.61.143.166:3007/v1/chat/completions'),
+        'api_key'   => env('OPENROUTER_API_KEY', 'sk-228...12ef'),
+        'model'     => env('OPENROUTER_MODEL', 'xiaomi/mimo-v2.5'),
     ],
 
     // di file config/services.php (tambah di array return)

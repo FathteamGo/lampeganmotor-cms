@@ -21,7 +21,7 @@ class Generate30DayInsightJob implements ShouldQueue
     /**
      * The number of times the job may be attempted.
      */
-    public int $tries = 1;
+    public int $tries = 3;
 
     /**
      * The number of seconds the job can run before timing out.
@@ -56,11 +56,12 @@ class Generate30DayInsightJob implements ShouldQueue
             $message = $notificationService->build30DayInsightMessage($data, $insight);
 
             // Get the WhatsApp gateway number
-            $number = env('WHATSAPP_NUMBER'); // using env as in the original route to be safe, though model is better. Let's use both as fallback.
+            $number = WhatsAppNumber::where('is_active', true)
+                ->where('is_report_gateway', true)
+                ->value('number');
+
             if (!$number) {
-                 $number = WhatsAppNumber::where('is_active', true)
-                    ->where('is_report_gateway', true)
-                    ->value('number');
+                $number = config('services.wa_gateway.number', '6281394510605');
             }
 
             if (!$number) {

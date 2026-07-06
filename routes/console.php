@@ -53,33 +53,6 @@ Schedule::call(function () {
         \Log::info('✅ Weekly report & 30-day insight scheduler berhasil dijalankan.');
     })
     ->onFailure(function () {
-        \Log::error('❌ Weekly report & 30-day insight scheduler gagal dieksekusi.');
+        \\Log::error('❌ Weekly report & 30-day insight scheduler gagal dieksekusi.');
     });
 
-// Scheduler laporan mingguan (legacy command - backup jam 03:00)
-Schedule::command('report:weekly')
-        ->weeklyOn(0, '3:00') 
-        // ->everySecond()
-        ->before(function () {
-        // cek apakah nomor WA gateway ada
-        $number = WhatsAppNumber::where('is_active', true)
-            ->where('is_report_gateway', true)
-            ->value('number');
-
-        if (! $number) {
-            $msg = "❌ Report scheduler dibatalkan: Nomor WhatsApp gateway belum diatur.";
-            \Log::error($msg);
-            echo $msg . "\n";
-            return false; // hentikan eksekusi command
-        }
-    })
-    ->onSuccess(function () {
-        $msg = "✅ Report scheduler berhasil dijalankan.";
-        \Log::info($msg);
-        echo $msg . "\n";
-    })
-    ->onFailure(function () {
-        $msg = "❌ Report scheduler gagal dieksekusi.";
-        \Log::error($msg);
-        echo $msg . "\n";
-    });

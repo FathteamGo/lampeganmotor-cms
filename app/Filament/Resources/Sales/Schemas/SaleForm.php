@@ -387,7 +387,18 @@ class SaleForm
                     'tiktok'  => 'TikTok',
                     'olx'     => 'OLX',
                     'walk_in' => 'Walk In',
-                ]),
+                ])
+                ->live()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    // Auto-set komisi langsung berdasarkan sumber order
+                    // Walk-in: Rp 100.000 | Social Media: Rp 150.000
+                    $commission = match($state) {
+                        'walk_in' => 100000,
+                        'fb', 'ig', 'tiktok', 'olx' => 150000,
+                        default => 0,
+                    };
+                    $set('direct_commission', $commission);
+                }),
 
             TextInput::make('branch_name')->label('Cabang'),
 

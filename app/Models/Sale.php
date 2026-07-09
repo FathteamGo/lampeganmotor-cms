@@ -81,30 +81,25 @@ class Sale extends Model
     /**
      * Harga Total Penjualan (Revenue Dealer)
      *
-     * Rumus Bos Iqbal (DIPERBARUI):
-     * - CREDIT (ada DP PO/CMO): HTP = OTR - DP PO + DP REAL
-     * - CASH / CASH_TEMPO (tanpa CMO): HTP = OTR
+     * Rumus Bos Iqbal (DIPERBARUI + FIX DANA_TUNAI):
+     * - CREDIT: HTP = OTR - DP PO + DP REAL
+     * - CASH / CASH_TEMPO / DANA_TUNAI / TUKARTAMBAH: HTP = OTR
      *
-     * Penjelasan:
-     * - OTR = Harga jual ke customer
-     * - DP PO = Komisi CMO/mediator (hanya ada di credit)
-     * - DP REAL = Down payment yang diterima dealer dari customer
-     *
-     * Untuk CASH/CASH_TEMPO: DP REAL adalah bagian dari OTR, bukan revenue tambahan.
-     * Jadi HTP = OTR saja.
+     * FIX: Sebelumnya cek $dpPo > 0 (salah — Dana Tunai juga bisa ada DP PO),
+     *      sekarang cek payment_method === 'credit' secara eksplisit.
      */
     public function getHargaTotalPenjualanAttribute(): float
     {
         $otr = (float) ($this->sale_price ?? 0);
-        $dpPo = (float) ($this->dp_po ?? 0);
-        $dpReal = (float) ($this->dp_real ?? 0);
 
-        // Credit dengan CMO: HTP = OTR - DP PO + DP REAL
-        // Cash/Cash Tempo (tanpa CMO): HTP = OTR
-        if ($dpPo > 0) {
+        // Hanya credit yang pakai formula: HTP = OTR - DP PO + DP REAL
+        if ($this->payment_method === 'credit') {
+            $dpPo = (float) ($this->dp_po ?? 0);
+            $dpReal = (float) ($this->dp_real ?? 0);
             return $otr - $dpPo + $dpReal;
         }
 
+        // Cash, Cash Tempo, Dana Tunai, Tukar Tambah: HTP = OTR
         return $otr;
     }
 

@@ -76,7 +76,7 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
         // 🔹 Hitung Harga Total Penjualan
         // Credit (ada DP PO/CMO): HTP = OTR - DP PO + DP REAL
         // Cash/Cash Tempo (tanpa CMO): HTP = OTR (sisa = uang mengendap)
-        if ($dpPo > 0) {
+        if ($sale->payment_method === 'credit') {
             $hargaTotalPenjualan = $salePrice - $dpPo + $dpReal;
         } else {
             $hargaTotalPenjualan = $salePrice;

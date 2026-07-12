@@ -270,7 +270,7 @@ class SalesTable
 
         // Credit dengan CMO: HTP = OTR - DP PO + DP REAL
         // Cash/Cash Tempo (tanpa CMO): HTP = OTR (sisa = uang mengendap)
-        if ($dpPo > 0) {
+        if ($record->payment_method === 'credit') {
             $hargaTotalPenjualan = $otr - $dpPo + $dpReal;
         } else {
             $hargaTotalPenjualan = $otr;

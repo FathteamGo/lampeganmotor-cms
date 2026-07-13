@@ -29,6 +29,8 @@ use App\Filament\Widgets\RevenueChart;
 use App\Filament\Widgets\VisitorChart;
 use App\Filament\Widgets\WeeklyReportWidget;
 use Illuminate\Support\Facades\Blade;
+use Swis\Filament\Backgrounds\FilamentBackgroundsPlugin;
+use App\Filament\Backgrounds\MotorcycleImages;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -42,7 +44,11 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->plugins([
+                FilamentBackgroundsPlugin::make()
+                    ->imageProvider(MotorcycleImages::make()),
+            ])
+            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\\\Filament\\\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

@@ -36,8 +36,8 @@ class MotorcycleImages implements ProvidesImages
 
     public function getImage(): Image
     {
-        $dayOfYear = (int) date('z');
-        $index = $dayOfYear % count(self::IMAGES);
+        $weekOfYear = (int) date('W');
+        $index = $weekOfYear % count(self::IMAGES);
         $image = self::IMAGES[$index];
 
         return new Image(

@@ -9,7 +9,7 @@ use Filament\Schemas\Schema;
 
 class CustomLogin extends Login
 {
-    protected static string $view = 'filament.pages.auth.custom-login';
+    protected string $view = 'filament.pages.auth.custom-login';
 
     public function form(Schema $schema): Schema
     {

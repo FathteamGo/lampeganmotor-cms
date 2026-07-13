@@ -72,7 +72,9 @@ class AdminPanelProvider extends PanelProvider
                     .fi-topbar-end > div:last-child { margin-left: 0.5rem !important; padding-left: 0.5rem !important; }
                     .fi-topbar-end .fi-btn { margin-right: 0.5rem !important; }
                     .fi-topbar-end { gap: 0rem !important; }
-                </style>'
+                    .fi-simple-layout::after { display: none !important; }
+                </style>
+                <link rel="icon" type="image/x-icon" href="' . asset("favicon.ico") . '">'
             )
             
 

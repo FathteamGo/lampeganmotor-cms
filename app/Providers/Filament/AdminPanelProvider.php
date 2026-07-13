@@ -49,7 +49,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentBackgroundsPlugin::make()
                     ->imageProvider(MotorcycleImages::make()),
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\\\Filament\\\\Resources')
+            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

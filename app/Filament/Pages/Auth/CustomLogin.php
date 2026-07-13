@@ -9,7 +9,8 @@ use Filament\Schemas\Schema;
 
 class CustomLogin extends Login
 {
-    protected string $view = 'filament.pages.auth.custom-login';
+    // Use default Filament login view (SimplePage)
+    // Custom blade was incompatible with Livewire single-root requirement
 
     public function form(Schema $schema): Schema
     {

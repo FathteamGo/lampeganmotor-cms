@@ -28,10 +28,11 @@ class SaleForm
             Select::make('vehicle_id')
                 ->label('Motor')
                 ->options(function ($get, $record) {
+                    // Allow re-sell: tampilkan motor yang tidak punya sale aktif (proses/kirim)
+                    // Motor dengan sale 'selesai' atau 'cancel' tetap bisa dijual lagi
                     $query = Vehicle::with(['vehicleModel', 'color'])
-                        ->where('status', 'available')
                         ->whereDoesntHave('sales', function ($q) {
-                            $q->where('status', '!=', 'cancel');
+                            $q->whereIn('status', ['proses', 'kirim']);
                         });
 
                     // Allow current vehicle in edit mode

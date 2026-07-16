@@ -48,13 +48,14 @@ class SyncVehicleStatusCommand extends Command
 
             foreach ($vehicles as $vehicle) {
                 try {
-                    // Hitung active sales (bukan cancel)
-                    $activeSalesCount = Sale::where('vehicle_id', $vehicle->id)
-                        ->where('status', '!=', 'cancel')
+                    // Hanya hitung sale yang benar-benar aktif (proses/kirim)
+                    // Sale 'selesai' tidak menghalangi penjualan berikutnya (re-sell)
+                    $trulyActiveCount = Sale::where('vehicle_id', $vehicle->id)
+                        ->whereIn('status', ['proses', 'kirim'])
                         ->count();
 
-                    // Tentukan status yang benar
-                    $expectedStatus = $activeSalesCount === 1 ? 'sold' : 'available';
+                    // Tentukan status: ada sale aktif → sold, tidak ada → available
+                    $expectedStatus = $trulyActiveCount >= 1 ? 'sold' : 'available';
 
                     // Jika berbeda dengan actual, update
                     if ($vehicle->status !== $expectedStatus) {
@@ -63,7 +64,7 @@ class SyncVehicleStatusCommand extends Command
 
                         $this->components->twoColumnDetail(
                             "Vehicle #{$vehicle->id} ({$vehicle->license_plate})",
-                            "{$vehicle->status} → {$expectedStatus} (Sales: {$activeSalesCount})"
+                            "{$vehicle->status} → {$expectedStatus} (Active Sales: {$trulyActiveCount})"
                         );
                     }
 
@@ -106,14 +107,14 @@ class SyncVehicleStatusCommand extends Command
     {
         $this->info('🔍 Memeriksa anomali...');
 
-        // 1. Vehicles sold dengan multiple active sales
+        // 1. Vehicles dengan multiple active sales (proses/kirim)
         $multiSales = Vehicle::where('status', 'sold')
             ->get()
             ->filter(function ($vehicle) {
-                $activeSalesCount = Sale::where('vehicle_id', $vehicle->id)
-                    ->where('status', '!=', 'cancel')
+                $trulyActiveCount = Sale::where('vehicle_id', $vehicle->id)
+                    ->whereIn('status', ['proses', 'kirim'])
                     ->count();
-                return $activeSalesCount > 1;
+                return $trulyActiveCount > 1;
             })
             ->count();
 
@@ -121,14 +122,14 @@ class SyncVehicleStatusCommand extends Command
             $this->warn("⚠️  Found {$multiSales} vehicles dengan status 'sold' tapi punya multiple active sales!");
         }
 
-        // 2. Vehicles available tapi punya 1 active sale
+        // 2. Vehicles available tapi punya 1 active sale (proses/kirim)
         $singleSaleAvailable = Vehicle::where('status', 'available')
             ->get()
             ->filter(function ($vehicle) {
-                $activeSalesCount = Sale::where('vehicle_id', $vehicle->id)
-                    ->where('status', '!=', 'cancel')
+                $trulyActiveCount = Sale::where('vehicle_id', $vehicle->id)
+                    ->whereIn('status', ['proses', 'kirim'])
                     ->count();
-                return $activeSalesCount === 1;
+                return $trulyActiveCount === 1;
             })
             ->count();
 

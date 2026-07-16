@@ -89,22 +89,23 @@ class Vehicle extends Model
     }
 
     /**
-     * Get the latest active (non-cancelled) sale
+     * Get the latest truly active sale (proses/kirim only)
+     * Sale 'selesai' tidak dianggap active (memungkinkan re-sell)
      */
     public function activeSale()
     {
         return $this->hasOne(Sale::class)
-            ->where('status', '!=', 'cancel')
+            ->whereIn('status', ['proses', 'kirim'])
             ->latest('id');
     }
 
     /**
-     * Scope for truly available vehicles (status is 'available' AND no active sale)
+     * Scope for truly available vehicles (no active sale - proses/kirim)
+     * Motor dengan sale 'selesai' tetap bisa dijual lagi (re-sell)
      */
     public function scopeAvailableUnits($query)
     {
-        return $query->where('status', 'available')
-            ->whereDoesntHave('activeSale');
+        return $query->whereDoesntHave('activeSale');
     }
 
     // =======================

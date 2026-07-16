@@ -159,10 +159,10 @@ class Sale extends Model
     /**
      * Sinkronisasi status vehicle berdasarkan sales records
      *
-     * Logic:
-     * - Jika ada 1+ sale dengan status bukan 'cancel' → vehicle status = 'sold'
-     * - Jika semua sales 'cancel' atau tidak ada sales → vehicle status = 'available'
-     * - Jika ada multiple non-cancel sales → vehicle status = 'available' (conflict/ambiguous)
+     * Logic (Allow Re-Sell):
+     * - Jika ada 1+ sale dengan status 'proses'/'kirim' → vehicle status = 'sold'
+     * - Jika semua sale 'selesai'/'cancel' atau tidak ada sale → vehicle status = 'available'
+     * - Motor yang sudah 'selesai' bisa dijual lagi (re-sell)
      */
     public static function syncVehicleStatus($vehicleId)
     {
@@ -172,14 +172,14 @@ class Sale extends Model
                 return;
             }
 
-            // Hitung berapa sales yang active (bukan cancel)
-            $activeSalesCount = Sale::where('vehicle_id', $vehicleId)
-                ->where('status', '!=', 'cancel')
+            // Hanya hitung sale yang benar-benar aktif (proses/kirim)
+            // Sale 'selesai' tidak menghalangi penjualan berikutnya (re-sell)
+            $trulyActiveCount = Sale::where('vehicle_id', $vehicleId)
+                ->whereIn('status', ['proses', 'kirim'])
                 ->count();
 
-            // Tentukan status berdasarkan jumlah active sales
-            // Jika ada minimal 1 active sale → sold, jika tidak → available
-            $newStatus = $activeSalesCount >= 1 ? 'sold' : 'available';
+            // Tentukan status: ada sale aktif → sold, tidak ada → available
+            $newStatus = $trulyActiveCount >= 1 ? 'sold' : 'available';
 
             // Update hanya jika status berbeda
             if ($vehicle->status !== $newStatus) {

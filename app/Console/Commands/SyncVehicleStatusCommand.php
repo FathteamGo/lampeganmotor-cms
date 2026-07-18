@@ -49,13 +49,21 @@ class SyncVehicleStatusCommand extends Command
             foreach ($vehicles as $vehicle) {
                 try {
                     // Hanya hitung sale yang benar-benar aktif (proses/kirim)
-                    // Sale 'selesai' tidak menghalangi penjualan berikutnya (re-sell)
                     $trulyActiveCount = Sale::where('vehicle_id', $vehicle->id)
                         ->whereIn('status', ['proses', 'kirim'])
                         ->count();
 
-                    // Tentukan status: ada sale aktif → sold, tidak ada → available
-                    $expectedStatus = $trulyActiveCount >= 1 ? 'sold' : 'available';
+                    // Tentukan status:
+                    // - Ada sale aktif (proses/kirim) → sold
+                    // - Tidak ada sale aktif → TETAP seperti sekarang (jangan otomatis available)
+                    //   Hanya buyback yang boleh set available
+                    if ($trulyActiveCount >= 1) {
+                        $expectedStatus = 'sold';
+                    } else {
+                        // Skip - jangan ubah status
+                        $bar->advance();
+                        continue;
+                    }
 
                     // Jika berbeda dengan actual, update
                     if ($vehicle->status !== $expectedStatus) {

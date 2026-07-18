@@ -90,7 +90,7 @@ class Vehicle extends Model
 
     /**
      * Get the latest truly active sale (proses/kirim only)
-     * Sale 'selesai' tidak dianggap active (memungkinkan re-sell)
+     * Sale 'selesai' tidak dianggap active (motor sudah di customer)
      */
     public function activeSale()
     {
@@ -100,12 +100,13 @@ class Vehicle extends Model
     }
 
     /**
-     * Scope for truly available vehicles (no active sale - proses/kirim)
-     * Motor dengan sale 'selesai' tetap bisa dijual lagi (re-sell)
+     * Scope for truly available vehicles (stok real di showroom)
+     * Hanya motor dengan status 'available' (stok awal + buyback)
+     * Motor 'sold' tetap 'sold' meskipun sale sudah 'selesai' (masih di customer)
      */
     public function scopeAvailableUnits($query)
     {
-        return $query->whereDoesntHave('activeSale');
+        return $query->where('status', 'available');
     }
 
     // =======================

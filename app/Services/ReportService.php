@@ -43,7 +43,7 @@ class ReportService
         $pengeluaran = Expense::whereBetween('expense_date', [$start, $end])->sum('amount');
         $saldo       = $pemasukan - $pengeluaran;
 
-        $stok = Vehicle::doesntHave('activeSale')->count();
+        $stok = Vehicle::where('status', 'available')->count();
         $stnk = StnkRenewal::whereBetween('tgl', [$start, $end])->count();
 
         return [
@@ -176,7 +176,7 @@ class ReportService
         $pengeluaran = Expense::whereBetween('expense_date', [$start, $end])->sum('amount');
         $saldo       = $pemasukan - $pengeluaran;
 
-        $stok = Vehicle::doesntHave('activeSale')->count();
+        $stok = Vehicle::where('status', 'available')->count();
         $stnk = StnkRenewal::whereBetween('tgl', [$start, $end])->count();
 
         // Top Selling in past 30 days grouped by brand & model

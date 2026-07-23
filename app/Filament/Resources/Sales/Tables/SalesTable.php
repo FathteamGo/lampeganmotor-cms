@@ -242,11 +242,8 @@ class SalesTable
                     ->openUrlInNewTab(),
             ])
 
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ]);
+            // REMOVED: DeleteBulkAction — sales harus di-cancel, bukan dihapus
+            // Hapus sale = trigger Purchase::saved bug → vehicle jadi available
     }
 
     /**

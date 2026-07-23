@@ -68,23 +68,10 @@ class Purchase extends Model
         return $this->belongsTo(Supplier::class);
     }
 
-  protected static function booted()
-    {
-        static::saved(function ($purchase) {
-            // Pastikan kendaraan dalam status 'available' JIKA tidak ada active sale
-            // Jika kendaraan punya active sale (sedang dalam proses penjualan),
-            // biarkan status tetap 'sold'
-            if ($purchase->vehicle && $purchase->vehicle->status !== 'available') {
-                $hasActiveSale = Sale::where('vehicle_id', $purchase->vehicle->id)
-                    ->where('status', '!=', 'cancel')
-                    ->exists();
-
-                // Hanya set available jika tidak ada active sale
-                if (!$hasActiveSale) {
-                    $purchase->vehicle->update(['status' => 'available']);
-                }
-            }
-        });
-    }
+    // REMOVED: booted() event yang salah — Purchase save TIDAK boleh
+    // mengubah vehicle status. Status hanya dikelola oleh:
+    // - Sale::syncVehicleStatus() (set 'sold' saat ada active sale)
+    // - CreatePurchase page (set 'available' untuk buyback)
+    // - VehicleForm (manual edit dengan proteksi)
 }
 

@@ -199,7 +199,16 @@ class VehicleForm
                         'hold' => 'Ditahan',
                     ])
                     ->default('available')
-                    ->required(),
+                    ->required()
+                    // PROTEKSI: Jika vehicle punya sale non-cancel, hanya boleh sold/in_repair/hold
+                    ->disableOptionWhen(fn ($value, $record) =>
+                        $value === 'available' &&
+                        $record &&
+                        \App\Models\Sale::where('vehicle_id', $record->id)
+                            ->where('status', '!=', 'cancel')
+                            ->exists()
+                    )
+                    ->validationAttribute('Status'),
 
                 // ========= INFO TAMBAHAN =========
                 TextInput::make('engine_specification')

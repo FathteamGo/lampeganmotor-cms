@@ -159,11 +159,11 @@ class Sale extends Model
     /**
      * Sinkronisasi status vehicle berdasarkan sales records
      *
-     * Logic (Correct):
-     * - Jika ada 1+ sale dengan status 'proses'/'kirim' → vehicle status = 'sold'
-     * - Jika semua sale 'selesai'/'cancel' atau tidak ada sale → vehicle status TETAP 'sold'
-     * - Hanya buyback (CreatePurchase) yang mengubah status ke 'available'
-     * - Motor yang sudah dijual ke customer tetap 'sold' meskipun sale selesai
+     * Logic:
+     * - Sale 'proses'/'kirim'/'selesai' → vehicle status = 'sold'
+     *   (selesai = motor sudah dijual & dikirim ke customer, tetap sold)
+     * - Semua sale 'cancel' atau tidak ada sale → TETAP seperti sekarang
+     *   (jangan otomatis available, hanya buyback yang boleh set available)
      */
     public static function syncVehicleStatus($vehicleId)
     {
@@ -173,20 +173,18 @@ class Sale extends Model
                 return;
             }
 
-            // Hanya hitung sale yang benar-benar aktif (proses/kirim)
-            $trulyActiveCount = Sale::where('vehicle_id', $vehicleId)
-                ->whereIn('status', ['proses', 'kirim'])
+            // Hitung sale yang menandakan motor sudah terjual
+            // proses = sedang proses, kirim = sedang dikirim, selesai = sudah sampai customer
+            $soldCount = Sale::where('vehicle_id', $vehicleId)
+                ->whereIn('status', ['proses', 'kirim', 'selesai'])
                 ->count();
 
-            // Tentukan status:
-            // - Ada sale aktif (proses/kirim) → sold
-            // - Tidak ada sale aktif → TETAP seperti sekarang (jangan otomatis available)
-            //   Hanya buyback yang boleh set available
-            if ($trulyActiveCount >= 1) {
+            if ($soldCount >= 1) {
                 $newStatus = 'sold';
             } else {
+                // Semua sale cancel atau tidak ada sale
                 // Jangan ubah status - biarkan apa adanya
-                // Vehicle yang sudah 'sold' tetap 'sold' meskipun sale selesai
+                // Hanya buyback (CreatePurchase) yang boleh set available
                 return;
             }
 
@@ -195,7 +193,6 @@ class Sale extends Model
                 $vehicle->update(['status' => $newStatus]);
             }
         } catch (\Exception $e) {
-            // Log error tapi jangan throw - hindari transaction failure
             Log::error("Failed to sync vehicle status for vehicle_id: {$vehicleId}", [
                 'error' => $e->getMessage(),
             ]);

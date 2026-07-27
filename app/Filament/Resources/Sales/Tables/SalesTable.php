@@ -240,7 +240,7 @@ class SalesTable
                     ->visible(fn($record) => $record->payment_method === 'cash')
                     ->url(fn($record) => route('sales.invoice.cash', $record))
                     ->openUrlInNewTab(),
-            ])
+            ]);
 
             // REMOVED: DeleteBulkAction — sales harus di-cancel, bukan dihapus
             // Hapus sale = trigger Purchase::saved bug → vehicle jadi available

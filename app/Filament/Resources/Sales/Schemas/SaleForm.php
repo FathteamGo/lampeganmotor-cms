@@ -55,7 +55,7 @@ class SaleForm
                     }
 
                     $exists = Sale::where('vehicle_id', $state)
-                        ->whereIn('status', ['proses', 'kirim'])
+                        ->whereIn('status', ['proses', 'kirim', 'selesai'])
                         ->exists();
 
                     if ($exists) {

@@ -57,6 +57,24 @@ class CreateSale extends CreateRecord
                     ->danger()->send();
                 $this->halt();
             }
+
+            // Cari purchase_id yang sesuai
+            $purchase = \Illuminate\Support\Facades\DB::table('purchases')
+                ->where('vehicle_id', $vehicle->id)
+                ->where('purchase_date', '<=', $data['sale_date'])
+                ->orderByDesc('purchase_date')
+                ->first();
+
+            if (!$purchase) {
+                $purchase = \Illuminate\Support\Facades\DB::table('purchases')
+                    ->where('vehicle_id', $vehicle->id)
+                    ->orderBy('purchase_date')
+                    ->first();
+            }
+
+            if ($purchase) {
+                $data['purchase_id'] = $purchase->id;
+            }
         }
 
         // Create atau update customer

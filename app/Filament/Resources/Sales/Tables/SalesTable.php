@@ -43,7 +43,7 @@ class SalesTable
                     ->color(fn($record) => $record->status === 'cancel' ? 'danger' : null)
                     ->state(function ($record) {
                         // Coba ambil dari purchase.grand_total dulu
-                        $purchase = \App\Models\Purchase::where('vehicle_id', $record->vehicle_id)->first();
+                        $purchase = $record->purchase;
                         $grandTotal = $purchase ? $purchase->grand_total : 0;
 
                         // Kalau grand_total = 0, fallback ke vehicle.purchase_price
@@ -274,7 +274,7 @@ class SalesTable
         }
 
         // Ambil modal (harga motor + biaya tambahan)
-        $purchase = \App\Models\Purchase::where('vehicle_id', $record->vehicle_id)->first();
+        $purchase = $record->purchase;
         $modal = $purchase ? (float) $purchase->grand_total : 0;
         if ($modal == 0) {
             $modal = (float) ($record->vehicle?->purchase_price ?? 0);

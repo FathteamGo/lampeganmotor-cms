@@ -119,11 +119,17 @@ class CreatePurchase extends CreateRecord
                             ->orWhere('engine_number', $data['engine_number'])
                             ->first();
 
-                // Cek apakah kendaraan masih punya active sale (non-cancel)
-                // Jika ada, JANGAN rubah status - kendaraan masih dalam proses penjualan
-                $hasActiveSale = \App\Models\Sale::where('vehicle_id', $vehicle->id)
-                    ->where('status', '!=', 'cancel')
-                    ->exists();
+                // Cek apakah kendaraan masih punya active sale yang sedang berjalan
+                // Jika ada, batalkan buyback. Sale 'selesai' adalah syarat sah buyback.
+                $runningSale = $vehicle->runningSale();
+
+                if ($runningSale) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'vin' => "Motor ini masih dalam penjualan berjalan atas nama "
+                               . ($runningSale->customer?->name ?? 'customer') . " (status: {$runningSale->status}). "
+                               . "Selesaikan atau batalkan penjualan tersebut sebelum melakukan pembelian kembali.",
+                    ]);
+                }
 
                 // UPDATE DATA KENDARAAN EXISTING (BUYBACK / RESTOCK)
                 // Hanya ubah status ke 'available' jika tidak ada active sale
@@ -149,17 +155,11 @@ class CreatePurchase extends CreateRecord
                 ];
 
                 // Hanya set available jika tidak ada active sale
-                if (!$hasActiveSale) {
+                if (!$runningSale) {
                     $updateData['status'] = 'available';
                     Log::info('Vehicle buyback approved - status set to available', [
                         'vehicle_id' => $vehicle->id,
                         'license_plate' => $vehicle->license_plate
-                    ]);
-                } else {
-                    Log::info('Vehicle buyback blocked - has active sale', [
-                        'vehicle_id' => $vehicle->id,
-                        'license_plate' => $vehicle->license_plate,
-                        'status' => 'sold'
                     ]);
                 }
 

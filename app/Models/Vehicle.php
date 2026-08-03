@@ -10,6 +10,9 @@ class Vehicle extends Model
 {
     use HasFactory;
 
+    /** Status sale yang benar-benar mengunci motor (tidak termasuk 'selesai') */
+    public const LOCKING_SALE_STATUSES = ['proses', 'kirim'];
+
     protected $fillable = [
         'vehicle_model_id',
         'type_id',
@@ -83,8 +86,19 @@ class Vehicle extends Model
         );
     }
 
-    /** Status sale yang benar-benar mengunci motor (tidak termasuk 'selesai') */
-    public const LOCKING_SALE_STATUSES = ['proses', 'kirim'];
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    // =======================
+    // SIKLUS JUAL-BELI
+    // =======================
 
     /** Sale yang sedang berjalan untuk motor ini. $exceptSaleId untuk mode edit. */
     public function runningSale(?int $exceptSaleId = null): ?Sale
@@ -101,9 +115,32 @@ class Vehicle extends Model
         return $this->status === 'available' && $this->runningSale() === null;
     }
 
-    public function sales()
+    /**
+     * Purchase yang jadi modal untuk penjualan pada tanggal tertentu.
+     *
+     * Motor buyback punya lebih dari satu purchase, jadi yang dipakai adalah
+     * pembelian terakhir sebelum (atau pada) tanggal jual. Kalau tidak ada yang
+     * mendahului tanggal jual (misal sale di-backdate), pakai pembelian terbaru
+     * — bukan yang tertua, karena itu harga beli dari siklus yang sudah lewat.
+     */
+    public function purchaseForSaleDate($saleDate = null): ?Purchase
     {
-        return $this->hasMany(Sale::class);
+        if ($saleDate) {
+            $purchase = $this->purchases()
+                ->whereDate('purchase_date', '<=', \Illuminate\Support\Carbon::parse($saleDate)->toDateString())
+                ->orderByDesc('purchase_date')
+                ->orderByDesc('id')
+                ->first();
+
+            if ($purchase) {
+                return $purchase;
+            }
+        }
+
+        return $this->purchases()
+            ->orderByDesc('purchase_date')
+            ->orderByDesc('id')
+            ->first();
     }
 
     /**

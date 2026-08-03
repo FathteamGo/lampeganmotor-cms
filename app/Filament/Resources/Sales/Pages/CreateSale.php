@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Sales\Pages;
 
 use App\Filament\Resources\Sales\SaleResource;
 use App\Models\Customer;
-use App\Models\Sale;
+use App\Models\Vehicle;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 
@@ -30,7 +30,7 @@ class CreateSale extends CreateRecord
 
         // Validasi: kendaraan tidak boleh punya active sale
         if (!empty($data['vehicle_id'])) {
-            $vehicle = \App\Models\Vehicle::find($data['vehicle_id']);
+            $vehicle = Vehicle::find($data['vehicle_id']);
 
             if (! $vehicle) {
                 Notification::make()->title('Error!')
@@ -58,23 +58,9 @@ class CreateSale extends CreateRecord
                 $this->halt();
             }
 
-            // Cari purchase_id yang sesuai
-            $purchase = \Illuminate\Support\Facades\DB::table('purchases')
-                ->where('vehicle_id', $vehicle->id)
-                ->where('purchase_date', '<=', $data['sale_date'])
-                ->orderByDesc('purchase_date')
-                ->first();
-
-            if (!$purchase) {
-                $purchase = \Illuminate\Support\Facades\DB::table('purchases')
-                    ->where('vehicle_id', $vehicle->id)
-                    ->orderBy('purchase_date')
-                    ->first();
-            }
-
-            if ($purchase) {
-                $data['purchase_id'] = $purchase->id;
-            }
+            // Ikat sale ke pembelian yang jadi modalnya, supaya laba motor buyback
+            // dihitung terhadap harga beli siklus ini — bukan siklus sebelumnya.
+            $data['purchase_id'] = $vehicle->purchaseForSaleDate($data['sale_date'] ?? null)?->id;
         }
 
         // Create atau update customer

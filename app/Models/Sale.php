@@ -12,7 +12,7 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
-        'vehicle_id', 'customer_id', 'user_id',
+        'vehicle_id', 'purchase_id', 'customer_id', 'user_id',
         'sale_date', 'sale_price', 'payment_method',
         'leasing', 'remaining_payment', 'due_date', 'cmo',
         'cmo_fee', 'direct_commission', 'order_source',
@@ -42,7 +42,7 @@ class Sale extends Model
     public function user() { return $this->belongsTo(User::class, 'user_id'); }
     public function incomes() { return $this->hasMany(Income::class, 'sale_id'); }
     public function expenses() { return $this->hasMany(Expense::class, 'sale_id'); }
-    public function purchase() { return $this->hasOne(Purchase::class, 'vehicle_id', 'vehicle_id'); }
+    public function purchase() { return $this->belongsTo(Purchase::class, 'purchase_id'); }
 
     // =======================
     // SCOPES
@@ -176,17 +176,19 @@ class Sale extends Model
 
             // Hitung sale yang menandakan motor sudah terjual
             // proses = sedang proses, kirim = sedang dikirim, selesai = sudah sampai customer
-            $soldCount = Sale::where('vehicle_id', $vehicleId)
+            $hasSoldSale = Sale::where('vehicle_id', $vehicleId)
                 ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                ->count();
+                ->exists();
 
-            if ($soldCount >= 1) {
+            if ($hasSoldSale) {
                 $newStatus = 'sold';
             } else {
-                // Semua sale cancel atau tidak ada sale
-                // Jangan ubah status - biarkan apa adanya
-                // Hanya buyback (CreatePurchase) yang boleh set available
-                return;
+                // Semua sale cancel / tidak ada sale.
+                // Jangan ganggu status khusus yang di-set manual operator.
+                if (in_array($vehicle->status, ['in_repair', 'hold'])) {
+                    return;
+                }
+                $newStatus = 'available';
             }
 
             // Update hanya jika status berbeda

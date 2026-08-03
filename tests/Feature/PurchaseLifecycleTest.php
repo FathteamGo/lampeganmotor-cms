@@ -111,7 +111,15 @@ class PurchaseLifecycleTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_new_vehicle_purchase_sets_status_available()
+    /**
+     * Menyimpan Purchase TIDAK boleh mengubah status kendaraan.
+     *
+     * Event Purchase::booted() yang dulu melakukan itu sengaja dihapus (lihat
+     * komentar di App\Models\Purchase) karena jadi penyebab motor terjual
+     * berubah kembali jadi 'available'. Status hanya dikelola oleh
+     * Sale::syncVehicleStatus(), halaman CreatePurchase, dan VehicleForm.
+     */
+    public function test_purchase_tidak_mengubah_status_kendaraan()
     {
         $brand = Brand::firstOrCreate(['name' => 'TestBrand']);
         $model = VehicleModel::firstOrCreate(['name' => 'TestModel', 'brand_id' => $brand->id]);
@@ -144,7 +152,7 @@ class PurchaseLifecycleTest extends TestCase
         $this->assertDatabaseHas('purchases', ['id' => $purchase->id, 'vehicle_id' => $vehicle->id]);
 
         $vehicle->refresh();
-        $this->assertEquals('available', $vehicle->status);
+        $this->assertEquals('hold', $vehicle->status);
     }
 
     public function test_repurchase_of_sold_vehicle_sets_status_available_and_increments_purchases()
@@ -183,7 +191,7 @@ class PurchaseLifecycleTest extends TestCase
             'vehicle_id' => $vehicle->id,
             'sale_date' => now()->subMonths(3),
             'sale_price' => 11000000,
-            'status' => 'completed',
+            'status' => 'selesai',
         ]);
 
         $vehicle->refresh();
@@ -200,8 +208,12 @@ class PurchaseLifecycleTest extends TestCase
 
         $this->assertDatabaseHas('purchases', ['id' => $purchase2->id, 'vehicle_id' => $vehicle->id]);
 
+        // Buyback diizinkan: sale 'selesai' bukan penjualan berjalan.
+        // Perubahan status ke 'available' dilakukan halaman CreatePurchase,
+        // bukan oleh model Purchase — di level model status tetap 'sold'.
         $vehicle->refresh();
-        $this->assertEquals('available', $vehicle->status);
+        $this->assertNull($vehicle->runningSale());
+        $this->assertEquals('sold', $vehicle->status);
 
         $this->assertEquals(2, Purchase::where('vehicle_id', $vehicle->id)->count());
     }

@@ -65,7 +65,7 @@ class EditSale extends EditRecord
         }
 
         // Cek duplicate untuk status aktif (proses, kirim, selesai) di motor yang sama
-        if ($newStatus && in_array($newStatus, ['proses', 'kirim', 'selesai'])) {
+        if ($newStatus && in_array($newStatus, \App\Models\Vehicle::LOCKING_SALE_STATUSES)) {
             $running = \App\Models\Vehicle::find($this->record->vehicle_id)
                 ?->runningSale(exceptSaleId: $this->record->id);
 

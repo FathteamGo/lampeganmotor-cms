@@ -427,7 +427,7 @@ class SaleForm
                 ->reactive()
                 ->rule(function ($record) {
                     return function (string $attribute, $value, \Closure $fail) use ($record) {
-                        if ($record && in_array($value, ['proses', 'kirim', 'selesai'])) {
+                        if ($record && in_array($value, \App\Models\Vehicle::LOCKING_SALE_STATUSES)) {
                             $vehicle = \App\Models\Vehicle::find($record->vehicle_id);
                             $running = $vehicle?->runningSale(exceptSaleId: $record->id);
 

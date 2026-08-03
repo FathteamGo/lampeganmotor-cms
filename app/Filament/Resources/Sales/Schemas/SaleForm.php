@@ -70,6 +70,12 @@ class SaleForm
                 ->description('Data customer akan otomatis disimpan ke master Customer')
                 ->schema([
                     TextInput::make('customer_name')->label('Nama Customer')->required(),
+                    TextInput::make('customer_nik')
+                        ->label('NIK')
+                        ->rule(function ($record) {
+                            $customerId = $record?->customer_id;
+                            return \Illuminate\Validation\Rule::unique('customers', 'nik')->ignore($customerId);
+                        }),
                     TextInput::make('customer_phone')->label('No. Telepon')->tel(),
                     TextInput::make('customer_address')->label('Alamat'),
                     TextInput::make('customer_instagram')->label('Instagram'),

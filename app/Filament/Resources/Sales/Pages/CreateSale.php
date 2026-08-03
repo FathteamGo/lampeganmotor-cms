@@ -78,18 +78,18 @@ class CreateSale extends CreateRecord
         }
 
         // Create atau update customer
-        $customer = Customer::updateOrCreate(
-            [
-                'name'  => trim($data['customer_name']),
-                'phone' => !empty($data['customer_phone']) ? trim($data['customer_phone']) : null,
-            ],
-            [
-                'nik'       => $data['customer_nik'] ?? null,
-                'address'   => $data['customer_address'] ?? null,
-                'instagram' => $data['customer_instagram'] ?? null,
-                'tiktok'    => $data['customer_tiktok'] ?? null,
-            ]
-        );
+        $customer = Customer::firstOrNew([
+            'name'  => trim($data['customer_name']),
+            'phone' => !empty($data['customer_phone']) ? trim($data['customer_phone']) : null,
+        ]);
+
+        // Hanya isi field yang benar-benar dikirim & tidak kosong
+        foreach (['nik', 'address', 'instagram', 'tiktok'] as $field) {
+            if (!empty($data["customer_{$field}"])) {
+                $customer->{$field} = $data["customer_{$field}"];
+            }
+        }
+        $customer->save();
 
         // Set customer_id
         $data['customer_id'] = $customer->id;

@@ -37,14 +37,18 @@ class EditSale extends EditRecord
     {
         // Update data customer
         if ($this->record->customer_id && !empty($data['customer_name'])) {
-            Customer::where('id', $this->record->customer_id)->update([
-                'name'      => trim($data['customer_name']),
-                'nik'       => $data['customer_nik'] ?? null,
-                'phone'     => $data['customer_phone'] ?? null,
-                'address'   => $data['customer_address'] ?? null,
-                'instagram' => $data['customer_instagram'] ?? null,
-                'tiktok'    => $data['customer_tiktok'] ?? null,
-            ]);
+            $customer = Customer::find($this->record->customer_id);
+            if ($customer) {
+                $customer->name = trim($data['customer_name']);
+
+                // Hanya isi field yang benar-benar dikirim & tidak kosong
+                foreach (['nik', 'phone', 'address', 'instagram', 'tiktok'] as $field) {
+                    if (!empty($data["customer_{$field}"])) {
+                        $customer->{$field} = $data["customer_{$field}"];
+                    }
+                }
+                $customer->save();
+            }
         }
 
         // --- LOGIKA STATUS ---

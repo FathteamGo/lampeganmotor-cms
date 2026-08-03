@@ -17,7 +17,7 @@ class Sale extends Model
         'leasing', 'remaining_payment', 'due_date', 'cmo',
         'cmo_fee', 'direct_commission', 'order_source',
         'branch_name', 'result', 'status', 'notes',
-        'dp_po', 'dp_real',
+        'dp_po', 'dp_real', 'payment_to_customer',
     ];
 
     protected $casts = [
@@ -29,6 +29,7 @@ class Sale extends Model
         'direct_commission' => 'decimal:2',
         'dp_po' => 'decimal:2',
         'dp_real' => 'decimal:2',
+        'payment_to_customer' => 'decimal:2',
     ];
 
     protected $appends = ['pencairan', 'harga_total_penjualan', 'laba_bersih'];

@@ -83,6 +83,24 @@ class Vehicle extends Model
         );
     }
 
+    /** Status sale yang benar-benar mengunci motor (tidak termasuk 'selesai') */
+    public const LOCKING_SALE_STATUSES = ['proses', 'kirim'];
+
+    /** Sale yang sedang berjalan untuk motor ini. $exceptSaleId untuk mode edit. */
+    public function runningSale(?int $exceptSaleId = null): ?Sale
+    {
+        return $this->sales()
+            ->whereIn('status', self::LOCKING_SALE_STATUSES)
+            ->when($exceptSaleId, fn ($q) => $q->where('id', '!=', $exceptSaleId))
+            ->latest('id')
+            ->first();
+    }
+
+    public function isSellable(): bool
+    {
+        return $this->status === 'available' && $this->runningSale() === null;
+    }
+
     public function sales()
     {
         return $this->hasMany(Sale::class);

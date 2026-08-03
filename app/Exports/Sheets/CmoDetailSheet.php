@@ -19,7 +19,7 @@ class CmoDetailSheet implements FromCollection, WithHeadings
             ->where('cmo_id', $this->cmo->id)
             ->get()
             ->map(fn ($sale) => [
-                'customer' => $sale->customer_name,
+                'customer' => $sale->customer?->name ?? '-',
                 'motor'    => optional($sale->vehicle?->vehicleModel)->name,
                 'warna'    => optional($sale->vehicle?->color)->name,
                 'nopol'    => $sale->vehicle?->license_plate,

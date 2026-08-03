@@ -30,17 +30,31 @@ class CreateSale extends CreateRecord
 
         // Validasi: kendaraan tidak boleh punya active sale
         if (!empty($data['vehicle_id'])) {
-            $hasActiveSale = Sale::where('vehicle_id', $data['vehicle_id'])
-                ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                ->exists();
+            $vehicle = \App\Models\Vehicle::find($data['vehicle_id']);
 
-            if ($hasActiveSale) {
+            if (! $vehicle) {
+                Notification::make()->title('Error!')
+                    ->body('Kendaraan tidak ditemukan.')->danger()->send();
+                $this->halt();
+            }
+
+            $running = $vehicle->runningSale();
+            if ($running) {
                 Notification::make()
-                    ->title('Error!')
-                    ->body('Kendaraan ini sudah ada penjualan aktif.')
-                    ->danger()
-                    ->send();
+                    ->title('Motor sedang dalam transaksi')
+                    ->body("Motor ini masih terikat penjualan berjalan atas nama "
+                         . ($running->customer?->name ?? 'customer')
+                         . " (status: {$running->status}).")
+                    ->danger()->send();
+                $this->halt();
+            }
 
+            if ($vehicle->status !== 'available') {
+                Notification::make()
+                    ->title('Motor belum tersedia')
+                    ->body("Status motor saat ini: {$vehicle->status}. "
+                         . "Untuk motor buyback, input data Pembelian terlebih dahulu.")
+                    ->danger()->send();
                 $this->halt();
             }
         }

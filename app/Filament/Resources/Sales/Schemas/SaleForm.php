@@ -49,20 +49,20 @@ class SaleForm
                 })
                 ->required()
                 ->searchable()
-                ->afterStateUpdated(function ($state) {
-                    if (! $state) {
-                        return;
-                    }
-
-                    $exists = Sale::where('vehicle_id', $state)
-                        ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                        ->exists();
-
-                    if ($exists) {
-                        throw ValidationException::withMessages([
-                            'vehicle_id' => 'Motor ini masih terikat dengan penjualan aktif (belum cancel).',
-                        ]);
-                    }
+                ->live()
+                ->rule(function ($record) {
+                    return function (string $attribute, $value, \Closure $fail) use ($record) {
+                        $vehicle = \App\Models\Vehicle::find($value);
+                        if (! $vehicle) {
+                            $fail('Kendaraan tidak ditemukan.');
+                            return;
+                        }
+                        $running = $vehicle->runningSale(exceptSaleId: $record?->id);
+                        if ($running) {
+                            $fail("Motor ini masih terikat penjualan berjalan atas nama "
+                                . ($running->customer?->name ?? 'customer') . ".");
+                        }
+                    };
                 }),
 
             // Data Customer
@@ -419,6 +419,18 @@ class SaleForm
                 ])
                 ->default('proses')
                 ->reactive()
+                ->rule(function ($record) {
+                    return function (string $attribute, $value, \Closure $fail) use ($record) {
+                        if ($record && in_array($value, ['proses', 'kirim', 'selesai'])) {
+                            $vehicle = \App\Models\Vehicle::find($record->vehicle_id);
+                            $running = $vehicle?->runningSale(exceptSaleId: $record->id);
+
+                            if ($running) {
+                                $fail("Motor ini sudah dijual kepada customer: " . ($running->customer?->name ?? 'customer') . ".");
+                            }
+                        }
+                    };
+                })
                 ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
 
                     // Hitung ulang remaining agar tidak null/non-numeric
@@ -426,21 +438,6 @@ class SaleForm
 
                     if (! $record) {
                         return;
-                    }
-
-                    $vehicleId = $record->vehicle_id;
-
-                    if (in_array($state, ['kirim', 'selesai'])) {
-                        $existing = Sale::where('vehicle_id', $vehicleId)
-                            ->where('status', $state)
-                            ->where('id', '!=', $record->id)
-                            ->first();
-
-                        if ($existing) {
-                            throw ValidationException::withMessages([
-                                'status' => "Motor ini sudah dijual kepada customer: {$existing->customer_name}.",
-                            ]);
-                        }
                     }
 
                     if ($state === 'cancel') {

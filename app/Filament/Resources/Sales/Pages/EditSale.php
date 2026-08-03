@@ -62,15 +62,13 @@ class EditSale extends EditRecord
 
         // Cek duplicate untuk status aktif (proses, kirim, selesai) di motor yang sama
         if ($newStatus && in_array($newStatus, ['proses', 'kirim', 'selesai'])) {
-            $existingActive = Sale::where('vehicle_id', $this->record->vehicle_id)
-                ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                ->where('id', '!=', $this->record->id)
-                ->first();
+            $running = \App\Models\Vehicle::find($this->record->vehicle_id)
+                ?->runningSale(exceptSaleId: $this->record->id);
 
-            if ($existingActive) {
-                session()->flash('warning', "Motor ini sudah dijual kepada customer: {$existingActive->customer_name}");
+            if ($running) {
                 throw ValidationException::withMessages([
-                    'status' => "Motor ini sudah dijual kepada customer: {$existingActive->customer_name}.",
+                    'status' => "Motor ini sedang dalam penjualan berjalan atas nama "
+                              . ($running->customer?->name ?? 'customer') . ".",
                 ]);
             }
         }

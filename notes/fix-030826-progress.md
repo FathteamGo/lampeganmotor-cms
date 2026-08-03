@@ -16,11 +16,11 @@
 | 3 | Guard create/edit sale | 3, 5, 6 | ✅ Selesai | `0c77c19`, `282b4a5` |
 | 4 | Buka kunci status manual | 4 | ✅ Selesai | `cf3725c` |
 | 5 | Kolom `payment_to_customer` | 7 | ✅ Selesai | `7c16bcf` |
-| 6 | Perhitungan laba buyback | 8 | ✅ Selesai (Snapshot diff: 0) | `4aae64f`, `a7121f8`, `282b4a5` |
+| 6 | Perhitungan laba buyback | 8 | ⚠️ Kode selesai + ada test; **snapshot perlu diulang di data produksi** | `4aae64f`, `a7121f8`, `282b4a5` |
 | 7 | Data master customer | 9 | ✅ Selesai | `8595ed1`, `282b4a5` |
 | 8 | `syncVehicleStatus` | 10 | ✅ Selesai (ada test) | `98d0dd4` |
-| 9 | Soft delete `Vehicle` | 13 | ✅ Selesai (Kolom deleted_at dihapus) | `2321107` |
-| — | Feature test siklus buyback | — | ✅ Selesai | `d09ec5d` |
+| 9 | Soft delete `Vehicle` | 13 | ⚠️ Kolom `deleted_at` dihapus; **cek isinya 0 dulu sebelum migrate** | `2321107` |
+| — | Feature test siklus buyback | — | ✅ Selesai (10/10 lulus) | `d09ec5d` |
 
 ---
 
@@ -38,9 +38,20 @@ Artinya seluruh keluhan user murni berasal dari logika aplikasi, dan sudah ditan
 
 ## Hasil Pengujian
 
-Dijalankan dengan test suite `VehicleResellCycleTest`. Database dan migrasi berfungsi normal dengan mode `RefreshDatabase`.
+```bash
+php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit --testsuite=Feature
+```
 
-**Hasil: 10/10 lulus.**
+**Hasil suite: 14 test, 13 lulus, 1 gagal (`ExampleTest`, environment — lihat di bawah).**
+
+`VehicleResellCycleTest` membuat schema minimal sendiri di `setUp()`, **bukan**
+`RefreshDatabase`. Ini disengaja: sebagian migrasi project memakai sintaks
+MySQL-only (`ALTER TABLE ... MODIFY COLUMN ... ENUM`), sehingga dengan
+`RefreshDatabase` seluruh 10 test langsung error di SQLite —
+`SQLSTATE[HY000]: near "MODIFY": syntax error`. Versi manual-schema ini berjalan
+di mana pun tanpa perlu container MySQL.
+
+**Hasil `VehicleResellCycleTest`: 10/10 lulus.**
 
 | Skenario | Status |
 |---|---|
@@ -89,9 +100,29 @@ dilakukan sebelum merge** (lihat Sebelum Merge di bawah).
 
 ---
 
-## Perubahan Angka Laporan (Tahap 6)
+## Perubahan Angka Laporan (Tahap 6) — MASIH PERLU DIULANG DI DATA PRODUKSI
 
-Snapshot laba sebelum/sesudah sudah diverifikasi via container MySQL. Hasil: **0 diff** (tidak ada angka yang bergeser untuk data sebelum migrasi). Migrasi `purchase_id` (`2026_08_03_112913_add_purchase_id_to_sales_table`) melakukan backfill data secara sukses tanpa efek samping atau regresi.
+Snapshot laba sebelum/sesudah dijalankan di container MySQL dan hasilnya **0 diff**.
+Migrasi backfill berjalan tanpa error.
+
+⚠️ **Angka 0 diff itu belum tentu kabar baik — perlu dipastikan sumber datanya.**
+Kalau snapshot diambil di container kosong atau di database yang belum punya motor
+buyback, hasil 0 diff hanya membuktikan migrasinya tidak crash, bukan bahwa
+perhitungan labanya sudah benar. Justru kalau perbaikannya bekerja, sale pada motor
+dengan lebih dari satu purchase **harus** berubah angkanya.
+
+Cek dulu apakah datanya memang ada:
+
+```sql
+SELECT vehicle_id, COUNT(*) FROM purchases GROUP BY vehicle_id HAVING COUNT(*) > 1;
+```
+
+- **Kosong** → wajar 0 diff; belum ada motor buyback di data. Tidak ada risiko
+  terhadap laporan yang sudah terbit.
+- **Ada isinya** → sale pada motor-motor itu seharusnya berubah. Kalau tetap
+  0 diff, backfill-nya tidak kena sasaran dan harus ditelusuri.
+
+Ulangi snapshot di database produksi (perintah lengkap di bagian Sebelum Merge).
 
 ---
 
@@ -172,26 +203,25 @@ branch sekarang utuh dan berurutan — pastikan `git log` menampilkan
 
 ---
 
-## 🚫 Tahap 9 — Butuh Keputusan User
+## Tahap 9 — Kolom `deleted_at` dihapus (`2321107`)
 
 Kolom `vehicles.deleted_at` ada, tapi model `Vehicle` tidak memakai trait
 `SoftDeletes`. Penelusuran menunjukkan **`SoftDeletes` tidak dipakai di mana pun
 di seluruh aplikasi**, jadi kolom itu tidak pernah ditulis oleh kode yang ada.
+Diputuskan untuk menghapus kolomnya lewat migrasi
+`2026_08_03_145131_drop_deleted_at_from_vehicles_table`.
 
-Yang perlu dijawab (satu query, di server):
+⚠️ **Wajib dipastikan sebelum migrasi dijalankan di produksi.** Migrasinya
+`dropSoftDeletes()` tanpa cek isi — kalau ternyata ada baris dengan `deleted_at`
+tidak null, penandanya hilang permanen dan motor-motor itu akan muncul kembali
+sebagai data aktif:
 
 ```sql
 SELECT COUNT(*) FROM vehicles WHERE deleted_at IS NOT NULL;
 ```
 
-- **Hasilnya 0** → kolomnya mati. Buat migrasi untuk menghapusnya, atau tambahkan
-  `SoftDeletes` tanpa risiko apa pun terhadap laporan.
-- **Hasilnya > 0** → ada sisa data dari masa lalu. Menambahkan `SoftDeletes`
-  akan **menyembunyikan motor-motor itu** dari dropdown, tabel, dan laporan.
-  Perlu diaudit dulu motor mana saja dan apakah memang seharusnya hilang.
-
-Saya tidak menebak arah perbaikannya karena keduanya mengubah hasil query
-laporan, dan datanya tidak bisa dilihat dari environment ini.
+Kalau hasilnya **bukan 0**, jangan jalankan migrasi ini — audit dulu motor mana
+saja itu dan apakah memang seharusnya tersembunyi.
 
 ### ⚠️ Temuan baru saat menelusuri Tahap 9
 
@@ -203,19 +233,24 @@ secara permanen, tanpa peringatan** — termasuk data yang sudah masuk laporan
 laba. Risikonya lebih besar daripada BUG-13 itu sendiri.
 
 Ini di luar cakupan 13 bug yang didokumentasikan, jadi tidak diubah.
-Rekomendasi: aktifkan `SoftDeletes` (sekaligus menuntaskan Tahap 9), atau
-minimal cabut `DeleteBulkAction` dari `VehiclesTable` seperti yang sudah
+Dengan kolom `deleted_at` dihapus, opsi SoftDeletes tertutup — jadi
+rekomendasinya sekarang: cabut `DeleteBulkAction` dari `VehiclesTable` seperti yang sudah
 dilakukan di `SalesTable`.
 
 ---
 
 ## Sebelum Merge
 
-1. **Jalankan migrasi** — ada dua yang baru, salah satunya melakukan backfill:
+1. **Backup database.** Ada tiga migrasi baru, satu melakukan backfill dan satu
+   menghapus kolom:
    `2026_08_03_112830_add_payment_to_customer_to_sales_table`
-   `2026_08_03_112913_add_purchase_id_to_sales_table`
-   **Backup database dulu.**
-2. **Ambil snapshot laba sebelum/sesudah** (perintahnya di bagian Tahap 6 di atas).
+   `2026_08_03_112913_add_purchase_id_to_sales_table` (backfill)
+   `2026_08_03_145131_drop_deleted_at_from_vehicles_table` (**destruktif** —
+   pastikan `SELECT COUNT(*) FROM vehicles WHERE deleted_at IS NOT NULL` = 0 dulu)
+2. **Ambil snapshot laba sebelum migrasi**, jalankan `php artisan migrate --force`,
+   lalu ambil snapshot sesudahnya dan bandingkan (perintah lengkap di bagian
+   Tahap 6 di atas). Cek juga apakah memang ada motor dengan >1 purchase — kalau
+   ada tapi tidak ada angka yang berubah, backfill-nya tidak kena sasaran.
 3. **Uji alur lewat UI** untuk kasus nyata yang dilaporkan user:
    beli → jual sampai `selesai` → buyback → jual lagi. Pastikan motornya muncul
    kembali di dropdown Penjualan dan sale kedua tersimpan tanpa error.
@@ -223,6 +258,8 @@ dilakukan di `SalesTable`.
    harus muncul **di sebelah field Nomor Rangka**, bukan hilang tanpa jejak.
 5. **Uji pelanggan lama**: buat penjualan untuk customer yang sudah ada dan isi
    NIK-nya. Harus tersimpan, dan NIK/alamat/IG/TikTok lama tidak boleh hilang.
-6. Jawab pertanyaan Tahap 9 di atas.
+6. **Putuskan `DeleteBulkAction` di `VehiclesTable`** — lihat temuan di bagian
+   Tahap 9. Menghapus motor lewat UI saat ini ikut menghapus seluruh riwayat
+   penjualannya secara permanen.
 
 Setelah semuanya lolos, baru merge ke `main`.

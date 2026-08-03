@@ -12,7 +12,7 @@ use App\Models\Type;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
 use App\Models\Year;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -28,119 +28,15 @@ use Tests\TestCase;
  */
 class VehicleResellCycleTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
-
-        Schema::create('brands', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->timestamps();
-        });
-
-        Schema::create('vehicle_models', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('brand_id')->constrained('brands');
-            $table->string('name');
-            $table->timestamps();
-        });
-
-        Schema::create('types', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->timestamps();
-        });
-
-        Schema::create('colors', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->timestamps();
-        });
-
-        Schema::create('years', function (Blueprint $table) {
-            $table->id();
-            $table->integer('year')->unique();
-            $table->timestamps();
-        });
-
-        Schema::create('vehicles', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('vehicle_model_id')->constrained('vehicle_models');
-            $table->foreignId('type_id')->constrained('types');
-            $table->foreignId('color_id')->constrained('colors');
-            $table->foreignId('year_id')->constrained('years');
-            $table->string('vin')->unique();
-            $table->string('engine_number')->unique();
-            $table->string('license_plate')->nullable();
-            $table->decimal('purchase_price', 15, 2)->nullable();
-            $table->decimal('sale_price', 15, 2)->nullable();
-            $table->string('status')->default('available');
-            $table->timestamps();
-        });
-
-        Schema::create('customers', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('nik')->nullable();
-            $table->string('phone')->nullable();
-            $table->text('address')->nullable();
-            $table->string('instagram')->nullable();
-            $table->string('tiktok')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('suppliers', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->timestamps();
-        });
-
-        Schema::create('purchases', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('vehicle_id');
-            $table->unsignedBigInteger('supplier_id')->nullable();
-            $table->date('purchase_date');
-            $table->decimal('total_price', 15, 2);
-            $table->text('notes')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('purchase_additional_costs', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('purchase_id');
-            $table->string('category')->nullable();
-            $table->decimal('price', 15, 2)->default(0);
-            $table->timestamps();
-        });
-
-        Schema::create('sales', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('vehicle_id');
-            $table->unsignedBigInteger('purchase_id')->nullable();
-            $table->unsignedBigInteger('customer_id')->nullable();
-            $table->date('sale_date')->nullable();
-            $table->decimal('sale_price', 15, 2)->nullable();
-            $table->string('payment_method')->default('cash');
-            $table->decimal('dp_po', 15, 2)->nullable();
-            $table->decimal('dp_real', 15, 2)->nullable();
-            $table->decimal('payment_to_customer', 15, 2)->nullable();
-            $table->decimal('cmo_fee', 15, 2)->nullable();
-            $table->decimal('direct_commission', 15, 2)->nullable();
-            $table->string('status')->default('proses');
-            $table->timestamps();
-        });
     }
 
     protected function tearDown(): void
     {
-        foreach ([
-            'sales', 'purchase_additional_costs', 'purchases', 'suppliers',
-            'customers', 'vehicles', 'years', 'colors', 'types',
-            'vehicle_models', 'brands',
-        ] as $table) {
-            Schema::dropIfExists($table);
-        }
-
         parent::tearDown();
     }
 
@@ -172,8 +68,11 @@ class VehicleResellCycleTest extends TestCase
     {
         $vehicle = $this->makeVehicle();
 
+        $customer = Customer::firstOrCreate(['name' => 'Test Customer']);
+
         Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now(),
             'sale_price' => 11_000_000,
             'status' => 'proses',
@@ -190,8 +89,11 @@ class VehicleResellCycleTest extends TestCase
     {
         $vehicle = $this->makeVehicle();
 
+        $customer = Customer::firstOrCreate(['name' => 'Test Customer']);
+
         Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now(),
             'sale_price' => 11_000_000,
             'status' => 'selesai',
@@ -212,6 +114,7 @@ class VehicleResellCycleTest extends TestCase
     public function test_motor_buyback_bisa_dijual_kembali(): void
     {
         $vehicle = $this->makeVehicle();
+        $customer = Customer::firstOrCreate(['name' => 'Test Customer']);
         $supplier = Supplier::create(['name' => 'Supplier A']);
 
         Purchase::create([
@@ -224,6 +127,7 @@ class VehicleResellCycleTest extends TestCase
         // Siklus 1: terjual dan tuntas
         Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now()->subMonths(3),
             'sale_price' => 11_000_000,
             'status' => 'selesai',
@@ -249,6 +153,7 @@ class VehicleResellCycleTest extends TestCase
         // Siklus 2: dijual lagi
         $sale2 = Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now(),
             'sale_price' => 12_000_000,
             'status' => 'proses',
@@ -265,8 +170,11 @@ class VehicleResellCycleTest extends TestCase
     {
         $vehicle = $this->makeVehicle();
 
+        $customer = Customer::firstOrCreate(['name' => 'Test Customer']);
+
         Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now(),
             'sale_price' => 11_000_000,
             'status' => 'kirim',
@@ -344,6 +252,7 @@ class VehicleResellCycleTest extends TestCase
     public function test_laba_kotor_dihitung_terhadap_pembelian_yang_terikat(): void
     {
         $vehicle = $this->makeVehicle();
+        $customer = Customer::firstOrCreate(['name' => 'Test Customer']);
         $supplier = Supplier::create(['name' => 'Supplier A']);
 
         $purchase1 = Purchase::create([
@@ -362,6 +271,7 @@ class VehicleResellCycleTest extends TestCase
 
         $sale1 = Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'purchase_id' => $purchase1->id,
             'sale_date' => now()->subMonths(3),
             'sale_price' => 11_000_000,
@@ -371,6 +281,7 @@ class VehicleResellCycleTest extends TestCase
 
         $sale2 = Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'purchase_id' => $purchase2->id,
             'sale_date' => now(),
             'sale_price' => 12_000_000,
@@ -390,8 +301,11 @@ class VehicleResellCycleTest extends TestCase
     {
         $vehicle = $this->makeVehicle();
 
+        $customer = Customer::firstOrCreate(['name' => 'Test Customer']);
+
         $sale = Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now(),
             'sale_price' => 11_000_000,
             'status' => 'proses',
@@ -410,8 +324,11 @@ class VehicleResellCycleTest extends TestCase
     {
         $vehicle = $this->makeVehicle(['status' => 'in_repair']);
 
+        $customer = Customer::firstOrCreate(['name' => 'Test Customer']);
+
         $sale = Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now(),
             'sale_price' => 11_000_000,
             'status' => 'cancel',
@@ -427,8 +344,11 @@ class VehicleResellCycleTest extends TestCase
     {
         $vehicle = $this->makeVehicle();
 
+        $customer = Customer::firstOrCreate(['name' => 'Test Customer']);
+
         Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now()->subMonths(3),
             'sale_price' => 11_000_000,
             'status' => 'selesai',
@@ -436,6 +356,7 @@ class VehicleResellCycleTest extends TestCase
 
         $batal = Sale::create([
             'vehicle_id' => $vehicle->id,
+            'customer_id' => $customer->id,
             'sale_date' => now(),
             'sale_price' => 12_000_000,
             'status' => 'proses',

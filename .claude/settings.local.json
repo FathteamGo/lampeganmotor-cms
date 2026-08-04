@@ -7,7 +7,28 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(command -v mysql)",
-      "Bash(timeout 10 mysql -h127.0.0.1 -P3308 -uroot -ppassword -D lampeganmotor -e \"DESCRIBE sales;\")"
+      "Bash(timeout 10 mysql -h127.0.0.1 -P3308 -uroot -ppassword -D lampeganmotor -e \"DESCRIBE sales;\")",
+      "Bash(php -m)",
+      "Bash(php --ini)",
+      "Bash(php -d extension=pdo_sqlite -d extension=sqlite3 -r \"var_dump\\(extension_loaded\\('pdo_sqlite'\\), PDO::getAvailableDrivers\\(\\)\\);\")",
+      "Bash(timeout 180 php -d extension=pdo_sqlite -d extension=sqlite3 artisan test --testsuite=Feature)",
+      "Bash(timeout 180 php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit --testsuite=Feature)",
+      "Bash(git worktree *)",
+      "Bash(php -l app/Filament/Resources/Purchases/Pages/CreatePurchase.php)",
+      "Bash(timeout 180 php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit --filter VehicleResellCycleTest)",
+      "Bash(timeout 60 php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit --filter ExampleTest)",
+      "Bash(./vendor/bin/pint --dirty --test)",
+      "Bash(./vendor/bin/pint --test app/Models/Sale.php app/Filament/Resources/Sales/Tables/SalesTable.php app/Models/Purchase.php)",
+      "Bash(git commit -q -m 'fix\\(purchase\\): tampilkan penolakan buyback + bersihkan log debugging *)",
+      "Bash(git commit -q -m 'fix\\(sale\\): validasi NIK pelanggan lama, purchase_id saat edit, key error *)",
+      "Bash(git commit -q -m 'test: feature test siklus buyback + koreksi test yang usang *)",
+      "Bash(git checkout *)",
+      "Bash(git cherry-pick *)",
+      "Bash(git commit -q -m 'docs: laporan progres yang akurat + prompt implementasi *)",
+      "Bash(perl -0pi -e \"s/Ini di luar cakupan 13 bug yang didokumentasikan, jadi tidak diubah\\\\.\\\\nRekomendasi: aktifkan \\\\`SoftDeletes\\\\` \\\\\\(sekaligus menuntaskan Tahap 9\\\\\\), atau\\\\nminimal cabut/Ini di luar cakupan 13 bug yang didokumentasikan, jadi tidak diubah.\\\\nDengan kolom \\\\`deleted_at\\\\` dihapus, opsi SoftDeletes tertutup — jadi\\\\nrekomendasinya sekarang: cabut/\" notes/fix-030826-progress.md)",
+      "Bash(sed -n '/Temuan baru saat menelusuri/,/^---/p' notes/fix-030826-progress.md)",
+      "Bash(git commit -q -m 'fix\\(test\\): kembalikan schema manual di VehicleResellCycleTest *)",
+      "Bash(grep -rn 'Purchase::where\\('\\\\''vehicle_id'\\\\''\\\\|purchases'\\\\''\\)->where\\('\\\\''vehicle_id'\\\\''\\\\|'\\\\''vehicle_id'\\\\'', $record->vehicle_id' app/)"
     ]
   }
 }

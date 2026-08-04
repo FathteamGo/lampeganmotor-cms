@@ -382,6 +382,107 @@ class VehicleResellCycleTest extends TestCase
         $this->assertEquals(2_000_000, $sale2->laba_kotor);
     }
 
+    public function test_hapus_purchase_mengikat_ulang_sale_ke_pembelian_tersisa(): void
+    {
+        $vehicle = $this->makeVehicle();
+        $supplier = Supplier::create(['name' => 'Supplier A']);
+
+        $purchase1 = Purchase::create([
+            'vehicle_id' => $vehicle->id,
+            'supplier_id' => $supplier->id,
+            'purchase_date' => now()->subMonths(6),
+            'total_price' => 9_000_000,
+        ]);
+
+        $purchase2 = Purchase::create([
+            'vehicle_id' => $vehicle->id,
+            'supplier_id' => $supplier->id,
+            'purchase_date' => now()->subDay(),
+            'total_price' => 10_000_000,
+        ]);
+
+        $sale = Sale::create([
+            'vehicle_id' => $vehicle->id,
+            'purchase_id' => $purchase2->id,
+            'sale_date' => now(),
+            'sale_price' => 12_000_000,
+            'payment_method' => 'cash',
+            'status' => 'proses',
+        ]);
+
+        // Purchase salah input lalu dihapus — sale tidak boleh kehilangan modalnya
+        $purchase2->delete();
+
+        $sale->refresh();
+
+        $this->assertSame($purchase1->id, $sale->purchase_id);
+        $this->assertEquals(3_000_000, $sale->laba_kotor);
+    }
+
+    public function test_sales_report_export_memakai_modal_siklus_yang_benar(): void
+    {
+        $vehicle = $this->makeVehicle();
+        $supplier = Supplier::create(['name' => 'Supplier A']);
+
+        $purchase1 = Purchase::create([
+            'vehicle_id' => $vehicle->id,
+            'supplier_id' => $supplier->id,
+            'purchase_date' => now()->subMonths(6),
+            'total_price' => 9_000_000,
+        ]);
+
+        $purchase2 = Purchase::create([
+            'vehicle_id' => $vehicle->id,
+            'supplier_id' => $supplier->id,
+            'purchase_date' => now()->subDay(),
+            'total_price' => 10_000_000,
+        ]);
+
+        // Biaya tambahan siklus 2 (STNK dll) — harus ikut jadi modal
+        \Illuminate\Support\Facades\DB::table('purchase_additional_costs')->insert([
+            'purchase_id' => $purchase2->id,
+            'category' => 'STNK',
+            'price' => 500_000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Buyback menimpa vehicles.purchase_price dengan harga siklus terbaru
+        $vehicle->update(['purchase_price' => 10_000_000, 'status' => 'available']);
+
+        $sale1 = Sale::create([
+            'vehicle_id' => $vehicle->id,
+            'purchase_id' => $purchase1->id,
+            'sale_date' => now()->subMonths(3),
+            'sale_price' => 11_000_000,
+            'payment_method' => 'cash',
+            'status' => 'selesai',
+        ]);
+
+        $sale2 = Sale::create([
+            'vehicle_id' => $vehicle->id,
+            'purchase_id' => $purchase2->id,
+            'sale_date' => now(),
+            'sale_price' => 12_000_000,
+            'payment_method' => 'cash',
+            'status' => 'proses',
+        ]);
+
+        $export = new \App\Exports\SalesReportExport();
+
+        $row1 = $export->map($sale1->fresh());
+        $row2 = $export->map($sale2->fresh());
+
+        // Kolom 12 = H TOTAL PEMBELIAN, kolom 18 = LABA BERSIH
+        // Sale siklus 1 pakai modal siklus 1 (9jt), bukan 10jt milik siklus 2
+        $this->assertEquals(9_000_000, $row1[12]);
+        $this->assertEquals(2_000_000, $row1[18]);
+
+        // Sale siklus 2 pakai modal siklus 2 termasuk biaya tambahan (10jt + 500rb)
+        $this->assertEquals(10_500_000, $row2[12]);
+        $this->assertEquals(1_500_000, $row2[18]);
+    }
+
     // =======================
     // Status motor saat sale dibatalkan
     // =======================
@@ -421,6 +522,94 @@ class VehicleResellCycleTest extends TestCase
 
         $vehicle->refresh();
         $this->assertSame('in_repair', $vehicle->status);
+    }
+
+    public function test_sale_setelah_buyback_dibatalkan_mengembalikan_motor_ke_available(): void
+    {
+        $vehicle = $this->makeVehicle();
+        $supplier = Supplier::create(['name' => 'Supplier A']);
+
+        $purchase1 = Purchase::create([
+            'vehicle_id' => $vehicle->id,
+            'supplier_id' => $supplier->id,
+            'purchase_date' => now()->subMonths(6),
+            'total_price' => 9_000_000,
+        ]);
+
+        // Siklus 1: terjual dan tuntas
+        Sale::create([
+            'vehicle_id' => $vehicle->id,
+            'purchase_id' => $purchase1->id,
+            'sale_date' => now()->subMonths(3),
+            'sale_price' => 11_000_000,
+            'status' => 'selesai',
+        ]);
+
+        // Buyback
+        $purchase2 = Purchase::create([
+            'vehicle_id' => $vehicle->id,
+            'supplier_id' => $supplier->id,
+            'purchase_date' => now()->subDay(),
+            'total_price' => 10_000_000,
+        ]);
+        $vehicle->update(['status' => 'available']);
+
+        // Siklus 2 dibuat lalu dibatalkan
+        $sale2 = Sale::create([
+            'vehicle_id' => $vehicle->id,
+            'purchase_id' => $purchase2->id,
+            'sale_date' => now(),
+            'sale_price' => 12_000_000,
+            'status' => 'proses',
+        ]);
+
+        $vehicle->refresh();
+        $this->assertSame('sold', $vehicle->status);
+
+        $sale2->update(['status' => 'cancel']);
+
+        // Motor ada di showroom lagi. Sale 'selesai' siklus 1 tidak boleh
+        // menahannya di 'sold' — itu riwayat kepemilikan yang sudah lewat.
+        $vehicle->refresh();
+        $this->assertSame('available', $vehicle->status);
+        $this->assertTrue($vehicle->isSellable());
+    }
+
+    public function test_sale_selesai_siklus_berjalan_tetap_menahan_motor_di_sold(): void
+    {
+        $vehicle = $this->makeVehicle();
+        $supplier = Supplier::create(['name' => 'Supplier A']);
+
+        $purchase = Purchase::create([
+            'vehicle_id' => $vehicle->id,
+            'supplier_id' => $supplier->id,
+            'purchase_date' => now()->subMonths(6),
+            'total_price' => 9_000_000,
+        ]);
+
+        Sale::create([
+            'vehicle_id' => $vehicle->id,
+            'purchase_id' => $purchase->id,
+            'sale_date' => now()->subMonths(3),
+            'sale_price' => 11_000_000,
+            'status' => 'selesai',
+        ]);
+
+        // Sale kedua di siklus yang SAMA (belum ada buyback) lalu dibatalkan
+        $batal = Sale::create([
+            'vehicle_id' => $vehicle->id,
+            'purchase_id' => $purchase->id,
+            'sale_date' => now(),
+            'sale_price' => 12_000_000,
+            'status' => 'proses',
+        ]);
+
+        $batal->update(['status' => 'cancel']);
+
+        $vehicle->refresh();
+
+        // Belum ada buyback → motor masih di tangan customer, tetap 'sold'
+        $this->assertSame('sold', $vehicle->status);
     }
 
     public function test_sale_selesai_tidak_membuat_motor_available_saat_sale_lain_dibatalkan(): void

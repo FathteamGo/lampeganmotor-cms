@@ -68,10 +68,45 @@ class Purchase extends Model
         return $this->belongsTo(Supplier::class);
     }
 
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
     // REMOVED: booted() event yang salah — Purchase save TIDAK boleh
     // mengubah vehicle status. Status hanya dikelola oleh:
     // - Sale::syncVehicleStatus() (set 'sold' saat ada active sale)
     // - CreatePurchase page (set 'available' untuk buyback)
     // - VehicleForm (manual edit dengan proteksi)
+
+    protected static function booted()
+    {
+        // FK sales.purchase_id memakai nullOnDelete, jadi menghapus purchase akan
+        // memutus ikatan sale-nya dan laba diam-diam jatuh ke fallback
+        // vehicle.purchase_price. Ikat ulang ke pembelian yang masih tersisa.
+        static::deleting(function (Purchase $purchase) {
+            $purchase->affectedSaleIds = $purchase->sales()->pluck('id')->all();
+        });
+
+        static::deleted(function (Purchase $purchase) {
+            if (empty($purchase->affectedSaleIds)) {
+                return;
+            }
+
+            Sale::whereIn('id', $purchase->affectedSaleIds)
+                ->with('vehicle')
+                ->get()
+                ->each(function (Sale $sale) {
+                    $resolved = $sale->vehicle?->purchaseForSaleDate($sale->sale_date)?->id;
+
+                    if ($resolved && $resolved !== $sale->purchase_id) {
+                        $sale->forceFill(['purchase_id' => $resolved])->saveQuietly();
+                    }
+                });
+        });
+    }
+
+    /** @var array<int> ID sale yang terikat, ditangkap sebelum purchase dihapus */
+    public array $affectedSaleIds = [];
 }
 

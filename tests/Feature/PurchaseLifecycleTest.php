@@ -88,6 +88,7 @@ class PurchaseLifecycleTest extends TestCase
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('vehicle_id');
+            $table->unsignedBigInteger('purchase_id')->nullable();
             $table->unsignedBigInteger('customer_id')->nullable();
             $table->date('sale_date')->nullable();
             $table->decimal('sale_price', 15, 2)->nullable();

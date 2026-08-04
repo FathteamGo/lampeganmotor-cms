@@ -19,6 +19,9 @@ class CreatePurchase extends CreateRecord
 {
     protected static string $resource = PurchaseResource::class;
 
+    /** Apakah pembelian ini buyback/restock motor yang sudah pernah terdaftar */
+    protected bool $isBuyback = false;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Buatkan logic jika category additional costs tidak ada make default Tidak Ada
@@ -35,6 +38,8 @@ class CreatePurchase extends CreateRecord
             // Cek apakah kendaraan sudah terdaftar (buyback / restock)
             $exist = Vehicle::where('vin', $data['vin'])->exists()
                 || Vehicle::where('engine_number', $data['engine_number'])->exists();
+
+            $this->isBuyback = $exist;
 
             // Buat atau ambil data master
             $brand = Brand::firstOrCreate(['name' => $data['brand_name']]);
@@ -179,7 +184,9 @@ class CreatePurchase extends CreateRecord
     {
         return Notification::make()
             ->title('Data Pembelian Berhasil Disimpan!')
-            ->body('Kendaraan baru berhasil ditambahkan ke daftar.')
+            ->body($this->isBuyback
+                ? 'Motor dibeli kembali dan statusnya kembali tersedia — sudah bisa dijual lagi.'
+                : 'Kendaraan baru berhasil ditambahkan ke daftar.')
             ->success();
     }
 }

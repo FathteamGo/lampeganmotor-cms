@@ -161,10 +161,15 @@ class Sale extends Model
      * Sinkronisasi status vehicle berdasarkan sales records
      *
      * Logic:
-     * - Sale 'proses'/'kirim'/'selesai' → vehicle status = 'sold'
-     *   (selesai = motor sudah dijual & dikirim ke customer, tetap sold)
-     * - Semua sale 'cancel' atau tidak ada sale → TETAP seperti sekarang
-     *   (jangan otomatis available, hanya buyback yang boleh set available)
+     * - Ada sale 'proses'/'kirim'/'selesai' DI SIKLUS KEPEMILIKAN SAAT INI
+     *   → vehicle status = 'sold'
+     * - Tidak ada → 'available', kecuali status khusus ('in_repair'/'hold')
+     *
+     * PENTING: satu motor bisa berputar berkali-kali (buyback), jadi yang dilihat
+     * hanya sale milik siklus berjalan — yaitu sale yang terikat ke pembelian
+     * terakhir. Tanpa batasan ini, sale 'selesai' dari siklus lama akan terus
+     * menahan motor di status 'sold' walaupun motornya sudah dibeli kembali dan
+     * penjualan barunya dibatalkan.
      */
     public static function syncVehicleStatus($vehicleId)
     {
@@ -176,9 +181,30 @@ class Sale extends Model
 
             // Hitung sale yang menandakan motor sudah terjual
             // proses = sedang proses, kirim = sedang dikirim, selesai = sudah sampai customer
-            $hasSoldSale = Sale::where('vehicle_id', $vehicleId)
-                ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                ->exists();
+            $query = Sale::where('vehicle_id', $vehicleId)
+                ->whereIn('status', ['proses', 'kirim', 'selesai']);
+
+            $latestPurchase = $vehicle->purchases()
+                ->orderByDesc('purchase_date')
+                ->orderByDesc('id')
+                ->first();
+
+            // Batasi ke siklus kepemilikan saat ini. Kalau motor belum punya data
+            // pembelian sama sekali, tidak ada siklus yang bisa dipakai sebagai
+            // acuan — pakai seluruh riwayat seperti sebelumnya.
+            if ($latestPurchase) {
+                $query->where(function ($q) use ($latestPurchase) {
+                    $q->where('purchase_id', $latestPurchase->id)
+                        // Data lama yang purchase_id-nya kosong: pakai tanggal
+                        // sebagai penentu siklus.
+                        ->orWhere(fn($q2) => $q2
+                            ->whereNull('purchase_id')
+                            ->whereDate('sale_date', '>=', $latestPurchase->purchase_date)
+                        );
+                });
+            }
+
+            $hasSoldSale = $query->exists();
 
             if ($hasSoldSale) {
                 $newStatus = 'sold';

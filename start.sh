@@ -9,6 +9,9 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
+# Buat symbolic link untuk folder storage (ini yang menyebabkan gambar 404)
+php artisan storage:link --force
+
 # Run database migrations automatically (optional, but safe for production usually)
 php artisan migrate --force
 

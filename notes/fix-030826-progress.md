@@ -42,7 +42,7 @@ Artinya seluruh keluhan user murni berasal dari logika aplikasi, dan sudah ditan
 php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit --testsuite=Feature
 ```
 
-**Hasil suite: 14 test, 13 lulus, 1 gagal (`ExampleTest`, environment — lihat di bawah).**
+**Hasil suite: 18 test, 17 lulus, 1 gagal (`ExampleTest`, environment — lihat di bawah).**
 
 `VehicleResellCycleTest` membuat schema minimal sendiri di `setUp()`, **bukan**
 `RefreshDatabase`. Ini disengaja: sebagian migrasi project memakai sintaks
@@ -51,7 +51,7 @@ MySQL-only (`ALTER TABLE ... MODIFY COLUMN ... ENUM`), sehingga dengan
 `SQLSTATE[HY000]: near "MODIFY": syntax error`. Versi manual-schema ini berjalan
 di mana pun tanpa perlu container MySQL.
 
-**Hasil `VehicleResellCycleTest`: 10/10 lulus.**
+**Hasil `VehicleResellCycleTest`: 14/14 lulus.**
 
 | Skenario | Status |
 |---|---|
@@ -62,6 +62,10 @@ di mana pun tanpa perlu container MySQL.
 | Sale siklus 2 memakai Purchase #2, siklus 1 tetap Purchase #1 | ✅ |
 | Sale backdate memakai pembelian terbaru, bukan tertua | ✅ |
 | Laba kotor dihitung terhadap purchase yang terikat | ✅ |
+| **Sale setelah buyback dibatalkan → motor kembali `available`** | ✅ |
+| **Sale `selesai` siklus berjalan tetap menahan motor di `sold`** | ✅ |
+| **Hapus purchase → sale diikat ulang ke pembelian tersisa** | ✅ |
+| **Sales Report export memakai modal siklus yang benar** | ✅ |
 | Sale dibatalkan → motor kembali `available` | ✅ |
 | Status `in_repair`/`hold` tidak ditimpa saat sale dibatalkan | ✅ |
 | Sale `selesai` tetap menahan motor di `sold` saat sale lain dibatalkan | ✅ |
@@ -239,6 +243,71 @@ dilakukan di `SalesTable`.
 
 ---
 
+## Audit Lanjutan — 4 Agustus 2026 (commit `3144c2b`)
+
+Audit menyeluruh terhadap fitur buyback setelah semua tahap selesai. Ke-13 bug
+terverifikasi tertangani, tapi ditemukan empat hal yang masih tersisa.
+
+### 🔴 Motor nyangkut `sold` lagi kalau sale setelah buyback dibatalkan
+
+Diuji langsung dan terkonfirmasi:
+
+```
+beli → jual (selesai) → buyback → jual lagi (proses) → DIBATALKAN
+→ status: sold ❌   isSellable: false ❌
+```
+
+Motor sudah ada di showroom tapi **hilang lagi dari dropdown Penjualan** — bagi
+user akan terlihat persis seperti bug lama kambuh. Penyebabnya
+`syncVehicleStatus()` menghitung seluruh riwayat sale, termasuk `selesai` dari
+siklus pertama. Ini akar masalah yang sama dengan BUG-1..4, hanya satu langkah
+lebih jauh di alurnya.
+
+Sekarang query-nya dibatasi ke siklus kepemilikan berjalan — sale yang terikat
+ke pembelian terakhir, atau (untuk data lama tanpa `purchase_id`) yang tanggal
+jualnya setelah pembelian terakhir. Kalau motor belum punya data pembelian sama
+sekali, perilakunya tetap seperti sebelumnya.
+
+### 🟠 `SalesReportExport` masih memakai rumus modal lama
+
+`app/Exports/SalesReportExport.php` (halaman **Sales Report**) menghitung
+`$purchasePrice = $sale->vehicle?->purchase_price`, melewati purchase sepenuhnya:
+
+- biaya tambahan (STNK, pajak, servis) tidak ikut → modal terlalu kecil, laba
+  terlalu besar;
+- `vehicles.purchase_price` ditimpa setiap buyback → penjualan siklus lama
+  dihitung terhadap harga beli siklus baru.
+
+File ini terlewat saat Tahap 6, sehingga halaman Sales Report menghasilkan angka
+berbeda dari tabel Penjualan dan dashboard. Sekarang memakai purchase yang
+terikat + accessor model `Sale`, jadi satu sumber kebenaran. Kolom
+`TOTAL PENJUALAN` yang tadinya mengulang OTR juga diperbaiki jadi Harga Total
+Penjualan — tanpa itu, `LABA BERSIH` tidak bisa direkonsiliasi dari barisnya
+sendiri untuk penjualan credit.
+
+### 🟡 Hapus purchase memutus ikatan modal
+
+FK `sales.purchase_id` memakai `nullOnDelete`, jadi menghapus purchase membuat
+laba diam-diam jatuh ke fallback `vehicle.purchase_price`. Sale sekarang diikat
+ulang ke pembelian tersisa yang relevan lewat event `deleting`/`deleted` di
+model `Purchase`.
+
+### 🟡 Notifikasi buyback menyesatkan
+
+"Kendaraan baru berhasil ditambahkan ke daftar" muncul juga saat buyback.
+Sekarang dibedakan.
+
+### Catatan: kegagalan senyap di `syncVehicleStatus`
+
+Saat menambah batasan siklus, `PurchaseLifecycleTest` gagal karena fixture-nya
+belum punya kolom `purchase_id` — query error, lalu **ditelan `catch`** dan
+status kendaraan diam-diam tidak tersinkron. Di produksi kolomnya ada jadi tidak
+terjadi, tapi pola ini perlu diingat: kalau `syncVehicleStatus` error, status
+motor jadi salah tanpa gejala apa pun selain satu baris di log. Fixture sudah
+diperbaiki.
+
+---
+
 ## Sebelum Merge
 
 1. **Backup database.** Ada tiga migrasi baru, satu melakukan backfill dan satu
@@ -258,7 +327,14 @@ dilakukan di `SalesTable`.
    harus muncul **di sebelah field Nomor Rangka**, bukan hilang tanpa jejak.
 5. **Uji pelanggan lama**: buat penjualan untuk customer yang sudah ada dan isi
    NIK-nya. Harus tersimpan, dan NIK/alamat/IG/TikTok lama tidak boleh hilang.
-6. **Putuskan `DeleteBulkAction` di `VehiclesTable`** — lihat temuan di bagian
+6. **Uji batal setelah buyback**: setelah motor buyback dijual lagi, batalkan
+   penjualannya. Motor harus kembali `available` dan muncul lagi di dropdown —
+   bukan nyangkut di `sold`.
+7. **Bandingkan halaman Sales Report dengan tabel Penjualan.** Angka
+   H TOTAL PEMBELIAN dan LABA BERSIH sekarang harus sama persis di keduanya.
+   Kalau laporan lama sudah terlanjur dipakai, angkanya akan bergeser —
+   modal sekarang termasuk biaya tambahan, jadi laba akan **turun**.
+8. **Putuskan `DeleteBulkAction` di `VehiclesTable`** — lihat temuan di bagian
    Tahap 9. Menghapus motor lewat UI saat ini ikut menghapus seluruh riwayat
    penjualannya secara permanen.
 

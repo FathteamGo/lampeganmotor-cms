@@ -1,7 +1,7 @@
 # Progres Perbaikan Buyback — fix-030826
 
 **Branch:** `fix/buyback-sale-cycle`
-**Update terakhir:** 3 Agustus 2026
+**Update terakhir:** 4 Agustus 2026
 **Belum di-push, belum di-merge ke `main`.**
 
 ---
@@ -20,7 +20,8 @@
 | 7 | Data master customer | 9 | ✅ Selesai | `8595ed1`, `282b4a5` |
 | 8 | `syncVehicleStatus` | 10 | ✅ Selesai (ada test) | `98d0dd4` |
 | 9 | Soft delete `Vehicle` | 13 | ⚠️ Kolom `deleted_at` dihapus; **cek isinya 0 dulu sebelum migrate** | `2321107` |
-| — | Feature test siklus buyback | — | ✅ Selesai (10/10 lulus) | `d09ec5d` |
+| — | Test siklus buyback (level model) | — | ✅ 14/14 lulus | `d09ec5d`, `3144c2b` |
+| — | Test alur UI Filament (MySQL) | — | ✅ 6/6 lulus, diuji-mutasi | `33ee0cd` |
 
 ---
 
@@ -39,10 +40,17 @@ Artinya seluruh keluhan user murni berasal dari logika aplikasi, dan sudah ditan
 ## Hasil Pengujian
 
 ```bash
+# Logika (SQLite)
 php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit --testsuite=Feature
+
+# Alur UI (MySQL)
+php vendor/bin/phpunit -c phpunit.uitest.xml
 ```
 
-**Hasil suite: 18 test, 17 lulus, 1 gagal (`ExampleTest`, environment — lihat di bawah).**
+**Hasil: 24 test, 23 lulus, 1 gagal (`ExampleTest`, environment — lihat di bawah).**
+
+- 18 test logika di SQLite (`--testsuite=Feature`)
+- 6 test alur UI di MySQL (`-c phpunit.uitest.xml`)
 
 `VehicleResellCycleTest` membuat schema minimal sendiri di `setUp()`, **bukan**
 `RefreshDatabase`. Ini disengaja: sebagian migrasi project memakai sintaks
@@ -95,12 +103,48 @@ kunjungan, sementara schema test dibuat manual karena sebagian migrasi memakai
 sintaks MySQL yang tidak didukung SQLite. Sudah gagal sejak sebelum pekerjaan
 ini dan tidak berhubungan dengan perubahan mana pun di sini.
 
-### Yang belum bisa diuji
+### `BuybackUiFlowTest` — 6/6 lulus (alur UI sebenarnya)
 
-Alur UI Filament (klik form Pembelian/Penjualan) belum dijalankan — MySQL lokal
-di port 3308 tidak aktif dan aplikasi tidak bisa di-boot dari environment ini.
-Logika di baliknya sudah tertutup feature test, tapi **verifikasi UI tetap perlu
-dilakukan sebelum merge** (lihat Sebelum Merge di bawah).
+```bash
+docker compose up -d mysql
+docker exec lampegan-mysql mariadb -uroot -proot \
+  -e "CREATE DATABASE IF NOT EXISTS lampeganmotor_uitest"
+php vendor/bin/phpunit -c phpunit.uitest.xml
+```
+
+Test ini **menjalankan class halaman Filament** (`CreatePurchase`, `CreateSale`,
+`EditSale`) lewat Livewire di atas MySQL dengan migrasi asli — bukan simulasi.
+Sebelumnya seluruh test buyback berjalan di level model dan mensimulasikan
+buyback dengan `$vehicle->update(['status' => 'available'])`, sehingga
+`CreatePurchase` — tempat BUG-1 berada — tidak pernah dieksekusi sekali pun.
+
+| Skenario | Status |
+|---|---|
+| Pembelian baru → motor `available` & masuk dropdown | ✅ |
+| Siklus penuh beli → jual → selesai → buyback → jual lagi | ✅ |
+| Buyback tidak menduplikasi kendaraan (1 VIN, 2 purchase, 2 sale) | ✅ |
+| `purchase_id` tiap sale menunjuk siklusnya sendiri, laba benar | ✅ |
+| Buyback ditolak saat penjualan masih `kirim`, pesan nempel di field VIN | ✅ |
+| Motor dengan penjualan berjalan tidak muncul di dropdown | ✅ |
+| Pelanggan lama beli lagi tanpa kehilangan NIK/alamat/IG | ✅ |
+| Batal setelah buyback → motor kembali `available` & muncul di dropdown | ✅ |
+
+**Diuji-mutasi** untuk memastikan test-nya bukan hiasan:
+
+| Perbaikan dikembalikan | Akibat |
+|---|---|
+| BUG-1 (`runningSale()` → `status != cancel`) | 2 test merah — buyback ditolak, `data.vin` error |
+| Batasan siklus di `syncVehicleStatus` | 1 test merah — motor nyangkut `sold` |
+
+Ini juga membuktikan dua hal yang tadinya hanya hasil pembacaan kode:
+key error `data.vin` **benar-benar tampil** di field Nomor Rangka
+(`assertHasFormErrors(['vin'])` lulus), dan seluruh migrasi termasuk tiga yang
+baru **jalan bersih di MySQL/MariaDB**.
+
+### Yang masih belum diuji
+
+Render visual di browser (tata letak, notifikasi, upload foto). Logika dan
+alur datanya sudah tertutup test.
 
 ---
 
@@ -320,21 +364,18 @@ diperbaiki.
    lalu ambil snapshot sesudahnya dan bandingkan (perintah lengkap di bagian
    Tahap 6 di atas). Cek juga apakah memang ada motor dengan >1 purchase — kalau
    ada tapi tidak ada angka yang berubah, backfill-nya tidak kena sasaran.
-3. **Uji alur lewat UI** untuk kasus nyata yang dilaporkan user:
-   beli → jual sampai `selesai` → buyback → jual lagi. Pastikan motornya muncul
-   kembali di dropdown Penjualan dan sale kedua tersimpan tanpa error.
-4. **Uji penolakan**: buyback motor yang sale-nya masih `kirim` — pesan merah
-   harus muncul **di sebelah field Nomor Rangka**, bukan hilang tanpa jejak.
-5. **Uji pelanggan lama**: buat penjualan untuk customer yang sudah ada dan isi
-   NIK-nya. Harus tersimpan, dan NIK/alamat/IG/TikTok lama tidak boleh hilang.
-6. **Uji batal setelah buyback**: setelah motor buyback dijual lagi, batalkan
-   penjualannya. Motor harus kembali `available` dan muncul lagi di dropdown —
-   bukan nyangkut di `sold`.
-7. **Bandingkan halaman Sales Report dengan tabel Penjualan.** Angka
+3. **Alur UI sudah tertutup `BuybackUiFlowTest`** (6 skenario, diuji-mutasi):
+   siklus penuh buyback, penolakan saat pengiriman berjalan, pelanggan lama,
+   dan pembatalan setelah buyback. Cukup jalankan sekali untuk memastikan
+   environment server juga hijau:
+   `php vendor/bin/phpunit -c phpunit.uitest.xml`
+4. **Sisakan pengecekan visual di browser** — tata letak, notifikasi, upload
+   foto. Logika dan alur datanya sudah tertutup test.
+5. **Bandingkan halaman Sales Report dengan tabel Penjualan.** Angka
    H TOTAL PEMBELIAN dan LABA BERSIH sekarang harus sama persis di keduanya.
    Kalau laporan lama sudah terlanjur dipakai, angkanya akan bergeser —
    modal sekarang termasuk biaya tambahan, jadi laba akan **turun**.
-8. **Putuskan `DeleteBulkAction` di `VehiclesTable`** — lihat temuan di bagian
+6. **Putuskan `DeleteBulkAction` di `VehiclesTable`** — lihat temuan di bagian
    Tahap 9. Menghapus motor lewat UI saat ini ikut menghapus seluruh riwayat
    penjualannya secara permanen.
 

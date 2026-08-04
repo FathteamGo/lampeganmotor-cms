@@ -25,8 +25,9 @@ class EditVehicle extends EditRecord
     {
         return [
             Actions\ViewAction::make(),
-            Actions\DeleteAction::make()
-                ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
+            // Matikan hapus motor, karena soft-deletes dihapus
+            // Actions\DeleteAction::make()
+            //     ->visible(fn () => Filament::auth()->user()?->role === 'owner'),
         ];
     }
 

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Konfigurasi khusus untuk test alur UI (halaman Filament).
+
+  Test ini menjalankan halaman Filament yang sebenarnya lewat Livewire, jadi
+  butuh database MySQL/MariaDB — sebagian migrasi project memakai sintaks
+  MySQL-only (ALTER TABLE ... MODIFY COLUMN ... ENUM) yang tidak jalan di SQLite.
+
+  Cara pakai:
+    docker compose up -d mysql
+    docker exec lampegan-mysql mariadb -uroot -proot \
+      -e "CREATE DATABASE IF NOT EXISTS lampeganmotor_uitest"
+    vendor/bin/phpunit -c phpunit.uitest.xml
+
+  PENTING: DB_DATABASE di bawah WAJIB database khusus test. RefreshDatabase
+  menjalankan migrate:fresh — mengarahkannya ke database produksi akan
+  menghapus seluruh data. BuybackUiFlowTest punya guard yang menolak jalan
+  kalau nama databasenya tidak mengandung "uitest".
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="UiFlow">
+            <file>tests/Feature/BuybackUiFlowTest.php</file>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_PORT" value="3307"/>
+        <env name="DB_DATABASE" value="lampeganmotor_uitest"/>
+        <env name="DB_USERNAME" value="root"/>
+        <env name="DB_PASSWORD" value="root"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>

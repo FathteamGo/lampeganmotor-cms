@@ -33,3 +33,5 @@ pnpm-lock.yaml
 
 # Local deployment scripts
 
+restart.sh
+stop.sh

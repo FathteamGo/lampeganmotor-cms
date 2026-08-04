@@ -168,9 +168,9 @@ class VehiclesTable
                 EditAction::make()->label(__('tables.edit')),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make()->label(__('tables.delete')),
-                ]),
+                // BulkActionGroup::make([
+                //     DeleteBulkAction::make()->label(__('tables.delete')),
+                // ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->paginationPageOptions([10, 25, 50, 100, 200]);

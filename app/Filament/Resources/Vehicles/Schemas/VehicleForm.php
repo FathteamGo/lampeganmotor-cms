@@ -205,7 +205,7 @@ class VehicleForm
                         $value === 'available' &&
                         $record &&
                         \App\Models\Sale::where('vehicle_id', $record->id)
-                            ->where('status', '!=', 'cancel')
+                            ->whereIn('status', \App\Models\Vehicle::LOCKING_SALE_STATUSES)
                             ->exists()
                     )
                     ->validationAttribute('Status'),

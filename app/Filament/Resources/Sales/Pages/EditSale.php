@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Sales\Pages;
 
 use App\Filament\Resources\Sales\SaleResource;
 use App\Models\Customer;
-use App\Models\Sale;
+use App\Models\Vehicle;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Validation\ValidationException;
 
@@ -37,14 +37,25 @@ class EditSale extends EditRecord
     {
         // Update data customer
         if ($this->record->customer_id && !empty($data['customer_name'])) {
-            Customer::where('id', $this->record->customer_id)->update([
-                'name'      => trim($data['customer_name']),
-                'nik'       => $data['customer_nik'] ?? null,
-                'phone'     => $data['customer_phone'] ?? null,
-                'address'   => $data['customer_address'] ?? null,
-                'instagram' => $data['customer_instagram'] ?? null,
-                'tiktok'    => $data['customer_tiktok'] ?? null,
-            ]);
+            $customer = Customer::find($this->record->customer_id);
+            if ($customer) {
+                $customer->name = trim($data['customer_name']);
+
+                // No. telepon ikut field form apa adanya (boleh dikosongkan),
+                // karena field-nya memang selalu ada di form penjualan.
+                if (array_key_exists('customer_phone', $data)) {
+                    $customer->phone = filled($data['customer_phone']) ? trim($data['customer_phone']) : null;
+                }
+
+                // Sisanya hanya ditimpa kalau benar-benar diisi — jangan sampai
+                // data master customer terhapus hanya karena field dikosongkan.
+                foreach (['nik', 'address', 'instagram', 'tiktok'] as $field) {
+                    if (!empty($data["customer_{$field}"])) {
+                        $customer->{$field} = $data["customer_{$field}"];
+                    }
+                }
+                $customer->save();
+            }
         }
 
         // --- LOGIKA STATUS ---
@@ -52,27 +63,38 @@ class EditSale extends EditRecord
         $newStatus = $data['status'] ?? null;
         $currentStatus = $this->record->status;
 
-        // Jika record ini sudah cancel, jangan ubah statusnya
+        // Jika record ini sudah cancel, jangan ubah statusnya.
+        // Key error HARUS ber-prefix 'data.' (state path form Filament),
+        // tanpa itu pesannya tidak tampil di sebelah field.
         if ($currentStatus === 'cancel' && $newStatus && $newStatus !== 'cancel') {
-            session()->flash('error', 'Status motor ini sudah dibatalkan dan tidak bisa diubah lagi.');
             throw ValidationException::withMessages([
-                'status' => "Status motor yang sudah dibatalkan tidak bisa diubah lagi.",
+                'data.status' => "Status motor yang sudah dibatalkan tidak bisa diubah lagi.",
             ]);
         }
 
         // Cek duplicate untuk status aktif (proses, kirim, selesai) di motor yang sama
-        if ($newStatus && in_array($newStatus, ['proses', 'kirim', 'selesai'])) {
-            $existingActive = Sale::where('vehicle_id', $this->record->vehicle_id)
-                ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                ->where('id', '!=', $this->record->id)
-                ->first();
+        if ($newStatus && in_array($newStatus, Vehicle::LOCKING_SALE_STATUSES)) {
+            $running = Vehicle::find($this->record->vehicle_id)
+                ?->runningSale(exceptSaleId: $this->record->id);
 
-            if ($existingActive) {
-                session()->flash('warning', "Motor ini sudah dijual kepada customer: {$existingActive->customer_name}");
+            if ($running) {
                 throw ValidationException::withMessages([
-                    'status' => "Motor ini sudah dijual kepada customer: {$existingActive->customer_name}.",
+                    'data.status' => "Motor ini sedang dalam penjualan berjalan atas nama "
+                              . ($running->customer?->name ?? 'customer') . ".",
                 ]);
             }
+        }
+
+        // Hitung ulang purchase_id — motor dan/atau tanggal jual bisa diubah di sini,
+        // dan laba harus tetap mengacu ke pembelian yang benar.
+        $vehicleId = $data['vehicle_id'] ?? $this->record->vehicle_id;
+        $resolvedPurchaseId = Vehicle::find($vehicleId)
+            ?->purchaseForSaleDate($data['sale_date'] ?? $this->record->sale_date)?->id;
+
+        // Jangan hapus purchase_id yang sudah ada hanya karena lookup gagal,
+        // kecuali motornya memang diganti.
+        if ($resolvedPurchaseId || (int) $vehicleId !== (int) $this->record->vehicle_id) {
+            $data['purchase_id'] = $resolvedPurchaseId;
         }
 
         // Tambahkan catatan otomatis jika status cancel

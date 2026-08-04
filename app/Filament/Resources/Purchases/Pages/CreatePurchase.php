@@ -11,27 +11,19 @@ use App\Models\Year;
 use App\Models\Brand;
 use App\Models\VehiclePhoto;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
 use Illuminate\Validation\ValidationException;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
-use Illuminate\Support\Facades\Log; //  TAMBAHKAN INI
+use Illuminate\Support\Facades\Log;
 
 class CreatePurchase extends CreateRecord
 {
     protected static string $resource = PurchaseResource::class;
 
+    /** Apakah pembelian ini buyback/restock motor yang sudah pernah terdaftar */
+    protected bool $isBuyback = false;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        //  LOG 1: Data mentah dari form
-        Log::info('=== DATA MENTAH DARI FORM ===', [
-            'all_keys' => array_keys($data),
-            'vehicle_photos_exists' => isset($data['vehicle_photos']),
-            'vehicle_photos_count' => isset($data['vehicle_photos']) ? count($data['vehicle_photos']) : 0,
-            'full_data' => $data,
-        ]);
-
         // Buatkan logic jika category additional costs tidak ada make default Tidak Ada
         if (empty($data['additionalCosts'])) {
             $data['additionalCosts'] = [
@@ -42,58 +34,26 @@ class CreatePurchase extends CreateRecord
             ];
         }
 
-        //  LOG 2: Sebelum validasi
-        Log::info('=== SEBELUM VALIDASI VIN/ENGINE ===');
-
         try {
-            $exist = false;
-            // Validasi VIN dan Engine Number
-            if (Vehicle::where('vin', $data['vin'])->exists()) {
-                $exist = true;
-                // Log::warning('VIN sudah terdaftar', ['vin' => $data['vin']]);
-                // throw ValidationException::withMessages([
-                //     'vin' => 'Nomor rangka sudah terdaftar',
-                // ]);
-            }
+            // Cek apakah kendaraan sudah terdaftar (buyback / restock)
+            $exist = Vehicle::where('vin', $data['vin'])->exists()
+                || Vehicle::where('engine_number', $data['engine_number'])->exists();
 
-            if (Vehicle::where('engine_number', $data['engine_number'])->exists()) {
-                 $exist = true;
-                // Log::warning('Engine number sudah terdaftar', ['engine_number' => $data['engine_number']]);
-                // throw ValidationException::withMessages([
-                //     'engine_number' => 'Nomor mesin sudah terdaftar',
-                // ]);
-            }
-
-            //  LOG 3: Sebelum create master data
-            Log::info('=== MULAI CREATE MASTER DATA ===');
+            $this->isBuyback = $exist;
 
             // Buat atau ambil data master
             $brand = Brand::firstOrCreate(['name' => $data['brand_name']]);
-            Log::info('Brand created/found', ['id' => $brand->id, 'name' => $brand->name]);
 
             $model = VehicleModel::firstOrCreate([
                 'name' => $data['vehicle_model_name'],
                 'brand_id' => $brand->id,
             ]);
-            Log::info('Model created/found', ['id' => $model->id, 'name' => $model->name]);
 
             $type = Type::firstOrCreate(['name' => $data['type_name']]);
             $color = Color::firstOrCreate(['name' => $data['color_name']]);
             $year = Year::firstOrCreate(['year' => $data['year_name']]);
 
-            //  LOG 4: Sebelum create vehicle
-            Log::info('=== MULAI CREATE VEHICLE ===', [
-                'vehicle_data' => [
-                    'vehicle_model_id' => $model->id,
-                    'type_id' => $type->id,
-                    'color_id' => $color->id,
-                    'year_id' => $year->id,
-                    'vin' => $data['vin'],
-                    'engine_number' => $data['engine_number'],
-                ]
-            ]);
-
-            if($exist == false) {
+            if ($exist == false) {
             // Buat Vehicle
                 $vehicle = Vehicle::create([
                 'vehicle_model_id' => $model->id,
@@ -119,14 +79,21 @@ class CreatePurchase extends CreateRecord
                             ->orWhere('engine_number', $data['engine_number'])
                             ->first();
 
-                // Cek apakah kendaraan masih punya active sale (non-cancel)
-                // Jika ada, JANGAN rubah status - kendaraan masih dalam proses penjualan
-                $hasActiveSale = \App\Models\Sale::where('vehicle_id', $vehicle->id)
-                    ->where('status', '!=', 'cancel')
-                    ->exists();
+                // Cek apakah kendaraan masih punya penjualan yang sedang berjalan.
+                // Jika ada, batalkan buyback. Sale 'selesai' adalah syarat sah buyback.
+                // Key error HARUS ber-prefix 'data.' — itu state path form Filament,
+                // tanpa prefix pesannya tidak akan tampil di sebelah field.
+                $runningSale = $vehicle->runningSale();
+
+                if ($runningSale) {
+                    throw ValidationException::withMessages([
+                        'data.vin' => "Motor ini masih dalam penjualan berjalan atas nama "
+                               . ($runningSale->customer?->name ?? 'customer') . " (status: {$runningSale->status}). "
+                               . "Selesaikan atau batalkan penjualan tersebut sebelum melakukan pembelian kembali.",
+                    ]);
+                }
 
                 // UPDATE DATA KENDARAAN EXISTING (BUYBACK / RESTOCK)
-                // Hanya ubah status ke 'available' jika tidak ada active sale
                 $updateData = [
                     // Update spesifikasi fisik (jika ada perubahan/koreksi input)
                     'vehicle_model_id' => $model->id,
@@ -148,48 +115,25 @@ class CreatePurchase extends CreateRecord
                     'notes' => $data['vehicle_notes'] ?? $vehicle->notes,
                 ];
 
-                // Hanya set available jika tidak ada active sale
-                if (!$hasActiveSale) {
-                    $updateData['status'] = 'available';
-                    Log::info('Vehicle buyback approved - status set to available', [
-                        'vehicle_id' => $vehicle->id,
-                        'license_plate' => $vehicle->license_plate
-                    ]);
-                } else {
-                    Log::info('Vehicle buyback blocked - has active sale', [
-                        'vehicle_id' => $vehicle->id,
-                        'license_plate' => $vehicle->license_plate,
-                        'status' => 'sold'
-                    ]);
-                }
+                // Buyback disetujui — motor kembali jadi stok showroom
+                $updateData['status'] = 'available';
 
                 $vehicle->update($updateData);
+
+                Log::info('Buyback disetujui, status kendaraan kembali available', [
+                    'vehicle_id' => $vehicle->id,
+                    'license_plate' => $vehicle->license_plate,
+                ]);
             }
 
-            Log::info('Vehicle created successfully', ['vehicle_id' => $vehicle->id]);
-
-            //  LOG 5: Sebelum simpan foto
-            Log::info('=== MULAI SIMPAN FOTO ===', [
-                'has_vehicle_photos' => !empty($data['vehicle_photos']),
-                'photo_count' => !empty($data['vehicle_photos']) ? count($data['vehicle_photos']) : 0,
-                'photos_data' => $data['vehicle_photos'] ?? null,
-            ]);
-
             if (!empty($data['vehicle_photos'])) {
-                foreach ($data['vehicle_photos'] as $index => $photoData) {
-                    Log::info("Processing photo #{$index}", [
-                        'has_path' => !empty($photoData['path']),
-                        'path' => $photoData['path'] ?? null,
-                        'caption' => $photoData['caption'] ?? null,
-                    ]);
-
+                foreach ($data['vehicle_photos'] as $photoData) {
                     if (!empty($photoData['path'])) {
-                        $photo = VehiclePhoto::create([
+                        VehiclePhoto::create([
                             'vehicle_id' => $vehicle->id,
                             'path' => $photoData['path'],
                             'caption' => $photoData['caption'] ?? null,
                         ]);
-                        Log::info("Photo #{$index} saved", ['photo_id' => $photo->id]);
                     }
                 }
             }
@@ -197,22 +141,11 @@ class CreatePurchase extends CreateRecord
             // Set vehicle_id untuk Purchase
             $data['vehicle_id'] = $vehicle->id;
 
-            //  LOG 6: Hitung total
             $additionalTotal = collect($data['additionalCosts'] ?? [])
                 ->sum(fn ($item) => intval($item['price'] ?? 0));
 
-            Log::info('=== CALCULATE TOTAL ===', [
-                'purchase_price' => $data['purchase_price'],
-                'additional_total' => $additionalTotal,
-            ]);
-
             // Hitung total_price (harga beli + biaya tambahan)
             $data['total_price'] = intval($data['purchase_price']) + $additionalTotal;
-
-            //  LOG 7: Sebelum unset fields
-            Log::info('=== SEBELUM UNSET FIELDS ===', [
-                'all_keys_before' => array_keys($data),
-            ]);
 
             // Hapus field yang tidak perlu disimpan ke tabel purchases
             unset($data['vehicle_photos']);
@@ -230,19 +163,15 @@ class CreatePurchase extends CreateRecord
             unset($data['license_plate']);
             unset($data['bpkb_number']);
 
-            //  LOG 8: Data final yang akan disimpan ke purchases
-            Log::info('=== DATA FINAL UNTUK PURCHASES ===', [
-                'all_keys_after' => array_keys($data),
-                'final_data' => $data,
-            ]);
-
+        } catch (ValidationException $e) {
+            // Penolakan yang sah (mis. buyback motor yang masih dalam pengiriman).
+            // Bukan error aplikasi — jangan dicatat sebagai error.
+            throw $e;
         } catch (\Exception $e) {
-            //  LOG ERROR
-            Log::error('=== ERROR SAAT CREATE PURCHASE ===', [
+            Log::error('Gagal menyimpan pembelian', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;
@@ -251,31 +180,13 @@ class CreatePurchase extends CreateRecord
         return $data;
     }
 
-    //  LOG 9: Setelah berhasil create
-    protected function afterCreate(): void
-    {
-        Log::info('=== PURCHASE CREATED SUCCESSFULLY ===', [
-            'purchase_id' => $this->record->id,
-            'vehicle_id' => $this->record->vehicle_id,
-        ]);
-    }
-
-    //  LOG 10: Jika ada validation error
-    protected function onValidationError(\Illuminate\Validation\ValidationException $exception): void
-    {
-        Log::error('=== VALIDATION ERROR ===', [
-            'errors' => $exception->errors(),
-            'message' => $exception->getMessage(),
-        ]);
-
-        parent::onValidationError($exception);
-    }
-
     protected function getCreatedNotification(): ?Notification
     {
         return Notification::make()
             ->title('Data Pembelian Berhasil Disimpan!')
-            ->body('Kendaraan baru berhasil ditambahkan ke daftar.')
+            ->body($this->isBuyback
+                ? 'Motor dibeli kembali dan statusnya kembali tersedia — sudah bisa dijual lagi.'
+                : 'Kendaraan baru berhasil ditambahkan ke daftar.')
             ->success();
     }
 }

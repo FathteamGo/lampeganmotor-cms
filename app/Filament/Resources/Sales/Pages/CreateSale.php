@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Sales\Pages;
 
 use App\Filament\Resources\Sales\SaleResource;
 use App\Models\Customer;
-use App\Models\Sale;
+use App\Models\Vehicle;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 
@@ -30,34 +30,52 @@ class CreateSale extends CreateRecord
 
         // Validasi: kendaraan tidak boleh punya active sale
         if (!empty($data['vehicle_id'])) {
-            $hasActiveSale = Sale::where('vehicle_id', $data['vehicle_id'])
-                ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                ->exists();
+            $vehicle = Vehicle::find($data['vehicle_id']);
 
-            if ($hasActiveSale) {
-                Notification::make()
-                    ->title('Error!')
-                    ->body('Kendaraan ini sudah ada penjualan aktif.')
-                    ->danger()
-                    ->send();
-
+            if (! $vehicle) {
+                Notification::make()->title('Error!')
+                    ->body('Kendaraan tidak ditemukan.')->danger()->send();
                 $this->halt();
             }
+
+            $running = $vehicle->runningSale();
+            if ($running) {
+                Notification::make()
+                    ->title('Motor sedang dalam transaksi')
+                    ->body("Motor ini masih terikat penjualan berjalan atas nama "
+                         . ($running->customer?->name ?? 'customer')
+                         . " (status: {$running->status}).")
+                    ->danger()->send();
+                $this->halt();
+            }
+
+            if ($vehicle->status !== 'available') {
+                Notification::make()
+                    ->title('Motor belum tersedia')
+                    ->body("Status motor saat ini: {$vehicle->status}. "
+                         . "Untuk motor buyback, input data Pembelian terlebih dahulu.")
+                    ->danger()->send();
+                $this->halt();
+            }
+
+            // Ikat sale ke pembelian yang jadi modalnya, supaya laba motor buyback
+            // dihitung terhadap harga beli siklus ini — bukan siklus sebelumnya.
+            $data['purchase_id'] = $vehicle->purchaseForSaleDate($data['sale_date'] ?? null)?->id;
         }
 
         // Create atau update customer
-        $customer = Customer::updateOrCreate(
-            [
-                'name'  => trim($data['customer_name']),
-                'phone' => !empty($data['customer_phone']) ? trim($data['customer_phone']) : null,
-            ],
-            [
-                'nik'       => $data['customer_nik'] ?? null,
-                'address'   => $data['customer_address'] ?? null,
-                'instagram' => $data['customer_instagram'] ?? null,
-                'tiktok'    => $data['customer_tiktok'] ?? null,
-            ]
-        );
+        $customer = Customer::firstOrNew([
+            'name'  => trim($data['customer_name']),
+            'phone' => !empty($data['customer_phone']) ? trim($data['customer_phone']) : null,
+        ]);
+
+        // Hanya isi field yang benar-benar dikirim & tidak kosong
+        foreach (['nik', 'address', 'instagram', 'tiktok'] as $field) {
+            if (!empty($data["customer_{$field}"])) {
+                $customer->{$field} = $data["customer_{$field}"];
+            }
+        }
+        $customer->save();
 
         // Set customer_id
         $data['customer_id'] = $customer->id;

@@ -12,12 +12,12 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
-        'vehicle_id', 'customer_id', 'user_id',
+        'vehicle_id', 'purchase_id', 'customer_id', 'user_id',
         'sale_date', 'sale_price', 'payment_method',
         'leasing', 'remaining_payment', 'due_date', 'cmo',
         'cmo_fee', 'direct_commission', 'order_source',
         'branch_name', 'result', 'status', 'notes',
-        'dp_po', 'dp_real',
+        'dp_po', 'dp_real', 'payment_to_customer',
     ];
 
     protected $casts = [
@@ -29,6 +29,7 @@ class Sale extends Model
         'direct_commission' => 'decimal:2',
         'dp_po' => 'decimal:2',
         'dp_real' => 'decimal:2',
+        'payment_to_customer' => 'decimal:2',
     ];
 
     protected $appends = ['pencairan', 'harga_total_penjualan', 'laba_bersih'];
@@ -41,7 +42,7 @@ class Sale extends Model
     public function user() { return $this->belongsTo(User::class, 'user_id'); }
     public function incomes() { return $this->hasMany(Income::class, 'sale_id'); }
     public function expenses() { return $this->hasMany(Expense::class, 'sale_id'); }
-    public function purchase() { return $this->hasOne(Purchase::class, 'vehicle_id', 'vehicle_id'); }
+    public function purchase() { return $this->belongsTo(Purchase::class, 'purchase_id'); }
 
     // =======================
     // SCOPES
@@ -160,10 +161,15 @@ class Sale extends Model
      * Sinkronisasi status vehicle berdasarkan sales records
      *
      * Logic:
-     * - Sale 'proses'/'kirim'/'selesai' → vehicle status = 'sold'
-     *   (selesai = motor sudah dijual & dikirim ke customer, tetap sold)
-     * - Semua sale 'cancel' atau tidak ada sale → TETAP seperti sekarang
-     *   (jangan otomatis available, hanya buyback yang boleh set available)
+     * - Ada sale 'proses'/'kirim'/'selesai' DI SIKLUS KEPEMILIKAN SAAT INI
+     *   → vehicle status = 'sold'
+     * - Tidak ada → 'available', kecuali status khusus ('in_repair'/'hold')
+     *
+     * PENTING: satu motor bisa berputar berkali-kali (buyback), jadi yang dilihat
+     * hanya sale milik siklus berjalan — yaitu sale yang terikat ke pembelian
+     * terakhir. Tanpa batasan ini, sale 'selesai' dari siklus lama akan terus
+     * menahan motor di status 'sold' walaupun motornya sudah dibeli kembali dan
+     * penjualan barunya dibatalkan.
      */
     public static function syncVehicleStatus($vehicleId)
     {
@@ -175,17 +181,40 @@ class Sale extends Model
 
             // Hitung sale yang menandakan motor sudah terjual
             // proses = sedang proses, kirim = sedang dikirim, selesai = sudah sampai customer
-            $soldCount = Sale::where('vehicle_id', $vehicleId)
-                ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                ->count();
+            $query = Sale::where('vehicle_id', $vehicleId)
+                ->whereIn('status', ['proses', 'kirim', 'selesai']);
 
-            if ($soldCount >= 1) {
+            $latestPurchase = $vehicle->purchases()
+                ->orderByDesc('purchase_date')
+                ->orderByDesc('id')
+                ->first();
+
+            // Batasi ke siklus kepemilikan saat ini. Kalau motor belum punya data
+            // pembelian sama sekali, tidak ada siklus yang bisa dipakai sebagai
+            // acuan — pakai seluruh riwayat seperti sebelumnya.
+            if ($latestPurchase) {
+                $query->where(function ($q) use ($latestPurchase) {
+                    $q->where('purchase_id', $latestPurchase->id)
+                        // Data lama yang purchase_id-nya kosong: pakai tanggal
+                        // sebagai penentu siklus.
+                        ->orWhere(fn($q2) => $q2
+                            ->whereNull('purchase_id')
+                            ->whereDate('sale_date', '>=', $latestPurchase->purchase_date)
+                        );
+                });
+            }
+
+            $hasSoldSale = $query->exists();
+
+            if ($hasSoldSale) {
                 $newStatus = 'sold';
             } else {
-                // Semua sale cancel atau tidak ada sale
-                // Jangan ubah status - biarkan apa adanya
-                // Hanya buyback (CreatePurchase) yang boleh set available
-                return;
+                // Semua sale cancel / tidak ada sale.
+                // Jangan ganggu status khusus yang di-set manual operator.
+                if (in_array($vehicle->status, ['in_repair', 'hold'])) {
+                    return;
+                }
+                $newStatus = 'available';
             }
 
             // Update hanya jika status berbeda

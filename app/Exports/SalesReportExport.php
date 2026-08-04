@@ -39,6 +39,7 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
                 'vehicle.type',
                 'vehicle.color',
                 'vehicle.year',
+                'purchase.additionalCosts',
                 'user'
             ])
             ->get();
@@ -61,30 +62,29 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
     {
         $this->rowNumber++;
 
-        $purchasePrice = $sale->vehicle?->purchase_price ?? 0;
-        $salePrice     = $sale->sale_price ?? 0;
-        $dpPo          = $sale->dp_po ?? 0;
-        $dpReal        = $sale->dp_real ?? 0;
-        $cmoFee        = $sale->cmo_fee ?? 0;
-        $directCommission = $sale->direct_commission ?? 0;
+        $isCancel = $sale->status === 'cancel';
 
-        // 🔹 Kalau status cancel, set semua nilai transaksi ke 0
-        if ($sale->status === 'cancel') {
-            $salePrice = $dpPo = $dpReal = $cmoFee = $directCommission = 0;
+        $salePrice        = $isCancel ? 0 : (float) ($sale->sale_price ?? 0);
+        $dpPo             = $isCancel ? 0 : (float) ($sale->dp_po ?? 0);
+        $dpReal           = $isCancel ? 0 : (float) ($sale->dp_real ?? 0);
+        $cmoFee           = $isCancel ? 0 : (float) ($sale->cmo_fee ?? 0);
+        $directCommission = $isCancel ? 0 : (float) ($sale->direct_commission ?? 0);
+
+        // 🔹 Modal = harga beli SIKLUS INI + biaya tambahannya (STNK, pajak, servis, dst).
+        // Ambil dari purchase yang terikat ke sale, bukan dari vehicle.purchase_price —
+        // kolom itu ditimpa setiap kali motor dibeli kembali (buyback), sehingga
+        // penjualan siklus lama akan dihitung terhadap harga beli siklus baru.
+        $purchase = $sale->purchase;
+        $hargaTotalPembelian = $purchase ? (float) $purchase->grand_total : 0;
+        if ($hargaTotalPembelian == 0) {
+            $hargaTotalPembelian = (float) ($sale->vehicle?->purchase_price ?? 0);
         }
 
-        // 🔹 Hitung Harga Total Penjualan
-        // Credit (ada DP PO/CMO): HTP = OTR - DP PO + DP REAL
-        // Cash/Cash Tempo (tanpa CMO): HTP = OTR (sisa = uang mengendap)
-        if ($sale->payment_method === 'credit') {
-            $hargaTotalPenjualan = $salePrice - $dpPo + $dpReal;
-        } else {
-            $hargaTotalPenjualan = $salePrice;
-        }
-        $pencairan = $hargaTotalPenjualan; // untuk kolom export
-
-        // 🔹 Hitung Laba Bersih = Harga Total Penjualan - Modal - CMO - Sales
-        $labaBersih = $hargaTotalPenjualan - $purchasePrice - $cmoFee - $directCommission;
+        // 🔹 Harga Total Penjualan & Laba Bersih diambil dari accessor model Sale
+        // supaya angkanya identik dengan tabel Penjualan, dashboard, dan P&L.
+        $hargaTotalPenjualan = $isCancel ? 0 : (float) $sale->harga_total_penjualan;
+        $labaBersih          = $isCancel ? 0 : (float) $sale->laba_bersih;
+        $pencairan           = $hargaTotalPenjualan; // untuk kolom export
 
         return [
             $this->rowNumber,
@@ -99,12 +99,14 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             $sale->vehicle?->year?->year ?? '-',
             $sale->vehicle?->vin ?? '-',
             $sale->vehicle?->license_plate ?? '-',
-            $purchasePrice,
+            $hargaTotalPembelian,
             $salePrice,
             $dpPo,
             $dpReal,
             $pencairan,
-            $salePrice,
+            // Kolom "TOTAL PENJUALAN" sebelumnya mengulang OTR, sehingga LABA BERSIH
+            // tidak bisa direkonsiliasi dari baris ini untuk penjualan credit.
+            $hargaTotalPenjualan,
             $labaBersih,
             match ($sale->payment_method) {
                 'cash' => 'Cash',

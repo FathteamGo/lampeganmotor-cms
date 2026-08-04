@@ -1,7 +1,8 @@
 <?php
 namespace App\Filament\Resources\Sales\Schemas;
 
-use App\Models\Sale;
+use App\Models\Cmo;
+use App\Models\Customer;
 use App\Models\User;
 use App\Models\Vehicle;
 use Filament\Forms\Components\DatePicker;
@@ -10,7 +11,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section as ComponentsSection;
 use Filament\Schemas\Schema;
-use Illuminate\Validation\ValidationException;
 
 class SaleForm
 {
@@ -49,20 +49,20 @@ class SaleForm
                 })
                 ->required()
                 ->searchable()
-                ->afterStateUpdated(function ($state) {
-                    if (! $state) {
-                        return;
-                    }
-
-                    $exists = Sale::where('vehicle_id', $state)
-                        ->whereIn('status', ['proses', 'kirim', 'selesai'])
-                        ->exists();
-
-                    if ($exists) {
-                        throw ValidationException::withMessages([
-                            'vehicle_id' => 'Motor ini masih terikat dengan penjualan aktif (belum cancel).',
-                        ]);
-                    }
+                ->live()
+                ->rule(function ($record) {
+                    return function (string $attribute, $value, \Closure $fail) use ($record) {
+                        $vehicle = Vehicle::find($value);
+                        if (! $vehicle) {
+                            $fail('Kendaraan tidak ditemukan.');
+                            return;
+                        }
+                        $running = $vehicle->runningSale(exceptSaleId: $record?->id);
+                        if ($running) {
+                            $fail("Motor ini masih terikat penjualan berjalan atas nama "
+                                . ($running->customer?->name ?? 'customer') . ".");
+                        }
+                    };
                 }),
 
             // Data Customer
@@ -70,6 +70,17 @@ class SaleForm
                 ->description('Data customer akan otomatis disimpan ke master Customer')
                 ->schema([
                     TextInput::make('customer_name')->label('Nama Customer')->required(),
+                    TextInput::make('customer_nik')
+                        ->label('NIK')
+                        // Customer yang dipakai di-resolve dari nama + telepon (lihat CreateSale).
+                        // Tanpa ignore ini, pelanggan lama yang beli lagi akan tertolak
+                        // dengan alasan "NIK sudah digunakan" — padahal itu NIK dirinya sendiri.
+                        ->rule(function ($record, $get) {
+                            $customerId = $record?->customer_id
+                                ?? self::resolveCustomerId($get('customer_name'), $get('customer_phone'));
+
+                            return \Illuminate\Validation\Rule::unique('customers', 'nik')->ignore($customerId);
+                        }),
                     TextInput::make('customer_phone')->label('No. Telepon')->tel(),
                     TextInput::make('customer_address')->label('Alamat'),
                     TextInput::make('customer_instagram')->label('Instagram'),
@@ -306,7 +317,7 @@ class SaleForm
                         ->required(),
                 ])
                 ->createOptionUsing(function (array $data) {
-                    return \App\Models\Cmo::create($data)->id;
+                    return Cmo::create($data)->id;
                 }),
 
             // Fee CMO dengan format ribuan
@@ -419,6 +430,18 @@ class SaleForm
                 ])
                 ->default('proses')
                 ->reactive()
+                ->rule(function ($record) {
+                    return function (string $attribute, $value, \Closure $fail) use ($record) {
+                        if ($record && in_array($value, Vehicle::LOCKING_SALE_STATUSES)) {
+                            $vehicle = Vehicle::find($record->vehicle_id);
+                            $running = $vehicle?->runningSale(exceptSaleId: $record->id);
+
+                            if ($running) {
+                                $fail("Motor ini sudah dijual kepada customer: " . ($running->customer?->name ?? 'customer') . ".");
+                            }
+                        }
+                    };
+                })
                 ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
 
                     // Hitung ulang remaining agar tidak null/non-numeric
@@ -428,21 +451,6 @@ class SaleForm
                         return;
                     }
 
-                    $vehicleId = $record->vehicle_id;
-
-                    if (in_array($state, ['kirim', 'selesai'])) {
-                        $existing = Sale::where('vehicle_id', $vehicleId)
-                            ->where('status', $state)
-                            ->where('id', '!=', $record->id)
-                            ->first();
-
-                        if ($existing) {
-                            throw ValidationException::withMessages([
-                                'status' => "Motor ini sudah dijual kepada customer: {$existing->customer_name}.",
-                            ]);
-                        }
-                    }
-
                     if ($state === 'cancel') {
                         $set('notes', trim(($get('notes') ?? '') . "\n[Dibatalkan pada " . now()->format('d M Y H:i') . "]"));
                     }
@@ -450,6 +458,28 @@ class SaleForm
 
             Textarea::make('notes')->label('Catatan')->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Cari id customer yang akan dipakai oleh sale ini.
+     *
+     * Kriterianya HARUS sama persis dengan firstOrNew() di CreateSale —
+     * kalau berbeda, validasi unik NIK bisa menolak customer yang sebenarnya sama.
+     */
+    private static function resolveCustomerId(?string $name, ?string $phone): ?int
+    {
+        $name = trim((string) $name);
+
+        if ($name === '') {
+            return null;
+        }
+
+        $phone = filled($phone) ? trim((string) $phone) : null;
+
+        return Customer::where('name', $name)
+            ->when($phone === null, fn($q) => $q->whereNull('phone'))
+            ->when($phone !== null, fn($q) => $q->where('phone', $phone))
+            ->value('id');
     }
 
     /**

@@ -32,7 +32,4 @@ auth.json
 pnpm-lock.yaml
 
 # Local deployment scripts
-start.sh
-stop.sh
-restart.sh
 

@@ -120,7 +120,11 @@ class DashboardStats extends BaseWidget
             );
 
         $asetLainnya = OtherAsset::sum('value');
-        $totalAset = $asetKendaraan + $asetLainnya;
+        $cashTempoMengendap = (float) Sale::valid()
+            ->where('payment_method', 'cash_tempo')
+            ->where('remaining_payment', '>', 0)
+            ->sum('remaining_payment');
+        $totalAset = $asetKendaraan + $asetLainnya + $cashTempoMengendap;
         // ========== RETURN STATISTICS ==========
         return [
             // UNIT
@@ -240,7 +244,7 @@ class DashboardStats extends BaseWidget
                 ->url(route('filament.admin.resources.other-assets.index')),
 
             Stat::make('Total Aset Keseluruhan', $rupiah($totalAset))
-                ->description('Akumulasi nilai seluruh aset')
+                ->description('Kendaraan + Aset Lain + Cash Tempo Mengendap')
                 ->descriptionIcon('heroicon-o-arrow-right-circle')
                 ->color('primary')
                 ->url(route('filament.admin.resources.other-assets.index')),

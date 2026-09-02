@@ -22,7 +22,10 @@ class AssetTable extends BaseWidget
         $piutangDiluar      = 0.0;
         $pencairanAdira     = 0.0;
         $avalist            = 0.0;
-        $asetSaldo          = 0.0;
+        $asetSaldo          = (float) \App\Models\Sale::valid()
+            ->where('payment_method', 'cash_tempo')
+            ->where('remaining_payment', '>', 0)
+            ->sum('remaining_payment');
         $total = $hartaTidakBergerak + $stokUnitBergerak + $piutangDiluar + $pencairanAdira + $avalist + $asetSaldo;
 
         // Gunakan array dengan key unik (ID-like) — wajib untuk tracking Livewire
@@ -32,7 +35,7 @@ class AssetTable extends BaseWidget
             3 => ['asset' => 'PIUTANG DILUAR', 'nominal' => $piutangDiluar],
             4 => ['asset' => 'PENCAIRAN ADIRA FINANCE', 'nominal' => $pencairanAdira],
             5 => ['asset' => 'AVALIST DAN STOK UNIT TIDAK BERGERAK', 'nominal' => $avalist],
-            6 => ['asset' => 'ASET BERUPA SALDO / UANG', 'nominal' => $asetSaldo],
+            6 => ['asset' => 'CASH TEMPO MENGENDAP', 'nominal' => $asetSaldo],
             7 => ['asset' => 'Total Asset', 'nominal' => $total],
         ];
 

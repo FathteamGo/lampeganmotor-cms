@@ -184,13 +184,17 @@ class SalesTable
                     ->form([
                         Select::make('year')
                             ->label('Tahun')
-                            ->options(
-                                DB::table('sales')
+                            ->options(function () {
+                                return DB::table('sales')
                                     ->selectRaw('YEAR(sale_date) as year')
                                     ->distinct()
-                                    ->orderBy('year', 'desc')
-                                    ->pluck('year', 'year')
-                            )
+                                    ->pluck('year')
+                                    ->push(now()->year)
+                                    ->unique()
+                                    ->sortDesc()
+                                    ->mapWithKeys(fn ($year) => [$year => $year]);
+                            })
+                            ->default(now()->year),
                     ])
                     ->query(function ($query, array $data) {
                         return $query->when($data['year'], fn($q) =>

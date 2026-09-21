@@ -13,7 +13,7 @@ php artisan view:cache
 # Buat symbolic link untuk folder storage
 php artisan storage:link --force || true
 mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache /var/log/nginx /tmp/nginx_client_body /tmp/nginx_fastcgi /tmp/nginx_proxy
-chmod -R 775 storage bootstrap/cache || true
+chmod -R 777 storage bootstrap/cache || true
 
 # Run database migrations automatically
 php artisan migrate --force || true

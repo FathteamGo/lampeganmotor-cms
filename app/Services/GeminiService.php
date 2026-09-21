@@ -17,7 +17,7 @@ class GeminiService implements AiServiceInterface
     public function generate(string $prompt): string
     {
         try {
-            $res = Http::timeout(60)->withHeaders([
+            $res = Http::timeout(15)->connectTimeout(5)->withHeaders([
                 'Content-Type' => 'application/json',
                 'X-goog-api-key' => config('services.gemini.key', env('GEMINI_API_KEY')),
             ])->post($this->endpoint, [

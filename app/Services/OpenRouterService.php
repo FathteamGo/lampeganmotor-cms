@@ -23,7 +23,7 @@ class OpenRouterService implements AiServiceInterface
     public function generate(string $prompt): string
     {
         try {
-            $res = Http::timeout(60)->withHeaders([
+            $res = Http::timeout(15)->connectTimeout(5)->withHeaders([
                 'Content-Type' => 'application/json',
                 'Authorization' => "Bearer {$this->apiKey}",
             ])->post($this->endpoint, [

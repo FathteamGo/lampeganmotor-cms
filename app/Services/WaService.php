@@ -38,8 +38,10 @@ class WaService
         ];
 
         try {
-            // Kirim request dengan Basic Auth
+            // Kirim request dengan Basic Auth dan timeout ketat agar tidak memblokir thread
             $res = Http::withBasicAuth($username, $password)
+                       ->timeout(10)
+                       ->connectTimeout(5)
                        ->withHeaders(['Content-Type' => 'application/json'])
                        ->post($url, $payload);
 

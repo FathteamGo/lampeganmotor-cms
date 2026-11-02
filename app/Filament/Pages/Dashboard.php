@@ -26,6 +26,7 @@ class Dashboard extends BaseDashboard
             Section::make('Filter Periode')->schema([
                 Select::make('month')
                     ->label('Bulan')
+                    ->live()
                     ->options([
                         '01' => 'Januari',
                         '02' => 'Februari',
@@ -44,6 +45,7 @@ class Dashboard extends BaseDashboard
 
                 Select::make('year')
                     ->label('Tahun')
+                    ->live()
                     ->options(function () use ($currentYear) {
                         $years = [];
                         for ($i = $currentYear; $i >= $currentYear - 5; $i--) {

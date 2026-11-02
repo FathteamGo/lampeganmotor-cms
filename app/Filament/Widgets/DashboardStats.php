@@ -17,6 +17,9 @@ class DashboardStats extends BaseWidget
 {
     use InteractsWithPageFilters;
 
+    /** Disable Livewire auto-polling agar filter tidak direset ke default */
+    protected static ?string $pollingInterval = null;
+
     protected function getColumns(): int
     {
         return 3;

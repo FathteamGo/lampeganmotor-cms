@@ -17,8 +17,8 @@ class DashboardStats extends BaseWidget
 {
     use InteractsWithPageFilters;
 
-    /** Disable Livewire auto-polling agar filter tidak direset ke default */
-    protected static ?string $pollingInterval = null;
+    /** Disable Livewire auto-polling agar filter tidak direset ke default (non-static di Filament v3) */
+    protected ?string $pollingInterval = null;
 
     protected function getColumns(): int
     {
